@@ -1,0 +1,83 @@
+/* Obsidian highlight ==text== */
+.obs-highlight {
+  background-color: hsl(51, 71%, 56%);
+}
+
+[data-theme='light'] .obs-highlight {
+  background-color: hsl(51, 80%, 56%);
+}
+
+/* Obsidian #tags */
+.obs-tag {
+  background-color: var(--sl-color-accent-low);
+  border-radius: 0.25rem;
+  border: 1px solid var(--sl-color-accent);
+  color: #fff;
+  font-family: var(--sl-font-system-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  padding: 0.25rem 0.375rem;
+}
+
+[data-theme='light'] .obs-tag {
+  background-color: var(--sl-color-accent-high, #4C3FB0);
+}
+
+/* Audio/video/PDF embeds */
+.obs-embed-audio {
+  width: 100%;
+}
+
+.obs-embed-pdf {
+  border: none;
+  height: 600px;
+  width: 100%;
+}
+
+/* Callouts */
+.callout {
+  border-left: 4px solid;
+  border-radius: 0.25rem;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+.callout .callout-title {
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.callout-note {
+  border-color: var(--sl-color-blue, #3b82f6);
+  background: var(--sl-color-blue-low, #172554);
+}
+
+.callout-note .callout-title {
+  color: var(--sl-color-blue-high, #60a5fa);
+}
+
+.callout-tip {
+  border-color: var(--sl-color-green, #22c55e);
+  background: var(--sl-color-green-low, #14532d);
+}
+
+.callout-tip .callout-title {
+  color: var(--sl-color-green-high, #4ade80);
+}
+
+.callout-caution {
+  border-color: var(--sl-color-orange, #eab308);
+  background: var(--sl-color-orange-low, #422006);
+}
+
+.callout-caution .callout-title {
+  color: var(--sl-color-orange-high, #fbbf24);
+}
+
+.callout-danger {
+  border-color: var(--sl-color-red, #ef4444);
+  background: var(--sl-color-red-low, #450a0a);
+}
+
+.callout-danger .callout-title {
+  color: var(--sl-color-red-high, #f87171);
+}

@@ -1,0 +1,16 @@
+{
+  "name": "create-kantip",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Scaffold a new kantip documentation site (`npm create kantip my-docs`).",
+  "bin": {
+    "create-kantip": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "template"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "kantip-workspace",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Workspace for the kantip docs engine and its scaffolder.",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build:engine": "npm run build -w kantip",
+    "build:starter": "npm run build -w examples/starter",
+    "dev:starter": "npm run dev -w examples/starter",
+    "typecheck": "npm run typecheck -w kantip"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

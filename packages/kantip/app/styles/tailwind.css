@@ -1,0 +1,227 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* Dark mode is class-based: <html class="dark"> toggled by the theme switch. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── shadcn neutral theme (default palette) ─────────────────────────────── */
+:root {
+	--radius: 0.625rem;
+	/* Brand color (#4C3FB0) — drives interactive elements: links, buttons, focus rings. */
+	--brand: oklch(0.42 0.158 286);
+	--background: oklch(1 0 0);
+	--foreground: oklch(0.145 0 0);
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.145 0 0);
+	--popover: oklch(1 0 0);
+	--popover-foreground: oklch(0.145 0 0);
+	--primary: var(--brand);
+	--primary-foreground: oklch(0.985 0 0);
+	--secondary: oklch(0.97 0 0);
+	--secondary-foreground: oklch(0.205 0 0);
+	--muted: oklch(0.97 0 0);
+	--muted-foreground: oklch(0.556 0 0);
+	--accent: oklch(0.97 0 0);
+	--accent-foreground: oklch(0.205 0 0);
+	--destructive: oklch(0.577 0.245 27.325);
+	--border: oklch(0.922 0 0);
+	--input: oklch(0.922 0 0);
+	--ring: oklch(0.708 0 0);
+	--sidebar: oklch(0.985 0 0);
+	--sidebar-foreground: oklch(0.145 0 0);
+	--sidebar-primary: oklch(0.205 0 0);
+	--sidebar-primary-foreground: oklch(0.985 0 0);
+	--sidebar-accent: oklch(0.97 0 0);
+	--sidebar-accent-foreground: oklch(0.205 0 0);
+	--sidebar-border: oklch(0.922 0 0);
+	--sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+	/* Lightened brand for contrast against the dark background. */
+	--brand: oklch(0.68 0.14 286);
+	--background: oklch(0.145 0 0);
+	--foreground: oklch(0.985 0 0);
+	--card: oklch(0.205 0 0);
+	--card-foreground: oklch(0.985 0 0);
+	--popover: oklch(0.205 0 0);
+	--popover-foreground: oklch(0.985 0 0);
+	--primary: var(--brand);
+	--primary-foreground: oklch(0.205 0 0);
+	--secondary: oklch(0.269 0 0);
+	--secondary-foreground: oklch(0.985 0 0);
+	--muted: oklch(0.269 0 0);
+	--muted-foreground: oklch(0.708 0 0);
+	--accent: oklch(0.269 0 0);
+	--accent-foreground: oklch(0.985 0 0);
+	--destructive: oklch(0.704 0.191 22.216);
+	--border: oklch(1 0 0 / 10%);
+	--input: oklch(1 0 0 / 15%);
+	--ring: oklch(0.556 0 0);
+	--sidebar: oklch(0.205 0 0);
+	--sidebar-foreground: oklch(0.985 0 0);
+	--sidebar-primary: oklch(0.488 0.243 264.376);
+	--sidebar-primary-foreground: oklch(0.985 0 0);
+	--sidebar-accent: oklch(0.269 0 0);
+	--sidebar-accent-foreground: oklch(0.985 0 0);
+	--sidebar-border: oklch(1 0 0 / 10%);
+	--sidebar-ring: oklch(0.556 0 0);
+}
+
+@theme inline {
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-background text-foreground;
+	}
+	:root {
+		--mobile-bar-height: 3.25rem;
+	}
+
+	/* Slim, unobtrusive scrollbars. Firefox. */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: var(--border) transparent;
+	}
+	/* WebKit/Blink. */
+	*::-webkit-scrollbar {
+		width: 6px;
+		height: 6px;
+	}
+	*::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	*::-webkit-scrollbar-thumb {
+		background-color: transparent;
+		border-radius: 9999px;
+	}
+	/* Reveal the thumb only while hovering the scrollable area. */
+	*:hover::-webkit-scrollbar-thumb {
+		background-color: var(--border);
+	}
+	*::-webkit-scrollbar-thumb:hover {
+		background-color: var(--muted-foreground);
+	}
+	*::-webkit-scrollbar-corner {
+		background: transparent;
+	}
+
+	/* Fully hide the native scrollbar (no track, no reserved space). Used by the
+	   tab strip, which renders its own overlay scrollbar that fades in on hover.
+	   Unlike the slim scrollbars above, this reserves zero layout space, so the
+	   tab text never shifts when tabs overflow. */
+	.scrollbar-none {
+		scrollbar-width: none;
+	}
+	.scrollbar-none::-webkit-scrollbar {
+		width: 0;
+		height: 0;
+		display: none;
+	}
+}
+
+/* While the theme is being toggled, kill all transitions/animations so every
+   element re-colors instantly (the theme-toggle adds `.theme-switching` to <html>
+   for one frame). Without this, elements carrying a hover `transition-colors` /
+   `transition-all` (search input, project switcher, home cards, buttons) animate
+   their color change and visibly lag behind the sidebar/content, which have no
+   transition. Unlayered + !important so it beats the utility-class transitions. */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+	transition: none !important;
+	animation: none !important;
+}
+
+/* Locate pulse: flashes the active sidebar row when "locate" is pressed. */
+.locate-flash {
+	animation: locate-pulse 1s ease-out;
+}
+@keyframes locate-pulse {
+	0% {
+		background-color: var(--primary);
+	}
+	100% {
+		background-color: var(--sidebar-accent);
+	}
+}
+
+/* ── Bridge: legacy --sl-* tokens → shadcn theme ─────────────────────────────
+   The generated markdown HTML and obsidian.css (callouts, tags, highlights)
+   still reference --sl-* variables. Rather than rewrite that generated content,
+   we redefine the tokens in terms of the shadcn neutral palette so the doc body
+   tracks the active theme and the dark/light toggle automatically. */
+:root {
+	--sl-color-white: var(--foreground);
+	--sl-color-gray-1: var(--foreground);
+	--sl-color-gray-2: var(--muted-foreground);
+	--sl-color-gray-3: var(--muted-foreground);
+	--sl-color-gray-4: var(--border);
+	--sl-color-gray-5: var(--border);
+	--sl-color-gray-6: var(--muted);
+	--sl-color-black: var(--background);
+
+	--sl-color-accent-low: var(--accent);
+	--sl-color-accent: var(--primary);
+	--sl-color-accent-high: var(--foreground);
+
+	--sl-color-bg-nav: var(--sidebar);
+	--sl-color-bg-sidebar: var(--sidebar);
+	--sl-color-bg-inline-code: var(--muted);
+	--sl-color-hairline-light: var(--border);
+	--sl-color-hairline: var(--border);
+	--sl-color-hairline-shade: var(--muted);
+	--sl-color-bg: var(--background);
+
+	/* Semantic colours used by obsidian callouts — kept as fixed hues so notes /
+	   tips / cautions / dangers stay legible in both themes. */
+	--sl-color-green-low: color-mix(in oklab, oklch(0.6 0.16 150) 12%, var(--background));
+	--sl-color-green: oklch(0.6 0.16 150);
+	--sl-color-green-high: oklch(0.72 0.17 150);
+	--sl-color-orange-low: color-mix(in oklab, oklch(0.7 0.16 70) 12%, var(--background));
+	--sl-color-orange: oklch(0.72 0.16 70);
+	--sl-color-orange-high: oklch(0.8 0.16 75);
+	--sl-color-blue-low: color-mix(in oklab, oklch(0.6 0.18 250) 12%, var(--background));
+	--sl-color-blue: oklch(0.6 0.18 250);
+	--sl-color-blue-high: oklch(0.72 0.16 250);
+	--sl-color-red-low: color-mix(in oklab, oklch(0.62 0.2 25) 12%, var(--background));
+	--sl-color-red: oklch(0.62 0.2 25);
+	--sl-color-red-high: oklch(0.72 0.18 25);
+
+	--sl-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--sl-font-system-mono: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+}
