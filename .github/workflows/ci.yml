@@ -1,0 +1,41 @@
+name: CI
+
+# Type-check + build the example on every push and PR to main, so breakages are
+# caught before a release tag is cut. Mirrors the release workflow's verify job.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Type-check & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type-check engine
+        run: npm run typecheck
+
+      - name: Build example
+        run: npm run build:starter
+
+      - name: Serve & smoke-test
+        run: |
+          PORT=3000 npm run start -w examples/starter &
+          SERVER_PID=$!
+          for i in $(seq 1 20); do
+            curl -fsS "http://localhost:3000/intro/" >/dev/null && break
+            sleep 1
+          done
+          curl -fsS "http://localhost:3000/intro/" | grep -q "Welcome to your docs"
+          kill $SERVER_PID

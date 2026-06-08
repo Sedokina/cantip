@@ -38,6 +38,7 @@ function transformBlockIdentifier(reference: Element, node: ElementContent | und
     return CONTINUE
   }
   node.value = node.value.slice(0, identifier.length * -1)
+  reference.properties = reference.properties ?? {}
   reference.properties['id'] = `block-${identifier.name}`
   return SKIP
 }

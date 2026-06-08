@@ -1,0 +1,80 @@
+name: Release
+
+# Publish both packages to npm when a v* tag is pushed (e.g. `git tag v0.1.1 &&
+# git push --tags`). A verify job builds + serves the example first; publish only
+# runs if that passes. Auth uses npm OIDC trusted publishing — no NPM_TOKEN
+# secret. (Configure each package's trusted publisher on npmjs.com once, after the
+# first manual publish; OIDC cannot create a brand-new package.)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  verify:
+    name: Verify build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Builds the engine dist/ via the workspace postinstall, links the example.
+      - run: npm ci
+
+      - name: Type-check engine
+        run: npm run typecheck
+
+      # Build the scaffold-generated example end-to-end (generate + Remix build).
+      - name: Build example
+        run: npm run build:starter
+
+      # Smoke-test the built server actually serves the sample page. Run via
+      # `npm run -w` (not a bin path) since the kantip bin is hoisted to the
+      # workspace root; -w also sets cwd to examples/starter so `kantip start`
+      # finds the build there.
+      - name: Serve & smoke-test
+        run: |
+          PORT=3000 npm run start -w examples/starter &
+          SERVER_PID=$!
+          for i in $(seq 1 20); do
+            curl -fsS "http://localhost:3000/intro/" >/dev/null && break
+            sleep 1
+          done
+          curl -fsS "http://localhost:3000/intro/" | grep -q "Welcome to your docs"
+          kill $SERVER_PID
+
+  publish:
+    name: Publish to npm
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      # Required for npm OIDC trusted publishing (tokenless + provenance).
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      # npm >= 11.5 is required for OIDC trusted publishing.
+      - name: Ensure npm supports OIDC
+        run: npm install -g npm@latest
+
+      # Builds dist/ (postinstall) so the engine tarball is complete.
+      - run: npm ci
+
+      # prepublishOnly rebuilds dist/ for each; --provenance is implied under OIDC.
+      - name: Publish kantip
+        run: npm publish -w kantip
+
+      - name: Publish create-kantip
+        run: npm publish -w create-kantip
