@@ -66,15 +66,15 @@ function generate() {
 }
 
 /**
- * Run the Remix Vite CLI with the engine config. cwd stays the user project (so
- * the generator's cwd artifacts + publicDir resolve there), but REMIX_ROOT points
- * at the engine: that's where Remix detects the server runtime (@remix-run/node)
- * and the app/ dir. The vite config redirects build output + public back to cwd.
+ * Run the Remix Vite CLI with the engine config from the user's cwd. The vite
+ * config sets Vite `root` = cwd (so baked asset paths are cwd-relative and
+ * remix-serve finds them) and `appDirectory` = the engine app/. The engine ships
+ * explicit entry.server/.client, so Remix skips runtime auto-detection — no
+ * REMIX_ROOT override needed.
  */
 function remixVite(sub) {
 	return run(engineBin('remix'), ['vite:' + sub, '--config', VITE_CONFIG], {
 		cwd: process.cwd(),
-		env: { ...process.env, REMIX_ROOT: ENGINE_DIR },
 	})
 }
 

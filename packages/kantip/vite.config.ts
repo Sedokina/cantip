@@ -11,18 +11,23 @@ declare module '@remix-run/node' {
 	}
 }
 
-// Engine root = this package dir (where `app/` and the engine's node_modules
-// live). The Remix app is ALWAYS this package's `app/`, even when the CLI is
-// invoked from a user's project: the app code ships with the engine, while the
-// user's content/config/generated artifacts are read from `process.cwd()` by the
-// `.server` modules. Public assets are served from the USER's `public/` so their
-// logos/favicon/generated pagefind resolve.
+// The engine ships the Remix `app/` (routes/components/entries); the user's
+// project (cwd) owns content, config, generated artifacts, public/, and build/.
+//
+// Vite `root` = the USER's cwd. This is what makes Remix compute a CORRECT,
+// cwd-relative `assetsBuildDirectory` (`build/client`): remix-serve resolves that
+// path with `express.static` from the serve cwd, so it MUST be relative to cwd,
+// not the engine. (Setting root to the engine made it `../../build/client`
+// relative to the engine — a path that 404s every asset at serve time.)
+//
+// Because the engine ships explicit `app/entry.{server,client}.tsx`, Remix skips
+// its server-runtime auto-detection (which would otherwise demand
+// `@remix-run/node` in the user's package.json) — so no REMIX_ROOT hack needed.
 const ENGINE_DIR = path.dirname(fileURLToPath(import.meta.url))
 const USER_CWD = process.cwd()
 
 export default defineConfig({
-	// Resolve the app + engine deps from the package, not the user's cwd.
-	root: ENGINE_DIR,
+	root: USER_CWD,
 	// Serve the user's public/ (logos, favicon, generated /pagefind, project assets).
 	publicDir: path.join(USER_CWD, 'public'),
 	plugins: [
@@ -31,8 +36,9 @@ export default defineConfig({
 			ssr: true,
 			// The engine's app/ dir (absolute) — the single source of routes/components.
 			appDirectory: path.join(ENGINE_DIR, 'app'),
-			// Emit the build under the USER's cwd so `kantip start` finds it there.
-			buildDirectory: path.join(USER_CWD, 'build'),
+			// Build under the user's cwd (relative to root=cwd) so `kantip start`
+			// finds it AND the baked asset path stays cwd-relative.
+			buildDirectory: 'build',
 			future: {
 				v3_fetcherPersist: true,
 				v3_relativeSplatPath: true,
