@@ -3,6 +3,27 @@
   "type": "module",
   "version": "0.1.0",
   "description": "Config-driven Remix documentation site engine — ingest Obsidian/markdown vaults, build an SSR docs site. \"How (to)\" in Kyrgyz.",
+  "keywords": [
+    "documentation",
+    "docs",
+    "remix",
+    "obsidian",
+    "markdown",
+    "static-site",
+    "ssr",
+    "docs-site"
+  ],
+  "license": "MIT",
+  "author": "Sedokina",
+  "homepage": "https://github.com/Sedokina/kantip#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sedokina/kantip.git",
+    "directory": "packages/kantip"
+  },
+  "bugs": {
+    "url": "https://github.com/Sedokina/kantip/issues"
+  },
   "bin": {
     "kantip": "./cli.js"
   },
@@ -20,11 +41,12 @@
     "dist",
     "cli.js",
     "vite.config.ts",
-    "components.json"
+    "components.json",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "build": "node build.js",
-    "prepare": "node build.js",
     "prepublishOnly": "node build.js",
     "typecheck": "tsc --noEmit"
   },

@@ -9,10 +9,12 @@
     "examples/*"
   ],
   "scripts": {
+    "postinstall": "npm run build -w kantip",
     "build:engine": "npm run build -w kantip",
     "build:starter": "npm run build -w examples/starter",
     "dev:starter": "npm run dev -w examples/starter",
-    "typecheck": "npm run typecheck -w kantip"
+    "typecheck": "npm run typecheck -w kantip",
+    "release": "npm publish -w kantip && npm publish -w create-kantip"
   },
   "engines": {
     "node": ">=20"
