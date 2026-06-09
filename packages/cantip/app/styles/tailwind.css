@@ -1,6 +1,16 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/*
+ * Explicitly scan the engine's app/ for class names. Tailwind v4 auto-detects
+ * sources but IGNORES node_modules — and when cantip runs from a consumer
+ * project, all the engine components live under node_modules/cantip/app/. Without
+ * this, none of the chrome's utility classes (grid, spacing, cards…) get
+ * generated and the site renders unstyled. The path is relative to this file
+ * (app/styles/ → app/).
+ */
+@source "../";
+
 /* Dark mode is class-based: <html class="dark"> toggled by the theme switch. */
 @custom-variant dark (&:where(.dark, .dark *));
 
