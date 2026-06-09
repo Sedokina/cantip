@@ -36,7 +36,7 @@ export default defineConfig({
 			ssr: true,
 			// The engine's app/ dir (absolute) — the single source of routes/components.
 			appDirectory: path.join(ENGINE_DIR, 'app'),
-			// Build under the user's cwd (relative to root=cwd) so `kantip start`
+			// Build under the user's cwd (relative to root=cwd) so `cantip start`
 			// finds it AND the baked asset path stays cwd-relative.
 			buildDirectory: 'build',
 			future: {

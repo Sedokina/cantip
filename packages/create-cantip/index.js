@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * `create-kantip` — scaffold a new kantip docs site.
+ * `create-cantip` — scaffold a new cantip docs site.
  *
- *   npm create kantip my-docs
- *   npm create kantip            # prompts/defaults to ./my-docs
+ *   npm create cantip my-docs
+ *   npm create cantip            # prompts/defaults to ./my-docs
  *
  * Copies the `template/` directory into the target, renaming `_package.json` →
  * `package.json` and `_gitignore` → `.gitignore`, and substituting the project
- * name + kantip version. Refuses to overwrite a non-empty target.
+ * name + cantip version. Refuses to overwrite a non-empty target.
  */
 import { fileURLToPath } from 'node:url'
 import fs from 'node:fs'
@@ -16,8 +16,8 @@ import path from 'node:path'
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const TEMPLATE_DIR = path.join(HERE, 'template')
 
-/** kantip version to depend on — mirror create-kantip's own version. */
-function kantipVersion() {
+/** cantip version to depend on — mirror create-cantip's own version. */
+function cantipVersion() {
 	try {
 		const pkg = JSON.parse(fs.readFileSync(path.join(HERE, 'package.json'), 'utf8'))
 		// Pin to the same major.minor line so a fresh scaffold matches this CLI.
@@ -37,7 +37,7 @@ const RENAME = new Map([
 function substitute(content, projectName) {
 	return content
 		.replaceAll('__PROJECT_NAME__', projectName)
-		.replaceAll('__KANTIP_VERSION__', kantipVersion())
+		.replaceAll('__CANTIP_VERSION__', cantipVersion())
 }
 
 /** Files we run substitution on (others are copied verbatim — e.g. SVGs). */
@@ -69,7 +69,7 @@ function main() {
 		process.exit(1)
 	}
 
-	console.log(`▶ Scaffolding a kantip docs site in ${targetDir}…`)
+	console.log(`▶ Scaffolding a cantip docs site in ${targetDir}…`)
 	copyDir(TEMPLATE_DIR, targetDir, projectName)
 
 	console.log(

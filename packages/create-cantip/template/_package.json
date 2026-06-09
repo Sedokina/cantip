@@ -1,5 +1,5 @@
 {
-  "name": "starter",
+  "name": "__PROJECT_NAME__",
   "private": true,
   "type": "module",
   "version": "0.0.0",
@@ -11,6 +11,6 @@
     "typecheck": "cantip typecheck"
   },
   "dependencies": {
-    "cantip": "*"
+    "cantip": "__CANTIP_VERSION__"
   }
 }

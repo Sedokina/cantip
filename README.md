@@ -1,14 +1,14 @@
-# kantip
+# cantip
 
 A config-driven **Remix SSR documentation engine**. Ingest Obsidian vaults or
 plain markdown folders and get a fast docs site with a persistent sidebar, tabs,
 full-text search, dark/light theme, canvas rendering, and wikilinks — all driven
-by a single `docs.config.ts`. ("Kantip" — кантип — is Kyrgyz for "how (to)".)
+by a single `docs.config.ts`. ("Cantip" — кантип — is Kyrgyz for "how (to)".)
 
 ## Quick start
 
 ```sh
-npm create kantip my-docs
+npm create cantip my-docs
 cd my-docs
 npm install
 npm run dev
@@ -20,8 +20,8 @@ Then edit `docs.config.ts` and drop markdown into `docs/`.
 
 | Path | What |
 | --- | --- |
-| `packages/kantip` | The engine — Remix app + build pipeline + `kantip` CLI. Published to npm as `kantip`. |
-| `packages/create-kantip` | The scaffolder behind `npm create kantip`. Published as `create-kantip`. |
+| `packages/cantip` | The engine — Remix app + build pipeline + `cantip` CLI. Published to npm as `cantip`. |
+| `packages/create-cantip` | The scaffolder behind `npm create cantip`. Published as `create-cantip`. |
 | `examples/starter` | A scaffold-generated site used to dogfood the engine locally. |
 
 ### Develop
@@ -35,7 +35,7 @@ npm run typecheck      # type-check the engine
 
 ## What's configurable
 
-Everything lives in `docs.config.ts` (typed via `kantip/config`):
+Everything lives in `docs.config.ts` (typed via `cantip/config`):
 
 - **Content sources** — `projects[].source` points at a git submodule, a loose
   folder, or any path; or use the `general` bucket to serve loose markdown at the
@@ -47,7 +47,7 @@ Everything lives in `docs.config.ts` (typed via `kantip/config`):
 
 ## How it runs from `node_modules`
 
-The engine ships the Remix `app/` + build `scripts/`. The `kantip` CLI runs them
+The engine ships the Remix `app/` + build `scripts/`. The `cantip` CLI runs them
 from the user's project: content, `app/generated/` manifest, `public/`, and
 `build/` resolve from the user's cwd, while Vite's `appDirectory` + `REMIX_ROOT`
 point Remix at the engine. The generator is precompiled to `dist/*.mjs` (Node
@@ -60,8 +60,8 @@ resolve there.
 Both packages build on `prepare` / `prepublishOnly`:
 
 ```sh
-npm publish -w kantip
-npm publish -w create-kantip
+npm publish -w cantip
+npm publish -w create-cantip
 ```
 
 ## License

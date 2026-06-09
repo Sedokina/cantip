@@ -34,8 +34,8 @@ jobs:
         run: npm run build:starter
 
       # Smoke-test the built server actually serves the sample page. Run via
-      # `npm run -w` (not a bin path) since the kantip bin is hoisted to the
-      # workspace root; -w also sets cwd to examples/starter so `kantip start`
+      # `npm run -w` (not a bin path) since the cantip bin is hoisted to the
+      # workspace root; -w also sets cwd to examples/starter so `cantip start`
       # finds the build there.
       - name: Serve & smoke-test
         run: |
@@ -73,8 +73,8 @@ jobs:
       - run: npm ci
 
       # prepublishOnly rebuilds dist/ for each; --provenance is implied under OIDC.
-      - name: Publish kantip
-        run: npm publish -w kantip
+      - name: Publish cantip
+        run: npm publish -w cantip
 
-      - name: Publish create-kantip
-        run: npm publish -w create-kantip
+      - name: Publish create-cantip
+        run: npm publish -w create-cantip

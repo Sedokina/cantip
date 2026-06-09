@@ -1,5 +1,5 @@
 {
-  "name": "kantip",
+  "name": "cantip",
   "type": "module",
   "version": "0.1.0",
   "description": "Config-driven Remix documentation site engine — ingest Obsidian/markdown vaults, build an SSR docs site. \"How (to)\" in Kyrgyz.",
@@ -15,17 +15,17 @@
   ],
   "license": "MIT",
   "author": "Sedokina",
-  "homepage": "https://github.com/Sedokina/kantip#readme",
+  "homepage": "https://github.com/Sedokina/cantip#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Sedokina/kantip.git",
-    "directory": "packages/kantip"
+    "url": "git+https://github.com/Sedokina/cantip.git",
+    "directory": "packages/cantip"
   },
   "bugs": {
-    "url": "https://github.com/Sedokina/kantip/issues"
+    "url": "https://github.com/Sedokina/cantip/issues"
   },
   "bin": {
-    "kantip": "./cli.js"
+    "cantip": "./cli.js"
   },
   "exports": {
     "./config": {

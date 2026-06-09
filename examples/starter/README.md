@@ -1,6 +1,6 @@
 # starter
 
-A documentation site built with [kantip](https://www.npmjs.com/package/kantip).
+A documentation site built with [cantip](https://www.npmjs.com/package/cantip).
 
 ## Develop
 
@@ -31,4 +31,4 @@ Everything lives in `docs.config.ts`:
 - **Components** — `components` maps `Home`/`DocPage`/`TopBar`/`Toc` to your own
   `.tsx` files.
 
-See the kantip docs for the full config reference.
+See the cantip docs for the full config reference.

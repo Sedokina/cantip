@@ -1,14 +1,14 @@
-# kantip
+# cantip
 
 A config-driven **Remix SSR documentation engine**. Ingest Obsidian vaults or
 plain markdown folders and get a fast docs site with a persistent sidebar, tabs,
 full-text search, dark/light theme, canvas rendering, and wikilinks — all driven
-by a single `docs.config.ts`. ("Kantip" — кантип — is Kyrgyz for "how (to)".)
+by a single `docs.config.ts`. ("Cantip" — кантип — is Kyrgyz for "how (to)".)
 
 ## Quick start
 
 ```sh
-npm create kantip my-docs
+npm create cantip my-docs
 cd my-docs
 npm install
 npm run dev
@@ -17,27 +17,27 @@ npm run dev
 Or add to an existing project:
 
 ```sh
-npm install kantip
+npm install cantip
 ```
 
-…then create a `docs.config.ts` and run `npx kantip dev`.
+…then create a `docs.config.ts` and run `npx cantip dev`.
 
 ## CLI
 
 | Command | What |
 | --- | --- |
-| `kantip generate` | Ingest sources + compile content from `docs.config.ts`. |
-| `kantip dev` | Generate, then start the dev server. |
-| `kantip build` | Generate, then build for production. |
-| `kantip start` | Serve the production build. |
-| `kantip typecheck` | Type-check the engine. |
+| `cantip generate` | Ingest sources + compile content from `docs.config.ts`. |
+| `cantip dev` | Generate, then start the dev server. |
+| `cantip build` | Generate, then build for production. |
+| `cantip start` | Serve the production build. |
+| `cantip typecheck` | Type-check the engine. |
 
 ## Configure
 
-Everything lives in `docs.config.ts` (typed via `kantip/config`):
+Everything lives in `docs.config.ts` (typed via `cantip/config`):
 
 ```ts
-import { defineConfig } from 'kantip/config'
+import { defineConfig } from 'cantip/config'
 
 export default defineConfig({
   site: { title: 'My Docs', lang: 'en', defaultTheme: 'dark' },

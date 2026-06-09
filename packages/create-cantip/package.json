@@ -1,0 +1,37 @@
+{
+  "name": "create-cantip",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Scaffold a new cantip documentation site (`npm create cantip my-docs`).",
+  "keywords": [
+    "cantip",
+    "documentation",
+    "docs",
+    "scaffold",
+    "create",
+    "starter"
+  ],
+  "license": "MIT",
+  "author": "Sedokina",
+  "homepage": "https://github.com/Sedokina/cantip/tree/main/packages/create-cantip#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sedokina/cantip.git",
+    "directory": "packages/create-cantip"
+  },
+  "bugs": {
+    "url": "https://github.com/Sedokina/cantip/issues"
+  },
+  "bin": {
+    "create-cantip": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "template",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

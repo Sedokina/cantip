@@ -1,6 +1,6 @@
 # Publishing
 
-Both packages (`kantip`, `create-kantip`) are versioned in lockstep and published
+Both packages (`cantip`, `create-cantip`) are versioned in lockstep and published
 together. CI verifies every push/PR (`.github/workflows/ci.yml`); releases are cut
 by pushing a `v*` tag (`.github/workflows/release.yml`).
 
@@ -14,27 +14,27 @@ trusted publishing is configured afterwards.
 
 ```sh
 npm login
-npm run release        # npm publish -w kantip && npm publish -w create-kantip
+npm run release        # npm publish -w cantip && npm publish -w create-cantip
 ```
 
 ### 2. Configure trusted publishing (once per package)
 
-On npmjs.com, for **each** of `kantip` and `create-kantip`:
+On npmjs.com, for **each** of `cantip` and `create-cantip`:
 
 > Package → Settings → Trusted Publisher → GitHub Actions
 
-- Repository: `Sedokina/kantip`
+- Repository: `Sedokina/cantip`
 - Workflow filename: `release.yml`
 
 After this, the workflow publishes tokenlessly (with provenance).
 
 ## Cutting a release
 
-1. Bump both package versions together (keeps the scaffolder's pinned `kantip`
+1. Bump both package versions together (keeps the scaffolder's pinned `cantip`
    dependency matching the engine):
 
    ```sh
-   npm version 0.1.1 -w kantip -w create-kantip --no-git-tag-version
+   npm version 0.1.1 -w cantip -w create-cantip --no-git-tag-version
    git commit -am "Release v0.1.1"
    ```
 
@@ -50,8 +50,8 @@ The `release` workflow runs: **verify** (typecheck + build + serve smoke-test) �
 
 ## Notes
 
-- Versions must match between the two packages: `create-kantip` injects
-  `kantip@^<its-own-version>` into scaffolded projects, so a mismatch would pin a
+- Versions must match between the two packages: `create-cantip` injects
+  `cantip@^<its-own-version>` into scaffolded projects, so a mismatch would pin a
   non-existent engine version.
 - The engine ships a prebuilt `dist/` (compiled by `prepublishOnly`); consumers do
   not rebuild on install.

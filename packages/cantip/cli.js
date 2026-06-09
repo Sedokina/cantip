@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * `kantip` CLI — drives the docs engine from the USER's project directory.
+ * `cantip` CLI — drives the docs engine from the USER's project directory.
  *
  * The engine (this package) ships the Remix `app/` + build `scripts/`. The CLI
  * runs them with `cwd = the user's project`, so all artifacts (content/,
@@ -9,11 +9,11 @@
  * (which points `appDirectory` at the engine app/ and `publicDir`/build at cwd).
  *
  * Subcommands:
- *   kantip generate   — ingest vaults + compile + emit manifest/config (from docs.config.ts)
- *   kantip dev        — generate, then remix vite dev server
- *   kantip build      — generate, then remix vite production build
- *   kantip start      — serve the built server (build/server/index.js)
- *   kantip typecheck  — tsc --noEmit against the engine
+ *   cantip generate   — ingest vaults + compile + emit manifest/config (from docs.config.ts)
+ *   cantip dev        — generate, then remix vite dev server
+ *   cantip build      — generate, then remix vite production build
+ *   cantip start      — serve the built server (build/server/index.js)
+ *   cantip typecheck  — tsc --noEmit against the engine
  */
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -100,8 +100,8 @@ async function main() {
 			break
 		default:
 			console.error(
-				`kantip — config-driven Remix docs engine\n\n` +
-					`Usage: kantip <command>\n\n` +
+				`cantip — config-driven Remix docs engine\n\n` +
+					`Usage: cantip <command>\n\n` +
 					`Commands:\n` +
 					`  generate    Ingest vaults + compile content from docs.config.ts\n` +
 					`  dev         Generate, then start the dev server\n` +

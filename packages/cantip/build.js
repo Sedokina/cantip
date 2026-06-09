@@ -10,10 +10,10 @@
  *
  * Outputs:
  *   dist/generate-content.mjs  — the content generator the CLI runs
- *   dist/config.mjs            — the `kantip/config` entry (defineConfig + schema)
+ *   dist/config.mjs            — the `cantip/config` entry (defineConfig + schema)
  *
  * The user's own `docs.config.ts` is NOT bundled: it lives in their cwd (where
- * type-stripping is allowed) and imports `kantip/config` → dist/config.mjs (JS),
+ * type-stripping is allowed) and imports `cantip/config` → dist/config.mjs (JS),
  * so the chain no longer hits a `.ts` file under node_modules.
  */
 import { build } from 'esbuild'

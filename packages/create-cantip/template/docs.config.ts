@@ -1,8 +1,8 @@
-import { defineConfig } from 'kantip/config'
+import { defineConfig } from 'cantip/config'
 
 /**
  * Your docs site config. Every field is optional — start minimal and add as you
- * grow. Run `npx kantip dev` after editing.
+ * grow. Run `npx cantip dev` after editing.
  *
  * Content sources: each `project` points `source` at a directory of markdown
  * (a loose folder, a git submodule, or any path). The project `id` becomes the
@@ -12,7 +12,7 @@ import { defineConfig } from 'kantip/config'
 export default defineConfig({
 	site: {
 		title: 'My Docs',
-		description: 'Documentation built with kantip.',
+		description: 'Documentation built with cantip.',
 		// Drives sort order + search tokenisation. e.g. 'en', 'ru', 'de'.
 		lang: 'en',
 		defaultTheme: 'dark', // 'dark' | 'light'

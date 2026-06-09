@@ -21,5 +21,5 @@ Standard Markdown, plus:
 ## Next steps
 
 1. Edit `docs.config.ts` to set your title, theme, and content sources.
-2. Run `npx kantip dev` and open the printed URL.
+2. Run `npx cantip dev` and open the printed URL.
 3. Add pages, or point a project `source` at a git submodule / existing folder.
