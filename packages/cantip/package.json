@@ -25,7 +25,7 @@
     "url": "https://github.com/Sedokina/cantip/issues"
   },
   "bin": {
-    "cantip": "./cli.js"
+    "cantip": "cli.js"
   },
   "exports": {
     "./config": {

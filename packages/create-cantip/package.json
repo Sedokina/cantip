@@ -23,7 +23,7 @@
     "url": "https://github.com/Sedokina/cantip/issues"
   },
   "bin": {
-    "create-cantip": "./index.js"
+    "create-cantip": "index.js"
   },
   "files": [
     "index.js",

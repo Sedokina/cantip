@@ -72,9 +72,14 @@ jobs:
       # Builds dist/ (postinstall) so the engine tarball is complete.
       - run: npm ci
 
-      # prepublishOnly rebuilds dist/ for each; --provenance is implied under OIDC.
+      # Publish from each package's own directory (bare `npm publish`, NOT
+      # `-w`): OIDC trusted publishing + provenance resolve the package from the
+      # cwd, and the workspace flag can confuse that resolution. prepublishOnly
+      # rebuilds dist/ for each; provenance is implied under OIDC.
       - name: Publish cantip
-        run: npm publish -w cantip
+        working-directory: packages/cantip
+        run: npm publish
 
       - name: Publish create-cantip
-        run: npm publish -w create-cantip
+        working-directory: packages/create-cantip
+        run: npm publish
