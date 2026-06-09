@@ -584,10 +584,10 @@ export function Search({
 						'inline-flex items-center gap-2 rounded-md border bg-background/60 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground',
 						className,
 					)}
-					aria-label="Поиск"
+					aria-label={t('search')}
 				>
 					<SearchIcon className="size-4 shrink-0" />
-					<span className="max-md:hidden">Поиск…</span>
+					<span className="max-md:hidden">{t('searchEllipsis')}</span>
 					<kbd className="ml-auto hidden rounded border px-1.5 text-xs md:inline">Ctrl K</kbd>
 				</button>
 			)}
@@ -604,7 +604,7 @@ export function Search({
 						onMouseDown={dismiss}
 						role="dialog"
 						aria-modal="true"
-						aria-label="Поиск по документации"
+						aria-label={t('searchDocs')}
 					>
 					<div
 						className="fixed inset-0 flex flex-col overflow-hidden bg-popover md:static md:max-h-[80vh] md:w-full md:max-w-3xl md:rounded-lg md:border md:shadow-xl"
@@ -617,7 +617,7 @@ export function Search({
 								ref={inputRef}
 								value={query}
 								onChange={(e) => setQuery(e.target.value)}
-								placeholder="Поиск по документации…"
+								placeholder={t('searchDocsPlaceholder')}
 								className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
 								autoComplete="off"
 								spellCheck={false}
@@ -629,9 +629,9 @@ export function Search({
 									'rounded p-1 hover:bg-accent hover:text-foreground',
 									isExact ? 'bg-accent text-foreground' : 'text-muted-foreground',
 								)}
-								aria-label="Точное совпадение"
+								aria-label={t('exactMatch')}
 								aria-pressed={isExact}
-								title="Точное совпадение фразы"
+								title={t('exactMatchHint')}
 							>
 								<WholeWord className="size-4" />
 							</button>
@@ -644,8 +644,8 @@ export function Search({
 								onClick={reset}
 								disabled={!query && !dir}
 								className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-								aria-label="Очистить поиск"
-								title="Очистить"
+								aria-label={t('clearSearch')}
+								title={t('clear')}
 							>
 								<X className="size-4" />
 							</button>
@@ -657,14 +657,14 @@ export function Search({
 						{projectOptions.length > 0 && (
 							<div className="border-b px-3 py-2 text-xs text-muted-foreground">
 								<div className="flex flex-wrap items-center gap-2">
-									<span className="shrink-0">Искать в:</span>
+									<span className="shrink-0">{t('searchIn')}</span>
 									<select
 										value={project}
 										onChange={(e) => changeProject(e.target.value)}
 										className="rounded border bg-background px-2 py-1 text-foreground outline-none focus:ring-1 focus:ring-ring"
 										aria-label={t('searchProjectFilter')}
 									>
-										<option value="">Все проекты</option>
+										<option value="">{t('allProjects')}</option>
 										{projectOptions.map((p) => (
 											<option key={p} value={p}>
 												{projectLabel(p)}
@@ -697,9 +697,9 @@ export function Search({
 															setDirFocused(false)
 														}
 													}}
-													placeholder="Папка (напр. требования/управление-клиентами)"
+													placeholder={t('folderPlaceholder')}
 													className="w-full rounded border bg-background px-2 py-1 text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-ring"
-													aria-label="Папка"
+													aria-label={t('folder')}
 													autoComplete="off"
 													spellCheck={false}
 												/>
@@ -708,7 +708,7 @@ export function Search({
 														type="button"
 														onClick={() => commitDir('')}
 														className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-														aria-label="Очистить папку"
+														aria-label={t('clearFolder')}
 													>
 														<X className="size-3" />
 													</button>
@@ -780,9 +780,9 @@ export function Search({
 													'shrink-0 rounded border p-1 hover:bg-accent hover:text-foreground',
 													showTree ? 'bg-accent text-foreground' : 'text-muted-foreground',
 												)}
-												aria-label="Выбрать папку из дерева"
+												aria-label={t('pickFolderFromTree')}
 												aria-pressed={showTree}
-												title="Дерево папок"
+												title={t('folderTree')}
 											>
 												<FolderTree className="size-4" />
 											</button>
@@ -796,13 +796,13 @@ export function Search({
 						<div className="min-h-0 flex-1 overflow-y-auto p-2">
 							{!query.trim() ? (
 								<p className="px-3 py-6 text-center text-sm text-muted-foreground">
-									{ready ? 'Введите запрос для поиска' : 'Загрузка индекса…'}
+									{ready ? t('typeToSearch') : t('loadingIndex')}
 								</p>
 							) : loading && results.length === 0 ? (
-								<p className="px-3 py-6 text-center text-sm text-muted-foreground">Поиск…</p>
+								<p className="px-3 py-6 text-center text-sm text-muted-foreground">{t('searchEllipsis')}</p>
 							) : results.length === 0 ? (
 								<p className="px-3 py-6 text-center text-sm text-muted-foreground">
-									Ничего не найдено по запросу «{query.trim()}»
+									{t('noResultsFor')} «{query.trim()}»
 								</p>
 							) : (
 								<ul className="flex flex-col gap-1.5">
@@ -843,7 +843,7 @@ export function Search({
 						onMouseDown={() => setShowTree(false)}
 						role="dialog"
 						aria-modal="true"
-						aria-label="Выбор папки"
+						aria-label={t('folderPicker')}
 					>
 						<div
 							className="fixed inset-0 flex flex-col overflow-hidden bg-popover md:static md:max-h-[70vh] md:w-full md:max-w-md md:rounded-lg md:border md:shadow-xl"
@@ -852,7 +852,7 @@ export function Search({
 							<div className="flex items-center justify-between gap-2 border-b px-3 py-2">
 								<span className="flex items-center gap-2 text-sm font-medium">
 									<FolderTree className="size-4 shrink-0 text-muted-foreground" />
-									Папка в «{projectLabel(project)}»
+									{t('folderIn')} «{projectLabel(project)}»
 								</span>
 								{/* Top-right X cancels, like the backdrop — no scope change. */}
 								<button
@@ -878,7 +878,7 @@ export function Search({
 												)}
 											>
 												<Folder className="size-3.5 shrink-0 text-muted-foreground" />
-												<span className="truncate">{projectLabel(project)} (весь проект)</span>
+												<span className="truncate">{projectLabel(project)} ({t('wholeProject')})</span>
 											</button>
 										</li>
 										{dirTree.map((node) => (
@@ -893,7 +893,7 @@ export function Search({
 									</ul>
 								) : (
 									<p className="px-3 py-6 text-center text-sm text-muted-foreground">
-										В этом проекте нет вложенных папок
+										{t('noSubfolders')}
 									</p>
 								)}
 							</div>
@@ -907,7 +907,7 @@ export function Search({
 									onClick={() => setShowTree(false)}
 									className="flex-1 rounded-md border px-3 py-1.5 text-sm hover:bg-accent hover:text-foreground max-md:py-2 md:flex-none"
 								>
-									Отмена
+									{t('cancel')}
 								</button>
 								<button
 									type="button"
@@ -918,7 +918,7 @@ export function Search({
 									}}
 									className="flex-1 rounded-md border border-transparent bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 max-md:py-2 md:flex-none"
 								>
-									ОК
+									{t('ok')}
 								</button>
 							</div>
 						</div>

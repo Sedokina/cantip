@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 
+import { t } from '~/lib/site'
+
 /**
  * The document body HTML is rendered server-side and injected via
  * `dangerouslySetInnerHTML`, so code blocks aren't React elements we can give a
@@ -21,8 +23,8 @@ const WRAP_ICON =
 const NOWRAP_ICON =
 	'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>'
 
-const WRAP_LABEL = 'Переносить строки'
-const NOWRAP_LABEL = 'Не переносить строки'
+const WRAP_LABEL = t('wrapLines')
+const NOWRAP_LABEL = t('noWrapLines')
 
 export function CodeWrapToggle({ deps }: { deps?: string }) {
 	useEffect(() => {

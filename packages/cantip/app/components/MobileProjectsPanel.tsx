@@ -105,7 +105,7 @@ export default function MobileProjectsPanel({ activeId, open, onClose }: Props) 
 
 			{/* Theme toggle row — a normal "settings" row at the bottom of the menu. */}
 			<div className="flex shrink-0 items-center justify-between border-t px-4 py-3">
-				<span className="text-sm text-foreground">Тема оформления</span>
+				<span className="text-sm text-foreground">{t('theme')}</span>
 				<ThemeToggle className="text-muted-foreground" />
 			</div>
 		</div>

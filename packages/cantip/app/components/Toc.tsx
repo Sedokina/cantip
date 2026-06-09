@@ -66,7 +66,7 @@ export function TocLinks({ shown }: { shown: Heading[] }) {
 	const activeSlug = useActiveHeading(shown)
 
 	if (shown.length === 0) {
-		return <p className="m-0 text-muted-foreground">Нет содержания</p>
+		return <p className="m-0 text-muted-foreground">{t('noToc')}</p>
 	}
 	return (
 		<ul className="m-0 list-none p-0">

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DropdownMenu, DropdownMenuItem } from "~/components/ui/dropdown-menu";
 import { useTabs, normTabPath } from "~/lib/tabs";
 import { useKeyboardShortcuts, type Shortcut } from "~/lib/useKeyboardShortcuts";
+import { t } from "~/lib/site";
 import { cn } from "~/lib/utils";
 
 /**
@@ -106,8 +107,8 @@ export default function TabBar() {
     () => [
       {
         keys: "w",
-        label: "Закрыть текущую вкладку",
-        group: "Вкладки",
+        label: "close current tab",
+        group: "tabs",
         run: () => {
           if (tabs.some((t) => normTabPath(t.path) === cur)) closePath(cur);
         },
@@ -165,9 +166,9 @@ export default function TabBar() {
                 <span className="min-w-0 truncate">{tab.title}</span>
                 <button
                   type="button"
-                  aria-label={`Закрыть ${tab.title}`}
+                  aria-label={`${t('close')} ${tab.title}`}
                   // The `w` shortcut closes the *active* tab, so only hint it there.
-                  title={isActive ? "Закрыть (W)" : undefined}
+                  title={isActive ? t('closeTabHint') : undefined}
                   onClick={(e) => close(e, tab.path)}
                   className={cn(
                     "flex size-5 shrink-0 items-center justify-center rounded hover:bg-foreground/10",
@@ -207,7 +208,7 @@ export default function TabBar() {
 			    vertical-dots button opens a dropdown with "close all tabs". */}
       <DropdownMenu
         align="end"
-        label="Действия с вкладками"
+        label={t('tabActions')}
         className={({ open }) =>
           cn(
             "flex h-full w-9 shrink-0 items-center justify-center border-l text-muted-foreground",
@@ -219,7 +220,7 @@ export default function TabBar() {
       >
         <DropdownMenuItem onSelect={closeAll}>
           <X className="size-4 shrink-0 text-muted-foreground" />
-          <span>Закрыть все вкладки ({tabs.length})</span>
+          <span>{t('closeAllTabs')} ({tabs.length})</span>
         </DropdownMenuItem>
       </DropdownMenu>
     </div>

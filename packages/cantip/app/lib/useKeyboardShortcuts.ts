@@ -14,13 +14,23 @@ import { useEffect } from 'react'
  * of "g then c").
  */
 
-export type ShortcutGroup = 'Дерево' | 'Вкладки' | 'Навигация'
+/**
+ * Stable, language-neutral group keys. The display name is resolved via `t()`
+ * from the `group<Key>` UI strings (see defaults.ts) at render time, so the
+ * cheatsheet localizes with the rest of the chrome.
+ */
+export type ShortcutGroup = 'tree' | 'tabs' | 'nav'
+
+/** Map a group key to its UI-string key, for `t(groupLabelKey(group))`. */
+export function groupLabelKey(group: ShortcutGroup): string {
+	return group === 'tree' ? 'groupTree' : group === 'tabs' ? 'groupTabs' : 'groupNav'
+}
 
 /** A binding the caller wires to behavior, plus the metadata the `?` overlay shows. */
 export type Shortcut = {
 	/** Single key (e.g. 'l') OR a two-key sequence (e.g. ['g', 'c']). Compared case-insensitively. */
 	keys: string | [string, string]
-	/** What it does — shown in the cheatsheet. */
+	/** What it does. Live bindings aren't shown in the cheatsheet; this is dev-facing. */
 	label: string
 	/** Cheatsheet section. */
 	group: ShortcutGroup
@@ -31,12 +41,14 @@ export type Shortcut = {
 /**
  * A display-only entry for shortcuts owned elsewhere (the existing Cmd+K / Cmd+P
  * chords, the Shift+Enter row action) so the `?` overlay can list everything in
- * one place without those handlers being re-registered here.
+ * one place without those handlers being re-registered here. `labelKey` is a UI
+ * string key resolved via `t()` at render.
  */
 export type ShortcutInfo = {
 	/** Human-readable key hint, e.g. '⌘K', 'Shift+Enter'. */
 	hint: string
-	label: string
+	/** UI-string key for the description (resolved via `t()` in the overlay). */
+	labelKey: string
 	group: ShortcutGroup
 }
 
@@ -48,13 +60,13 @@ export type ShortcutInfo = {
  * Keep in sync when adding a binding.
  */
 export const ALL_SHORTCUTS: ShortcutInfo[] = [
-	{ hint: '⌘/Ctrl K', label: 'Поиск по содержимому', group: 'Навигация' },
-	{ hint: '?', label: 'Показать список горячих клавиш', group: 'Навигация' },
-	{ hint: '⌘/Ctrl P', label: 'Поиск файла по имени', group: 'Дерево' },
-	{ hint: 'l', label: 'Найти текущую страницу в дереве', group: 'Дерево' },
-	{ hint: 'c', label: 'Свернуть все папки', group: 'Дерево' },
-	{ hint: 'w', label: 'Закрыть текущую вкладку', group: 'Вкладки' },
-	{ hint: 'Shift+Enter', label: 'Файл — открыть в новой вкладке; папку — развернуть рекурсивно', group: 'Дерево' },
+	{ hint: '⌘/Ctrl K', labelKey: 'scSearchContent', group: 'nav' },
+	{ hint: '?', labelKey: 'scShowShortcuts', group: 'nav' },
+	{ hint: '⌘/Ctrl P', labelKey: 'scSearchFile', group: 'tree' },
+	{ hint: 'l', labelKey: 'scLocate', group: 'tree' },
+	{ hint: 'c', labelKey: 'scCollapseAll', group: 'tree' },
+	{ hint: 'w', labelKey: 'scCloseTab', group: 'tabs' },
+	{ hint: 'Shift+Enter', labelKey: 'scShiftEnter', group: 'tree' },
 ]
 
 /** True when focus is in an editable surface — single-key shortcuts must not fire there. */

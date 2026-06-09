@@ -201,9 +201,9 @@ interface SearchHit {
 /** What the file-search modal matches against. */
 type SearchScope = 'all' | 'files' | 'directories'
 const SCOPE_OPTIONS: { value: SearchScope; label: string }[] = [
-	{ value: 'all', label: 'Все' },
-	{ value: 'files', label: 'Файлы' },
-	{ value: 'directories', label: 'Папки' },
+	{ value: 'all', label: t('scopeAll') },
+	{ value: 'files', label: t('scopeFiles') },
+	{ value: 'directories', label: t('scopeDirectories') },
 ]
 
 /**
@@ -318,7 +318,7 @@ function FileSearchModal({
 						value={query}
 						onChange={(e) => setQuery(e.target.value)}
 						onKeyDown={onInputKey}
-						placeholder="Поиск по файлам..."
+						placeholder={t('fileSearchPlaceholder')}
 						autoComplete="off"
 						className="h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
 					/>
@@ -345,7 +345,7 @@ function FileSearchModal({
 				</div>
 				<ul ref={listRef} className="min-h-0 flex-1 overflow-y-auto p-1">
 					{hits.length === 0 ? (
-						<li className="px-3 py-6 text-center text-sm text-muted-foreground">Ничего не найдено</li>
+						<li className="px-3 py-6 text-center text-sm text-muted-foreground">{t('nothingFound')}</li>
 					) : (
 						hits.map((hit, i) => {
 							const isActive = i === active
@@ -457,7 +457,7 @@ function RowMenu({
 			<button
 				ref={btnRef}
 				type="button"
-				aria-label="Действия"
+				aria-label={t('treeActions')}
 				aria-haspopup="menu"
 				aria-expanded={open}
 				// stop dblclick from opening a tab when interacting with the menu button
@@ -691,8 +691,8 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 	//     field): `l` reveals the current page, `g c` collapses every folder. ---
 	const treeShortcuts = useMemo<Shortcut[]>(
 		() => [
-			{ keys: 'l', label: 'Найти текущую страницу в дереве', group: 'Дерево', run: locate },
-			{ keys: 'c', label: 'Свернуть все папки', group: 'Дерево', run: collapseAll },
+			{ keys: 'l', label: 'locate page in tree', group: 'tree', run: locate },
+			{ keys: 'c', label: 'collapse all folders', group: 'tree', run: collapseAll },
 		],
 		[locate, collapseAll],
 	)
@@ -820,7 +820,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 				onPointerDown={startResize}
 				role="separator"
 				aria-orientation="vertical"
-				aria-label="Изменить ширину панели"
+				aria-label={t('resizePanel')}
 				className={cn(
 					'absolute right-0 top-0 z-10 hidden h-full w-1.5 cursor-col-resize md:block',
 					'hover:bg-sidebar-accent',
@@ -833,8 +833,8 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 					variant="ghost"
 					size="icon"
 					onClick={() => setSearchModalOpen(true)}
-					title="Поиск по файлам (Ctrl+P)"
-					aria-label="Поиск по файлам"
+					title={t('fileSearchHint')}
+					aria-label={t('fileSearch')}
 					className="size-9 text-muted-foreground md:size-6"
 				>
 					<Search className="size-4 md:size-3.5" />
@@ -844,8 +844,8 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 					variant="ghost"
 					size="icon"
 					onClick={locate}
-					title="Найти в дереве (L)"
-					aria-label="Найти текущую страницу в дереве"
+					title={t('locateInTreeHint')}
+					aria-label={t('locateInTree')}
 					className="size-9 text-muted-foreground md:size-6"
 				>
 					<Locate className="size-4 md:size-3.5" />
@@ -855,8 +855,8 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 					variant="ghost"
 					size="icon"
 					onClick={collapseAll}
-					title="Свернуть всё (C)"
-					aria-label="Свернуть все папки"
+					title={t('collapseAllHint')}
+					aria-label={t('collapseAll')}
 					className="size-9 text-muted-foreground md:size-6"
 				>
 					<ChevronsDownUp className="size-4 md:size-3.5" />
@@ -1001,7 +1001,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 										<RowMenu
 											actions={[
 												{
-													label: 'Открыть в новой вкладке (Shift+Enter)',
+													label: t('openInNewTab'),
 													onSelect: () => {
 														item.setFocused()
 														openFile(itemData.href!, itemData.name, true)
@@ -1014,7 +1014,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 											<RowMenu
 												actions={[
 													{
-														label: 'Развернуть рекурсивно (Shift+Enter)',
+														label: t('expandRecursively'),
 														onSelect: () => {
 															item.setFocused()
 															// expandAll on the item instance opens this folder and
@@ -1030,7 +1030,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 							)
 						})}
 						{isFiltering && matchingIds.size === 0 && (
-							<div className="p-4 text-center text-[0.8125rem] text-muted-foreground">Ничего не найдено</div>
+							<div className="p-4 text-center text-[0.8125rem] text-muted-foreground">{t('nothingFound')}</div>
 						)}
 					</div>
 				)}

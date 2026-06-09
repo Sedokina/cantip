@@ -45,7 +45,7 @@ export default function MobileBottomBar({
 				'fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-100 md:hidden',
 				'flex items-stretch gap-1 rounded-2xl border bg-sidebar/95 px-1.5 py-1 shadow-lg backdrop-blur',
 			)}
-			aria-label="Навигация"
+			aria-label={t('navigation')}
 		>
 			<Link to="/" className={tab} aria-label={t('home')}>
 				<Home className="size-5" />

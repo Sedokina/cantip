@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, Search as SearchIcon, X } from 'lucide-react'
 
+import { t } from '~/lib/site'
 import { cn } from '~/lib/utils'
 
 /**
@@ -171,7 +172,7 @@ export default function FindOnPage({ onClose }: { onClose: () => void }) {
 				'flex items-center gap-1 rounded-2xl border bg-sidebar/95 px-2 py-1.5 shadow-lg backdrop-blur',
 			)}
 			role="search"
-			aria-label="Найти на странице"
+			aria-label={t('findOnPage')}
 		>
 			<SearchIcon className="size-4 shrink-0 text-muted-foreground" />
 			<input
@@ -179,7 +180,7 @@ export default function FindOnPage({ onClose }: { onClose: () => void }) {
 				value={query}
 				onChange={(e) => setQuery(e.target.value)}
 				onKeyDown={onKeyDown}
-				placeholder="Найти на странице…"
+				placeholder={t('findOnPagePlaceholder')}
 				className="h-8 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
 				autoComplete="off"
 				spellCheck={false}
@@ -198,7 +199,7 @@ export default function FindOnPage({ onClose }: { onClose: () => void }) {
 				onClick={() => step(-1)}
 				disabled={!has}
 				className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-				aria-label="Предыдущее совпадение"
+				aria-label={t('prevMatch')}
 			>
 				<ChevronUp className="size-4" />
 			</button>
@@ -207,7 +208,7 @@ export default function FindOnPage({ onClose }: { onClose: () => void }) {
 				onClick={() => step(1)}
 				disabled={!has}
 				className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-				aria-label="Следующее совпадение"
+				aria-label={t('nextMatch')}
 			>
 				<ChevronDown className="size-4" />
 			</button>
@@ -215,7 +216,7 @@ export default function FindOnPage({ onClose }: { onClose: () => void }) {
 				type="button"
 				onClick={onClose}
 				className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-				aria-label="Закрыть поиск по странице"
+				aria-label={t('closeFindOnPage')}
 			>
 				<X className="size-4" />
 			</button>

@@ -4,6 +4,7 @@ import { ArrowUp, ChevronLeft, ChevronRight, List, Search as SearchIcon, X } fro
 import type { Heading } from '~/lib/content.server'
 import { TocLinks, tocHeadings } from '~/components/Toc'
 import FindOnPage from '~/components/FindOnPage'
+import { t } from '~/lib/site'
 import { cn } from '~/lib/utils'
 
 /** Shared tab class — IDENTICAL to MobileBottomBar's `tab`, so this row reads as
@@ -119,29 +120,29 @@ export default function PageFloatingMenu({ headings }: { headings: Heading[] }) 
 						'fixed inset-x-3 bottom-[calc(var(--mobile-bar-height)+env(safe-area-inset-bottom)+1.5rem)] z-80 md:hidden',
 						'flex items-stretch gap-1 rounded-2xl border bg-sidebar/95 px-1.5 py-1 shadow-lg backdrop-blur',
 					)}
-					aria-label="Действия страницы"
+					aria-label={t('pageActions')}
 				>
-					<button type="button" onClick={scrollTop} className={tab} aria-label="Наверх">
+					<button type="button" onClick={scrollTop} className={tab} aria-label={t('scrollTop')}>
 						<ArrowUp className="size-5" />
-						<span>Наверх</span>
+						<span>{t('scrollTop')}</span>
 					</button>
-					<button type="button" onClick={openFind} className={tab} aria-label="Найти на странице">
+					<button type="button" onClick={openFind} className={tab} aria-label={t('findOnPage')}>
 						<SearchIcon className="size-5" />
-						<span>Найти</span>
+						<span>{t('find')}</span>
 					</button>
-					<button type="button" onClick={openToc} className={tab} aria-label="Содержание">
+					<button type="button" onClick={openToc} className={tab} aria-label={t('toc')}>
 						<List className="size-5" />
-						<span>Содержание</span>
+						<span>{t('toc')}</span>
 					</button>
 					<button
 						type="button"
 						onClick={() => setOpen(false)}
 						className={tab}
-						aria-label="Скрыть"
+						aria-label={t('hide')}
 						aria-expanded
 					>
 						<ChevronRight className="size-5" />
-						<span>Скрыть</span>
+						<span>{t('hide')}</span>
 					</button>
 				</nav>
 			) : (
@@ -157,7 +158,7 @@ export default function PageFloatingMenu({ headings }: { headings: Heading[] }) 
 						type="button"
 						onClick={() => setOpen(true)}
 						className="flex items-center gap-1 rounded-xl border bg-sidebar/95 px-3 py-2 text-[0.6875rem] font-medium text-muted-foreground shadow-md backdrop-blur transition-colors hover:text-foreground"
-						aria-label="Действия страницы"
+						aria-label={t('pageActions')}
 						aria-expanded={false}
 					>
 						<ChevronLeft className="size-3.5" />
@@ -197,19 +198,19 @@ function TocSheet({ shown, onClose }: { shown: Heading[]; onClose: () => void })
 			onClick={onClose}
 			role="dialog"
 			aria-modal="true"
-			aria-label="Содержание"
+			aria-label={t('toc')}
 		>
 			<div
 				className="flex h-[75vh] flex-col overflow-hidden rounded-t-2xl border-t bg-popover pb-[env(safe-area-inset-bottom)]"
 				onClick={(e) => e.stopPropagation()}
 			>
 				<div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
-					<span className="text-sm font-semibold text-foreground">Содержание</span>
+					<span className="text-sm font-semibold text-foreground">{t('toc')}</span>
 					<button
 						type="button"
 						onClick={onClose}
 						className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-						aria-label="Закрыть"
+						aria-label={t('close')}
 					>
 						<X className="size-5" />
 					</button>

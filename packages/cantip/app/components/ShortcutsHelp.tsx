@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-import { ALL_SHORTCUTS, type ShortcutGroup, type ShortcutInfo } from '~/lib/useKeyboardShortcuts'
+import { ALL_SHORTCUTS, groupLabelKey, type ShortcutGroup, type ShortcutInfo } from '~/lib/useKeyboardShortcuts'
 import { t } from '~/lib/site'
 
 /**
@@ -15,7 +15,7 @@ import { t } from '~/lib/site'
  * on mobile since `?` and the modal simply never get triggered.
  */
 
-const GROUP_ORDER: ShortcutGroup[] = ['Навигация', 'Дерево', 'Вкладки']
+const GROUP_ORDER: ShortcutGroup[] = ['nav', 'tree', 'tabs']
 
 /**
  * Open the cheatsheet from anywhere (e.g. the TopBar button) by dispatching this
@@ -91,12 +91,12 @@ export function ShortcutsHelp() {
 					{GROUP_ORDER.filter((g) => byGroup.has(g)).map((group) => (
 						<div key={group} className="mb-4 last:mb-0">
 							<div className="mb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-								{group}
+								{t(groupLabelKey(group))}
 							</div>
 							<ul className="space-y-1">
 								{byGroup.get(group)!.map((r, i) => (
 									<li key={i} className="flex items-center justify-between gap-4 text-sm">
-										<span className="text-foreground">{r.label}</span>
+										<span className="text-foreground">{t(r.labelKey)}</span>
 										<kbd className="shrink-0 rounded border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
 											{r.hint}
 										</kbd>
