@@ -1,9 +1,8 @@
 import { useEffect } from 'react'
-import { json, redirect } from '@remix-run/node'
 import { useLoaderData, useLocation } from '@remix-run/react'
-import type { LoaderFunctionArgs, MetaFunction } from '@remix-run/node'
+import type { MetaFunction } from '@remix-run/node'
 
-import { getDoc, resolvePermalink, getPermalinkForId } from '~/lib/content.server'
+import type { loader } from './doc.server'
 import { getPriority } from '~/lib/utils'
 import { t, pageTitle } from '~/lib/site'
 import { Toc, DocPageOverride } from '~/lib/slots'
@@ -47,34 +46,10 @@ function FrontmatterTable({ frontmatter }: { frontmatter: Record<string, unknown
 	)
 }
 
-export const loader = async ({ params }: LoaderFunctionArgs) => {
-	// The splat param holds the full doc path, e.g. "krista/глоссарий/коллекция".
-	const slug = (params['*'] ?? '').replace(/\/$/, '')
-
-	// Permalinks make a doc's URL independent of its file name. The permalink is
-	// the canonical URL: if `slug` is a permalink we serve the doc in place; if
-	// it is the file-path URL of a doc that has a permalink, we 301 to the
-	// permalink so there is a single canonical address that survives renames.
-	const permalinkTarget = await resolvePermalink(slug)
-	const docId = permalinkTarget ?? slug
-	if (!permalinkTarget) {
-		const canonical = await getPermalinkForId(slug)
-		if (canonical && canonical !== slug) {
-			return redirect(`/${canonical}/`, 301)
-		}
-	}
-
-	const doc = await getDoc(docId)
-	if (!doc || doc.frontmatter.draft === true) {
-		throw new Response('Not Found', { status: 404 })
-	}
-	const title =
-		(doc.frontmatter.title as string | undefined) ??
-		slug.split('/').pop()?.replace(/-/g, ' ') ??
-		slug
-	return json({ doc, title })
-}
-
+// NOTE: the `loader` is NOT exported here — it lives in `./doc.server`
+// (`cantip/routes/doc.server`). The consumer's route stub imports the loader from
+// there, keeping this component module client-safe. `meta` only needs the loader
+// TYPE (import type above), which erases at build.
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
 	return [{ title: pageTitle(data?.title) }]
 }

@@ -9,18 +9,42 @@
  * from the installed engine's node_modules at runtime).
  *
  * Outputs:
- *   dist/generate-content.mjs  — the content generator the CLI runs
+ *   dist/generate-content.mjs  — the content generator the plugin/CLI runs
  *   dist/config.mjs            — the `cantip/config` entry (defineConfig + schema)
+ *   dist/vite.mjs              — the `cantip/vite` plugin entry
  *
  * The user's own `docs.config.ts` is NOT bundled: it lives in their cwd (where
  * type-stripping is allowed) and imports `cantip/config` → dist/config.mjs (JS),
  * so the chain no longer hits a `.ts` file under node_modules.
  */
 import { build } from 'esbuild'
+import { spawn } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
+
+/** Resolve a local bin, walking up to an ancestor node_modules/.bin (workspaces). */
+function findBin(name) {
+	let dir = HERE
+	while (true) {
+		const candidate = path.join(dir, 'node_modules', '.bin', name)
+		if (existsSync(candidate)) return candidate
+		const parent = path.dirname(dir)
+		if (parent === dir) return name
+		dir = parent
+	}
+}
+
+/** Run a bin and reject on non-zero exit. */
+function run(bin, args) {
+	return new Promise((resolve, reject) => {
+		const child = spawn(findBin(bin), args, { cwd: HERE, stdio: 'inherit' })
+		child.on('error', reject)
+		child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`${bin} exited with ${code}`))))
+	})
+}
 
 /** Bundle one entry, externalizing all bare-specifier (npm) imports. */
 async function bundle(entry, outfile) {
@@ -42,5 +66,14 @@ async function bundle(entry, outfile) {
 
 await bundle('scripts/generate-content.ts', 'dist/generate-content.mjs')
 await bundle('app/lib/config/schema.ts', 'dist/config.mjs')
+await bundle('src/vite/plugin.ts', 'dist/vite.mjs')
+
+// Emit type declarations for the package's exports, then rewrite the internal
+// `~/*` import aliases to real relative paths so CONSUMERS get clean types and
+// never see cantip's internal alias. Without this, a consumer's `tsc` follows the
+// re-export stubs into cantip's `.tsx` source and trips on `~/...` imports.
+console.log('▶ Emitting type declarations…')
+await run('tsc', ['-p', 'tsconfig.build.json'])
+await run('tsc-alias', ['-p', 'tsconfig.build.json'])
 
 console.log('✔ Engine build complete → dist/')

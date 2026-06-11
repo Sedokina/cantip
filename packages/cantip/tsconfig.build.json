@@ -1,0 +1,15 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": false,
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"declarationMap": false,
+		"outDir": "./dist/types",
+		"rootDir": ".",
+		"skipLibCheck": true,
+		"allowImportingTsExtensions": true
+	},
+	"include": ["app/**/*.ts", "app/**/*.tsx", "src/**/*.ts", "scripts/**/*.ts"],
+	"exclude": ["node_modules", "dist", "app/generated"]
+}

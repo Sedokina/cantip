@@ -1,7 +1,7 @@
 {
   "name": "cantip",
   "type": "module",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Config-driven Remix documentation site engine — ingest Obsidian/markdown vaults, build an SSR docs site. \"How (to)\" in Kyrgyz.",
   "keywords": [
     "documentation",
@@ -29,18 +29,55 @@
   },
   "exports": {
     "./config": {
-      "types": "./app/lib/config/schema.ts",
+      "types": "./dist/types/app/lib/config/schema.d.ts",
       "default": "./dist/config.mjs"
     },
-    "./vite": "./vite.config.ts",
+    "./vite": {
+      "types": "./dist/types/src/vite/plugin.d.ts",
+      "default": "./dist/vite.mjs"
+    },
+    "./root": {
+      "types": "./dist/types/app/root.d.ts",
+      "default": "./app/root.tsx"
+    },
+    "./root.server": {
+      "types": "./dist/types/app/root.server.d.ts",
+      "default": "./app/root.server.ts"
+    },
+    "./routes/doc": {
+      "types": "./dist/types/app/routes/$.d.ts",
+      "default": "./app/routes/$.tsx"
+    },
+    "./routes/doc.server": {
+      "types": "./dist/types/app/routes/doc.server.d.ts",
+      "default": "./app/routes/doc.server.ts"
+    },
+    "./routes/home": {
+      "types": "./dist/types/app/routes/_index.d.ts",
+      "default": "./app/routes/_index.tsx"
+    },
+    "./entry.server": {
+      "types": "./dist/types/app/entry.server.d.ts",
+      "default": "./app/entry.server.tsx"
+    },
+    "./entry.client": "./app/entry.client.tsx",
+    "./components": {
+      "types": "./dist/types/app/components/index.d.ts",
+      "default": "./app/components/index.ts"
+    },
+    "./core": {
+      "types": "./dist/types/app/lib/core.d.ts",
+      "default": "./app/lib/core.ts"
+    },
+    "./styles.css": "./app/styles/tailwind.css",
     "./package.json": "./package.json"
   },
   "files": [
     "app",
     "scripts",
+    "src",
     "dist",
     "cli.js",
-    "vite.config.ts",
     "components.json",
     "LICENSE",
     "README.md"
@@ -50,21 +87,21 @@
     "prepublishOnly": "node build.js",
     "typecheck": "tsc --noEmit"
   },
+  "peerDependencies": {
+    "@remix-run/node": "^2.15.0",
+    "@remix-run/react": "^2.15.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
   "dependencies": {
     "@headless-tree/core": "^1.7.0",
     "@headless-tree/react": "^1.7.0",
     "@radix-ui/react-slot": "^1.2.4",
-    "@remix-run/dev": "^2.15.0",
-    "@remix-run/node": "^2.15.0",
-    "@remix-run/react": "^2.15.0",
-    "@remix-run/serve": "^2.15.0",
-    "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "decode-uri-component": "^0.4.1",
     "github-slugger": "^2.0.0",
-    "globby": "^16.2.0",
     "hast-util-to-html": "^9.0.5",
     "is-absolute-url": "^5.0.0",
     "isbot": "^5.1.0",
@@ -76,8 +113,6 @@
     "mdast-util-to-hast": "^13.2.1",
     "nanoid": "^5.1.11",
     "pagefind": "^1.5.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
     "react-sticky-box": "^2.0.5",
     "rehype": "^13.0.2",
     "rehype-katex": "^7.0.1",
@@ -97,14 +132,20 @@
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0",
     "vfile": "^6.0.3",
-    "vite": "^5.4.0",
     "yaml": "^2.9.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@remix-run/dev": "^2.15.0",
+    "@remix-run/node": "^2.15.0",
+    "@remix-run/react": "^2.15.0",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
-    "typescript": "^5.6.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsc-alias": "^1.8.17",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0"
   },
   "engines": {
     "node": ">=20"

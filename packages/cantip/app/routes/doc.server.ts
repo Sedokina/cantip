@@ -1,0 +1,37 @@
+/**
+ * Doc route loader (server-only). Split out of `$.tsx` so the route COMPONENT
+ * module carries no server-only imports — lets a consumer re-export the route
+ * cleanly (Remix strips this `.server` loader from the client bundle).
+ */
+import { json, redirect } from '@remix-run/node'
+import type { LoaderFunctionArgs } from '@remix-run/node'
+
+import { getDoc, resolvePermalink, getPermalinkForId } from '~/lib/content.server'
+
+export const loader = async ({ params }: LoaderFunctionArgs) => {
+	// The splat param holds the full doc path, e.g. "krista/глоссарий/коллекция".
+	const slug = (params['*'] ?? '').replace(/\/$/, '')
+
+	// Permalinks make a doc's URL independent of its file name. The permalink is
+	// the canonical URL: if `slug` is a permalink we serve the doc in place; if it
+	// is the file-path URL of a doc that has a permalink, we 301 to the permalink
+	// so there is a single canonical address that survives renames.
+	const permalinkTarget = await resolvePermalink(slug)
+	const docId = permalinkTarget ?? slug
+	if (!permalinkTarget) {
+		const canonical = await getPermalinkForId(slug)
+		if (canonical && canonical !== slug) {
+			return redirect(`/${canonical}/`, 301)
+		}
+	}
+
+	const doc = await getDoc(docId)
+	if (!doc || doc.frontmatter.draft === true) {
+		throw new Response('Not Found', { status: 404 })
+	}
+	const title =
+		(doc.frontmatter.title as string | undefined) ??
+		slug.split('/').pop()?.replace(/-/g, ' ') ??
+		slug
+	return json({ doc, title })
+}

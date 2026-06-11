@@ -1,0 +1,34 @@
+{
+	"include": [
+		"**/*.ts",
+		"**/*.tsx",
+		"docs.config.ts"
+	],
+	"exclude": [
+		"node_modules",
+		"build",
+		"content",
+		"app/generated"
+	],
+	"compilerOptions": {
+		"lib": [
+			"DOM",
+			"DOM.Iterable",
+			"ES2022"
+		],
+		"types": [
+			"@remix-run/node",
+			"vite/client"
+		],
+		"jsx": "react-jsx",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"target": "ES2022",
+		"strict": true,
+		"skipLibCheck": true,
+		"resolveJsonModule": true,
+		"allowImportingTsExtensions": true,
+		"noEmit": true,
+		"baseUrl": "."
+	}
+}

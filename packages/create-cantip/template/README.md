@@ -24,11 +24,19 @@ npm run start      # serve the build
 
 ## Customize
 
-Everything lives in `docs.config.ts`:
+Quick config — everything in `docs.config.ts`:
 
 - **Branding** — `site.title`, `site.logo`, `site.favicon`, `site.defaultTheme`.
 - **Theme** — `theme.colors` (OKLCH tokens), no CSS editing required.
 - **Components** — `components` maps `Home`/`DocPage`/`TopBar`/`Toc` to your own
   `.tsx` files.
 
-See the cantip docs for the full config reference.
+Deep customization — **this is a real Remix app you own**:
+
+- `vite.config.ts`, `app/root.tsx`, `app/routes/*` are yours to edit.
+- Add your own routes (e.g. `app/routes/blog.tsx`) alongside the docs.
+- The docs routes/layout are re-exported from `cantip` — replace or wrap them.
+- Import pieces directly: `import { Sidebar, Search } from 'cantip/components'`,
+  or build fully custom pages with `cantip/core` data functions.
+
+See the cantip docs for the full reference.

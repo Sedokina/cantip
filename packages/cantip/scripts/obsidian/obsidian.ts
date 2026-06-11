@@ -4,7 +4,7 @@ import path from 'node:path'
 import { z } from 'zod'
 import decodeUriComponent from 'decode-uri-component'
 import { slug } from 'github-slugger'
-import { globby } from 'globby'
+import { glob } from 'tinyglobby'
 import yaml from 'yaml'
 
 import type { ObsidianConfig } from './types.ts'
@@ -65,7 +65,7 @@ export async function getVault(config: ObsidianConfig): Promise<Vault> {
 }
 
 export function getObsidianPaths(vault: Vault, ignore: ObsidianConfig['ignore'] = []) {
-  return globby(['**/*.md', ...[...fileFormats].map((fileFormat) => `**/*${fileFormat}`)], {
+  return glob(['**/*.md', ...[...fileFormats].map((fileFormat) => `**/*${fileFormat}`)], {
     absolute: true,
     cwd: vault.path,
     ignore,

@@ -8,10 +8,9 @@ import {
 	useLocation,
 } from '@remix-run/react'
 import { useEffect, useState } from 'react'
-import type { LinksFunction, LoaderFunctionArgs } from '@remix-run/node'
+import type { LinksFunction } from '@remix-run/node'
 
-import { buildSidebar, flattenSidebar } from '~/lib/sidebar.server'
-import { getActiveProjectId } from '~/lib/projects'
+import type { loader } from './root.server'
 import { site } from '~/lib/site'
 import Sidebar from '~/components/Sidebar'
 import { TopBar } from '~/lib/slots'
@@ -39,15 +38,10 @@ export const links: LinksFunction = () => [
 	{ rel: 'icon', type: 'image/svg+xml', href: site.favicon },
 ]
 
-// Root loader runs on every navigation; the active project is derived from the
-// request URL and only that project's sidebar tree is built, so the nav persists
-// across client-side navigations and swaps to match the project being viewed.
-export async function loader({ request }: LoaderFunctionArgs) {
-	const projectId = getActiveProjectId(new URL(request.url).pathname)
-	// No active project (e.g. the home page) → no sidebar tree to build.
-	const sidebar = projectId ? flattenSidebar(await buildSidebar(projectId)) : null
-	return { sidebar, projectId }
-}
+// NOTE: the root `loader` is NOT exported here — it lives in `./root.server`
+// (exported as `cantip/root.server`). A consumer's `app/root.tsx` imports the
+// loader from there and the component/links from here, so this module stays free
+// of server-only imports and bundles cleanly into the client.
 
 export default function App() {
 	const { sidebar, projectId } = useLoaderData<typeof loader>()
