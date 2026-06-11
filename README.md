@@ -62,10 +62,22 @@ for the full export list.
 
 cantip is a **Vite plugin** (`cantip/vite`) plus exported routes/components. Your
 project is a normal Remix app; the plugin runs the content pipeline (markdown →
-HTML) before each build and on dev changes, emitting an `app/generated/` manifest
-under your cwd, and registers the aliases the exported routes/components use. The
-generator is precompiled to `dist/*.mjs` (Node won't strip TS types under
-`node_modules`), and cantip ships `.d.ts` so your `tsc` stays clean.
+HTML) before each build and on dev changes, emitting a single importable
+`app/generated/content.ts` module under your cwd, and registers the aliases the
+exported routes/components use. The generator is precompiled to `dist/*.mjs` (Node
+won't strip TS types under `node_modules`), and cantip ships `.d.ts` so your `tsc`
+stays clean.
+
+**Content flows through a `Source` → `loader()` contract** (`cantip/source`). A
+Source is just `{ files: VirtualFile[] }` — the built-in Obsidian backend emits
+one, but any backend (CMS, DB, generated API docs) can produce the same shape, and
+`loader()` builds the page tree + lookups over it with no filesystem or markdown
+processor. The markdown pipeline (remark/rehype/…) is **bundled into the prebuilt
+generator**, so consumers never install it; `pagefind` (search) and
+`rehype-mermaid` (diagrams) are **optional peers** loaded only when used.
+
+Component overrides are **runtime** — wrap the layout in `<CantipProvider
+components={…}>` in your `app/root.tsx`; no codegen, no regenerate.
 
 Because cantip declares `react` / `react-dom` / `@remix-run/*` as
 **peerDependencies**, your app and cantip share one copy — no duplicate-framework
