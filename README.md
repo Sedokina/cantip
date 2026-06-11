@@ -1,9 +1,17 @@
 # cantip
 
-A config-driven **Remix SSR documentation engine**. Ingest Obsidian vaults or
-plain markdown folders and get a fast docs site with a persistent sidebar, tabs,
-full-text search, dark/light theme, canvas rendering, and wikilinks — all driven
-by a single `docs.config.ts`. ("Cantip" — кантип — is Kyrgyz for "how (to)".)
+A **Remix documentation engine** you drop into your own Remix app as a Vite
+plugin. Ingest Obsidian vaults or plain markdown and get a fast SSR docs site —
+persistent sidebar, tabs, full-text search, dark/light theme, canvas rendering,
+wikilinks — driven by a single `docs.config.ts`. **You own the Remix app**, so
+the docs are fully editable and extensible.
+
+### The name
+
+**cantip** reads two ways, both fitting for a docs tool:
+
+- **"can tip"** — as in "can you give me a tip?" Docs are how you get the tip.
+- **кантип** — Kyrgyz for **"how (to)"**, which is what documentation answers.
 
 ## Quick start
 
@@ -20,9 +28,9 @@ Then edit `docs.config.ts` and drop markdown into `docs/`.
 
 | Path | What |
 | --- | --- |
-| `packages/cantip` | The engine — Remix app + build pipeline + `cantip` CLI. Published to npm as `cantip`. |
+| `packages/cantip` | The engine — Vite plugin + exported routes/components + build pipeline. Published to npm as `cantip`. |
 | `packages/create-cantip` | The scaffolder behind `npm create cantip`. Published as `create-cantip`. |
-| `examples/starter` | A scaffold-generated site used to dogfood the engine locally. |
+| `examples/starter` | A scaffold-generated Remix app used to dogfood the engine locally. |
 
 ### Develop
 
@@ -43,26 +51,30 @@ Everything lives in `docs.config.ts` (typed via `cantip/config`):
 - **Branding** — title, description, logos, favicon, language, default theme.
 - **Theme** — `theme.colors` OKLCH tokens, overriding defaults with no CSS edits.
 - **Components** — `components` swaps `Home` / `DocPage` / `TopBar` / `Toc` for
-  your own `.tsx`. Anything deeper: eject (copy the engine `app/`).
+  your own `.tsx`.
 
-## How it runs from `node_modules`
+For deeper changes you don't need to eject — **it's your Remix app.** Add routes,
+edit `app/root.tsx`, compose `cantip/components`, or build custom pages with the
+`cantip/core` data functions. See the [package README](./packages/cantip/README.md)
+for the full export list.
 
-The engine ships the Remix `app/` + build `scripts/`. The `cantip` CLI runs them
-from the user's project: content, `app/generated/` manifest, `public/`, and
-`build/` resolve from the user's cwd, while Vite's `appDirectory` + `REMIX_ROOT`
-point Remix at the engine. The generator is precompiled to `dist/*.mjs` (Node
-won't strip TS types under `node_modules`). The Vite `~/generated/*` alias
-redirects to the user's cwd so generated `site.ts` / `slots.ts` / `theme.generated.css`
-resolve there.
+## How it works
+
+cantip is a **Vite plugin** (`cantip/vite`) plus exported routes/components. Your
+project is a normal Remix app; the plugin runs the content pipeline (markdown →
+HTML) before each build and on dev changes, emitting an `app/generated/` manifest
+under your cwd, and registers the aliases the exported routes/components use. The
+generator is precompiled to `dist/*.mjs` (Node won't strip TS types under
+`node_modules`), and cantip ships `.d.ts` so your `tsc` stays clean.
+
+Because cantip declares `react` / `react-dom` / `@remix-run/*` as
+**peerDependencies**, your app and cantip share one copy — no duplicate-framework
+bugs.
 
 ## Publishing
 
-Both packages build on `prepare` / `prepublishOnly`:
-
-```sh
-npm publish -w cantip
-npm publish -w create-cantip
-```
+Releases go out via GitHub Actions on a `v*` tag (OIDC trusted publishing). See
+[PUBLISHING.md](./PUBLISHING.md).
 
 ## License
 

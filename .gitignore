@@ -36,3 +36,6 @@ packages/cantip/app/generated/*
 !packages/cantip/app/generated/site.ts
 !packages/cantip/app/generated/slots.ts
 !packages/cantip/app/generated/theme.generated.css
+
+# editor
+.idea/

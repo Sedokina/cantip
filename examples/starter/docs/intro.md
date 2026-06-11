@@ -21,5 +21,6 @@ Standard Markdown, plus:
 ## Next steps
 
 1. Edit `docs.config.ts` to set your title, theme, and content sources.
-2. Run `npx cantip dev` and open the printed URL.
+2. Run `npm run dev` and open the printed URL.
 3. Add pages, or point a project `source` at a git submodule / existing folder.
+4. This is a real Remix app — edit `app/root.tsx` or add your own `app/routes/*`.
