@@ -115,6 +115,11 @@ It's your Remix app — go as deep as you like:
 | `cantip/styles.css` | The Tailwind stylesheet entry. |
 | `cantip/entry.server`, `cantip/entry.client` | Remix SSR/hydration entries. |
 
+## Built with AI
+
+This project was built with the help of an AI coding assistant, with human
+direction and review.
+
 ## License
 
 MIT

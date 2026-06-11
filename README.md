@@ -76,6 +76,12 @@ bugs.
 Releases go out via GitHub Actions on a `v*` tag (OIDC trusted publishing). See
 [PUBLISHING.md](./PUBLISHING.md).
 
+## Built with AI
+
+This project — the engine, the plugin re-architecture, the scaffolder, the
+release pipeline, and these docs — was built with the help of an AI coding
+assistant, with human direction and review.
+
 ## License
 
 MIT
