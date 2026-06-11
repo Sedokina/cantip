@@ -66,6 +66,17 @@ build and on changes in dev — no separate generate step.
 > and `@remix-run/react` from your app, so there's a single shared copy (no
 > duplicate-React bugs).
 
+### Optional features
+
+To keep installs lean, two heavyweight features are **optional peer
+dependencies** — install them only if you use them (`npm create cantip` includes
+`pagefind` by default, so scaffolded projects have search out of the box):
+
+| Feature | Install | Why it's optional |
+| --- | --- | --- |
+| **Full-text search** | `npm install pagefind` | Native search-index binary. Without it, the build skips the search index (with a warning) and the search box has no results. |
+| **Mermaid diagrams** | `npm install rehype-mermaid` | Renders ` ```mermaid ` blocks to SVG via Playwright/Chromium (~300 MB). Without it, a doc containing a diagram fails the build with a message telling you to install it. |
+
 ## Configure
 
 Everything lives in `docs.config.ts` (typed via `cantip/config`):
