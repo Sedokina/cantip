@@ -79,23 +79,6 @@ export const themeSchema = z.object({
 })
 
 /**
- * Component override slots: slot name → path (relative to the user's project) of a
- * `.tsx` exporting a default component that replaces the engine's. Unset slots use
- * the engine default. Resolved by `app/lib/slots.ts`.
- */
-export const componentsSchema = z
-	.object({
-		Home: z.string().optional(),
-		DocPage: z.string().optional(),
-		Sidebar: z.string().optional(),
-		TopBar: z.string().optional(),
-		Toc: z.string().optional(),
-		Search: z.string().optional(),
-		Layout: z.string().optional(),
-	})
-	.default({})
-
-/**
  * UI string overrides. Keys mirror the catalogued in-app literals; defaults ship
  * per `site.lang` (see `defaults.ts`). Partial — unset keys fall back to defaults.
  */
@@ -106,7 +89,6 @@ export const docsConfigSchema = z.object({
 	projects: z.array(projectSchema).default([]),
 	general: generalSchema.prefault({}),
 	theme: themeSchema.prefault({}),
-	components: componentsSchema,
 	ui: uiSchema,
 	/**
 	 * Reserved for custom remark/rehype plugins + callout types. NOT wired in this

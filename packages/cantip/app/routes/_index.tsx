@@ -4,7 +4,7 @@ import type { MetaFunction } from '@remix-run/node'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
 import { getProjects } from '~/lib/projects'
 import { site } from '~/lib/site'
-import { HomeOverride } from '~/lib/slots'
+import { useOverride } from '~/lib/components'
 
 export const meta: MetaFunction = () => [{ title: site.title }]
 
@@ -15,6 +15,7 @@ const projects = getProjects()
  * the engine's default project-card grid below.
  */
 export default function IndexRoute() {
+	const HomeOverride = useOverride('Home')
 	if (HomeOverride) return <HomeOverride />
 	return <EngineIndex />
 }

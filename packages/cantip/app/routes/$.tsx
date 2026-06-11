@@ -5,7 +5,7 @@ import type { MetaFunction } from '@remix-run/node'
 import type { loader } from './doc.server'
 import { getPriority } from '~/lib/utils'
 import { t, pageTitle } from '~/lib/site'
-import { Toc, DocPageOverride } from '~/lib/slots'
+import { useComponent, useOverride } from '~/lib/components'
 import PageFloatingMenu from '~/components/PageFloatingMenu'
 import CanvasMount from '~/components/CanvasMount'
 import { CodeWrapToggle } from '~/components/CodeWrapToggle'
@@ -60,11 +60,13 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
  * engine's default doc body below.
  */
 export default function DocPageRoute() {
+	const DocPageOverride = useOverride('DocPage')
 	if (DocPageOverride) return <DocPageOverride />
 	return <EngineDocPage />
 }
 
 function EngineDocPage() {
+	const Toc = useComponent('Toc')
 	const { doc, title } = useLoaderData<typeof loader>()
 	const showToc = doc.frontmatter.tableOfContents !== false
 	const isCanvas = doc.html.includes('canvas-container')

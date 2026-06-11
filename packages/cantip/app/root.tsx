@@ -13,7 +13,7 @@ import type { LinksFunction } from '@remix-run/node'
 import type { loader } from './root.server'
 import { site } from '~/lib/site'
 import Sidebar from '~/components/Sidebar'
-import { TopBar } from '~/lib/slots'
+import { CantipProvider, useComponent } from '~/lib/components'
 import TabBar from '~/components/TabBar'
 import MobileBottomBar from '~/components/MobileBottomBar'
 import MobileProjectsPanel from '~/components/MobileProjectsPanel'
@@ -43,7 +43,23 @@ export const links: LinksFunction = () => [
 // loader from there and the component/links from here, so this module stays free
 // of server-only imports and bundles cleanly into the client.
 
-export default function App() {
+/**
+ * The cantip layout (header, sidebar, tabs, content outlet). Reads component
+ * overrides from `CantipProvider` context via `useComponent`. Exported so a
+ * consumer can compose it with their own provider/overrides:
+ *
+ *   // app/root.tsx
+ *   import { Layout, CantipProvider } from 'cantip/root'
+ *   export function App() {
+ *     return <CantipProvider components={{ TopBar: MyTopBar }}><Layout/></CantipProvider>
+ *   }
+ *   export default App
+ *
+ * The default export below wraps Layout in an empty provider, so the zero-config
+ * `export { default } from 'cantip/root'` still works.
+ */
+export function Layout() {
+	const TopBar = useComponent('TopBar')
 	const { sidebar, projectId } = useLoaderData<typeof loader>()
 	const location = useLocation()
 	const [menuOpen, setMenuOpen] = useState(false)
@@ -161,5 +177,22 @@ export default function App() {
 				<Scripts />
 			</body>
 		</html>
+	)
+}
+
+// Re-export the provider so a consumer can `import { CantipProvider } from 'cantip/root'`.
+export { CantipProvider } from '~/lib/components'
+
+/**
+ * Default root: the layout wrapped in an empty provider (no overrides). Lets the
+ * zero-config consumer do `export { default } from 'cantip/root'`. To add
+ * overrides, compose `<CantipProvider components={…}><Layout/></CantipProvider>`
+ * in your own app/root.tsx instead of using this default.
+ */
+export default function Root() {
+	return (
+		<CantipProvider>
+			<Layout />
+		</CantipProvider>
 	)
 }
