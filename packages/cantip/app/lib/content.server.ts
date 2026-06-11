@@ -1,105 +1,66 @@
-import fs from 'node:fs/promises'
-import path from 'node:path'
+/**
+ * Runtime content API — now a thin wrapper over `loader()` (cantip/source) fed by
+ * the generated `~/generated/content` module.
+ *
+ * Previously this read JSON manifests from `process.cwd()/app/generated` via fs;
+ * now the generator emits ONE importable `content.ts` (a `{ files, permalinks }`
+ * Source), Vite resolves it through the `~/generated` alias, and `loader()` builds
+ * the lookups in memory. No fs, no cwd fragility, fully typed. The exported
+ * signatures are unchanged so route loaders keep working.
+ */
+import { loader, type LoaderOutput } from 'cantip/source'
+import { getProjectIdForDoc } from './projects'
+import { site } from './site'
+import { source } from '~/generated/content'
 
-export interface DocIndexEntry {
-	id: string
-	title: string | null
-	draft: boolean
-	tableOfContents: boolean
-	tags: string[]
-	isCanvas: boolean
-}
+export type { Heading, PageData } from 'cantip/source'
 
-export interface Heading {
-	depth: number
-	slug: string
-	text: string
-}
-
+/** The shape route loaders return for a single doc. */
 export interface Doc {
 	id: string
 	frontmatter: Record<string, unknown>
-	headings: Heading[]
+	headings: import('cantip/source').Heading[]
 	html: string
 }
 
-// The generated manifest lives at <project>/app/generated and is read at runtime
-// from the working directory (it is not bundled into the server build, so we
-// resolve it from cwd rather than relative to this compiled module).
-const GENERATED_DIR = path.join(process.cwd(), 'app', 'generated')
-
-let indexCache: DocIndexEntry[] | null = null
-let permalinkCache: { toId: Record<string, string>; toPermalink: Record<string, string> } | null = null
-
-/**
- * Load the permalink map (built at generate time from each doc's `permalink`
- * frontmatter). Keys and values are normalized id-style paths with no leading
- * or trailing slashes, matching how the route loader strips request paths.
- * Returns both directions: permalink→id (to serve) and id→permalink (so a
- * file-path request can redirect to its canonical permalink).
- */
-async function getPermalinks() {
-	if (!permalinkCache) {
-		let toId: Record<string, string> = {}
-		try {
-			const raw = await fs.readFile(path.join(GENERATED_DIR, 'permalinks.json'), 'utf8')
-			toId = JSON.parse(raw) as Record<string, string>
-		} catch {
-			toId = {} // no permalinks defined → empty map
-		}
-		const toPermalink: Record<string, string> = {}
-		for (const [permalink, id] of Object.entries(toId)) {
-			// If a doc has several permalinks, the first wins as its canonical URL.
-			if (!toPermalink[id]) toPermalink[id] = permalink
-		}
-		permalinkCache = { toId, toPermalink }
+// Build the loader once per process. Project scoping uses the same rule as the
+// sidebar/projects layer (first id segment, with the general bucket folded in).
+let _loader: LoaderOutput | null = null
+function L(): LoaderOutput {
+	if (!_loader) {
+		_loader = loader({ source, lang: site.lang, projectOf: getProjectIdForDoc })
 	}
-	return permalinkCache
+	return _loader
 }
 
-/** The doc id a permalink points at, or null if the path is not a permalink. */
+/** The doc id a permalink points at, or null. */
 export async function resolvePermalink(pathSlug: string): Promise<string | null> {
-	const { toId } = await getPermalinks()
-	return toId[pathSlug] ?? null
+	return L().resolvePermalink(pathSlug)
 }
 
-/** The canonical permalink for a doc id, or null if the doc has none. */
+/** The canonical permalink for a doc id, or null. */
 export async function getPermalinkForId(id: string): Promise<string | null> {
-	const { toPermalink } = await getPermalinks()
-	return toPermalink[id] ?? null
+	return L().getPermalinkForId(id)
 }
 
-/**
- * The canonical URL for a doc id: its permalink URL when it has one, else its
- * file-path URL `/{id}/`. Used by link emitters (e.g. the sidebar) so internal
- * links point straight at the permalink instead of taking a 301 redirect.
- */
+/** Canonical URL for an id: its permalink URL when set, else `/{id}/`. */
 export async function getCanonicalUrl(id: string): Promise<string> {
-	const permalink = await getPermalinkForId(id)
-	return permalink ? `/${permalink}/` : `/${id}/`
+	return L().getCanonicalUrl(id)
 }
 
-/** All non-draft docs from the generated index (cached for the process). */
-export async function getAllDocs(): Promise<DocIndexEntry[]> {
-	if (!indexCache) {
-		const raw = await fs.readFile(path.join(GENERATED_DIR, 'index.json'), 'utf8')
-		indexCache = JSON.parse(raw) as DocIndexEntry[]
-	}
-	return indexCache.filter((d) => !d.draft)
-}
-
-/** Load a single compiled doc by its route id (e.g. "krista/глоссарий/коллекция"). */
+/** Load a single compiled doc by its route id, or null. */
 export async function getDoc(id: string): Promise<Doc | null> {
-	// Guard against path traversal: ids are slugified, so no "." segments.
 	const safe = id
 		.split('/')
 		.filter((s) => s && s !== '.' && s !== '..')
 		.join('/')
 	if (!safe) return null
-	try {
-		const raw = await fs.readFile(path.join(GENERATED_DIR, 'docs', `${safe}.json`), 'utf8')
-		return JSON.parse(raw) as Doc
-	} catch {
-		return null
-	}
+	const page = L().getPage(safe)
+	if (!page) return null
+	return { id: page.id, frontmatter: page.data.frontmatter, headings: page.data.headings, html: page.data.html }
+}
+
+/** The loaded content API (used by the sidebar builder). */
+export function content(): LoaderOutput {
+	return L()
 }

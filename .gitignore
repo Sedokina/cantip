@@ -34,6 +34,7 @@ examples/*/app/generated/
 # DIRECTORY, only under ignored contents.
 packages/cantip/app/generated/*
 !packages/cantip/app/generated/site.ts
+!packages/cantip/app/generated/content.ts
 !packages/cantip/app/generated/slots.ts
 !packages/cantip/app/generated/theme.generated.css
 

@@ -69,6 +69,10 @@
       "types": "./dist/types/app/lib/core.d.ts",
       "default": "./app/lib/core.ts"
     },
+    "./source": {
+      "types": "./dist/types/src/source/index.d.ts",
+      "default": "./src/source/index.ts"
+    },
     "./styles.css": "./app/styles/tailwind.css",
     "./package.json": "./package.json"
   },
