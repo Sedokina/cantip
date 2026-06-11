@@ -80,7 +80,6 @@ export default defineConfig({
   // …or named projects, each a folder / submodule / any path:
   // projects: [{ id: 'guide', name: 'Guide', source: './content/guide' }],
   // theme: { colors: { dark: { '--brand': 'oklch(0.7 0.2 250)' } } },
-  // components: { Home: './app/MyHome.tsx' },
 })
 ```
 
@@ -88,18 +87,26 @@ export default defineConfig({
   served at the root with no project concept.
 - **Branding** — title, description, logos, favicon, language, default theme.
 - **Theme** — `theme.colors` OKLCH tokens, no CSS edits.
-- **Components** — swap `Home` / `DocPage` / `TopBar` / `Toc` for your own `.tsx`
-  via `docs.config.ts`, or import the pieces directly (below).
 
 ## Extend it
 
 It's your Remix app — go as deep as you like:
 
+- **Swap a component (runtime)** — wrap the layout in your `app/root.tsx`; no
+  config, no regenerate:
+  ```tsx
+  import { Layout, CantipProvider } from 'cantip/root'
+  export default () => <CantipProvider components={{ TopBar: MyTopBar }}><Layout/></CantipProvider>
+  ```
 - **Add routes** — drop `app/routes/about.tsx` alongside the docs.
-- **Replace the layout** — edit `app/root.tsx` instead of re-exporting `cantip/root`.
 - **Compose components** — `import { Sidebar, Search, Toc } from 'cantip/components'`.
-- **Build custom pages** — `import { getDoc, getAllDocs, buildSidebar } from 'cantip/core'`
-  (framework-agnostic data functions) and render however you want.
+- **Custom content backend** — `loader()` works over any `{ files: VirtualFile[] }`
+  source (Obsidian today; a CMS, DB, or generated API docs just emit the same
+  shape):
+  ```ts
+  import { loader } from 'cantip/source'
+  const docs = loader({ source: { files: [/* your pages */] } })
+  ```
 
 ## Exports
 
@@ -107,11 +114,12 @@ It's your Remix app — go as deep as you like:
 | --- | --- |
 | `cantip/vite` | The Vite plugin. |
 | `cantip/config` | `defineConfig` + the config schema. |
-| `cantip/root`, `cantip/root.server` | Root layout component + its loader. |
+| `cantip/source` | `loader()` + the `Source`/`VirtualFile` content contract (framework-agnostic). |
+| `cantip/root`, `cantip/root.server` | Root layout + `CantipProvider` + the loader. |
 | `cantip/routes/doc`, `cantip/routes/doc.server` | Doc page + loader. |
 | `cantip/routes/home` | Home page. |
 | `cantip/components` | The React components (Sidebar, TopBar, Toc, Search, …). |
-| `cantip/core` | Framework-agnostic data functions. |
+| `cantip/core` | Higher-level data helpers (getDoc, buildSidebar, projects). |
 | `cantip/styles.css` | The Tailwind stylesheet entry. |
 | `cantip/entry.server`, `cantip/entry.client` | Remix SSR/hydration entries. |
 

@@ -27,9 +27,18 @@ export async function buildSearchIndex(
 	logger: { info(m: string): void; warn(m: string): void },
 	options: SearchIndexOptions = { outputPath: 'public/pagefind', lang: 'ru' },
 ): Promise<void> {
-	// Imported lazily so a missing/optional native binary only fails the search
-	// step, not the whole content generation.
-	const { createIndex } = await import('pagefind')
+	// Pagefind is an OPTIONAL peer (native binary). Imported lazily + guarded so a
+	// project without it still builds — search is simply skipped with a warning.
+	let createIndex
+	try {
+		;({ createIndex } = await import('pagefind'))
+	} catch {
+		logger.warn(
+			'Search index skipped: the optional peer `pagefind` is not installed. ' +
+				'Run `npm install pagefind` to enable full-text search.',
+		)
+		return
+	}
 
 	const { index, errors } = await createIndex({
 		// Set the default site language so tokenisation and stemming are correct.

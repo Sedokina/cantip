@@ -41,6 +41,7 @@ export default defineConfig({
 	// Override the brand color (and any other OKLCH token) without touching CSS:
 	// theme: { colors: { dark: { '--brand': 'oklch(0.7 0.2 250)' } } },
 
-	// Swap any built-in component for your own (Home, DocPage, TopBar, Toc):
-	// components: { Home: './app/MyHome.tsx' },
+	// To swap a built-in component (TopBar/Toc/Home/DocPage), wrap the layout in
+	// your app/root.tsx — it's a runtime prop, no config needed:
+	//   <CantipProvider components={{ TopBar: MyTopBar }}><Layout/></CantipProvider>
 })
