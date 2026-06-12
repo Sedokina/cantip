@@ -77,12 +77,88 @@ function rewriteContentLinks(docs: CompiledDoc[], canonicalUrl: Map<string, stri
 	return count
 }
 
+/**
+ * Newest mtime (ms) under `target`, recursing into directories. Missing path →
+ * -Infinity (treated as "no input", so it never forces a regen on its own).
+ */
+async function newestMtime(target: string): Promise<number> {
+	let stat
+	try {
+		stat = await fs.stat(target)
+	} catch {
+		return -Infinity
+	}
+	if (!stat.isDirectory()) return stat.mtimeMs
+	let newest = stat.mtimeMs
+	const entries = await fs.readdir(target, { withFileTypes: true })
+	for (const e of entries) {
+		newest = Math.max(newest, await newestMtime(path.join(target, e.name)))
+	}
+	return newest
+}
+
+/** Oldest mtime (ms) among required outputs; -Infinity if any is missing. */
+async function oldestOutputMtime(outputs: string[]): Promise<number> {
+	let oldest = Infinity
+	for (const o of outputs) {
+		try {
+			oldest = Math.min(oldest, (await fs.stat(o)).mtimeMs)
+		} catch {
+			return -Infinity // a missing output forces a regen
+		}
+	}
+	return oldest
+}
+
+/**
+ * Whether the generated artifacts are already up-to-date for `config`'s inputs:
+ * every required output exists and is newer than the config + all source vaults.
+ *
+ * Used only when `CANTIP_SKIP_IF_FRESH` is set (the Vite plugin sets it across a
+ * `remix vite:build`, whose separate client+SSR passes would otherwise each
+ * regenerate). The CLI `cantip generate` and the dev watcher do NOT set it, so an
+ * explicit generate always runs fresh.
+ */
+async function isFresh(config: DocsConfig): Promise<boolean> {
+	const outputs = [
+		path.join(MANIFEST_DIR, 'content.json'),
+		path.join(MANIFEST_DIR, 'site.ts'),
+		path.join(MANIFEST_DIR, 'theme.generated.css'),
+	]
+	const oldestOut = await oldestOutputMtime(outputs)
+	if (oldestOut === -Infinity) return false // an output is missing
+
+	// Inputs: the config file (if any) + every source vault directory.
+	const configFile = ['docs.config.ts', 'docs.config.js', 'docs.config.mjs']
+		.map((f) => path.resolve(CWD, f))
+	const sources = config.projects.map((p) => path.resolve(CWD, p.source))
+	if (config.general.enabled && config.general.source) {
+		sources.push(path.resolve(CWD, config.general.source))
+	}
+	const inputs = [...configFile, ...sources]
+
+	let newestIn = -Infinity
+	for (const i of inputs) newestIn = Math.max(newestIn, await newestMtime(i))
+
+	// Fresh when no input is newer than the oldest output.
+	return newestIn <= oldestOut
+}
+
 async function main() {
 	const start = performance.now()
-	console.log('▶ Generating content from Obsidian vaults…')
 
 	// 0. Load the user's docs.config.ts (resolved + validated) from cwd.
 	const config = await loadConfig(CWD)
+
+	// Skip regeneration when outputs are already up-to-date AND the caller opted in
+	// (CANTIP_SKIP_IF_FRESH). This collapses the redundant regen across a single
+	// `remix vite:build`'s client+SSR passes — see the Vite plugin's buildStart.
+	if (process.env.CANTIP_SKIP_IF_FRESH && (await isFresh(config))) {
+		console.log('▶ Content is up-to-date — skipping regeneration.')
+		return
+	}
+
+	console.log('▶ Generating content from Obsidian vaults…')
 	const { vaults, canvas } = buildWorkLists(config)
 
 	// 1. Clean previous content output (asset/public cleanup is handled per-vault).

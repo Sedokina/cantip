@@ -51,13 +51,21 @@ export interface CantipPluginOptions {
 	watch?: string[]
 }
 
-/** Run the content generator once, from the consumer's cwd. Resolves on success. */
-function runGenerate(cwd: string): Promise<void> {
+/**
+ * Run the content generator once, from the consumer's cwd. Resolves on success.
+ *
+ * `skipIfFresh` sets CANTIP_SKIP_IF_FRESH so the generator no-ops when its outputs
+ * are already up-to-date. A `remix vite:build` runs two passes (client + SSR),
+ * each with a fresh plugin instance; passing skipIfFresh collapses the redundant
+ * second regen. The dev watcher passes false so an edit always regenerates.
+ */
+function runGenerate(cwd: string, skipIfFresh = false): Promise<void> {
 	// Prefer the precompiled dist/ generator — Node won't strip TS types under
 	// node_modules. Fall back to the .ts source (monorepo dev, symlinked).
 	const args = existsSync(GENERATE_JS) ? [GENERATE_JS] : ['--experimental-strip-types', GENERATE_TS]
+	const env = skipIfFresh ? { ...process.env, CANTIP_SKIP_IF_FRESH: '1' } : process.env
 	return new Promise((resolve, reject) => {
-		const child = spawn(process.execPath, args, { cwd, stdio: 'inherit' })
+		const child = spawn(process.execPath, args, { cwd, stdio: 'inherit', env })
 		child.on('error', reject)
 		child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`cantip generate exited with ${code}`))))
 	})
@@ -95,11 +103,14 @@ export function cantip(options: CantipPluginOptions = {}): Plugin {
 		},
 
 		// Generate before the build (and before the dev server's first request).
-		// `buildStart` runs for both `vite build` and `vite dev`.
+		// `buildStart` runs for both `vite build` and `vite dev`. `skipIfFresh` lets
+		// the SSR pass no-op when the client pass already produced up-to-date output
+		// (the two passes are separate plugin instances, so `didGenerate` can't span
+		// them — the env-flagged freshness check in the generator does).
 		async buildStart() {
 			if (didGenerate) return
 			didGenerate = true
-			await runGenerate(cwd)
+			await runGenerate(cwd, true)
 		},
 
 		// Dev: re-generate when the config or content changes, then let Remix's HMR
