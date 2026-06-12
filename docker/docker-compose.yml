@@ -1,0 +1,20 @@
+# Example: serve a docs project with the generic cantip-host image.
+#
+#   DOCS=/path/to/your-docs docker compose -f docker/docker-compose.yml up --build
+#
+# Mounts your docs dir (docs.config.ts + content sources + public/) read-only at
+# /docs. The image itself is generic — point DOCS at any client's docs.
+services:
+  docs:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        CANTIP_VERSION: "0.5.0"
+        WITH_MERMAID: "true"
+    image: cantip-host:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - "${DOCS:-./examples/starter}:/docs:ro"
+    restart: unless-stopped

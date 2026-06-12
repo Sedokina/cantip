@@ -1,0 +1,9 @@
+# Keep the build context small. The image scaffolds its app via create-cantip
+# (network), so it needs almost nothing from the repo except docker/entrypoint.sh.
+node_modules
+**/node_modules
+**/build
+**/dist
+.git
+examples/*/content
+examples/*/public/pagefind
