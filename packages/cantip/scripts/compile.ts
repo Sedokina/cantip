@@ -13,6 +13,7 @@ import { visit } from 'unist-util-visit'
 import { slug as slugify } from 'github-slugger'
 import yaml from 'yaml'
 import { slugifyObsidianPath } from './obsidian/obsidian.ts'
+import type { MarkdownPipelineHook, MarkdownStep } from '../app/lib/config/schema.ts'
 import type { Root as MdastRoot } from 'mdast'
 import type { Root as HastRoot, Element } from 'hast'
 
@@ -175,33 +176,70 @@ function remarkBlankLineGaps() {
 	}
 }
 
-const processor = unified()
-	.use(remarkParse)
-	.use(remarkFrontmatter)
-	.use(remarkGfm)
-	// Obsidian renders a single newline as a line break (a "hard break"); the
-	// vault was authored against that behaviour (e.g. multi-line blockquotes
-	// without trailing spaces). Default CommonMark collapses single newlines to
-	// spaces — remark-breaks restores the Obsidian/GitHub line-break semantics.
-	.use(remarkBreaks)
-	// Mark blocks preceded by a blank line so CSS can apply the inter-block gap
-	// ONLY there (see `.has-blank-before` in app.css), instead of a blanket
-	// adjacent-sibling margin. Must run BEFORE remarkRehype (needs mdast
-	// positions) and after remarkBreaks (which doesn't add/remove blocks).
-	.use(remarkBlankLineGaps)
-	.use(remarkMath, { singleDollarTextMath: true })
-	// allowDangerousHtml: the generated markdown contains raw HTML (callouts,
-	// <img>, canvas containers) produced by the obsidian remark pipeline.
-	.use(remarkRehype, { allowDangerousHtml: true })
-	.use(rehypeKatex)
-	// remarkBlankLineGaps puts the gap marker on the inner <code>; move it up to
-	// the <pre> so the inter-block gap actually applies (see plugin doc above).
-	.use(rehypeHoistBlankBeforeToPre)
-	.use(rehypeHeadings)
-	.use(rehypeStringify, { allowDangerousHtml: true })
+/**
+ * The default pipeline, as an ordered list of named steps. This is the value a
+ * user's `markdown.pipeline` hook receives; it must produce the same processor as
+ * the old fixed chain when run through `buildProcessor` with no hook.
+ *
+ * Steps whose name carries the `cantip:` prefix are internal (not npm plugins) and
+ * encode Obsidian rendering semantics — reorder around them, but dropping them
+ * changes output. Remark steps must stay before `remark-rehype`, rehype steps
+ * after it; the order here is correct and the hook is trusted to keep it sane.
+ */
+function defaultSteps(): MarkdownStep[] {
+	return [
+		{ name: 'remark-parse', plugin: remarkParse },
+		{ name: 'remark-frontmatter', plugin: remarkFrontmatter },
+		{ name: 'remark-gfm', plugin: remarkGfm },
+		// Obsidian renders a single newline as a line break (a "hard break"); the
+		// vault was authored against that behaviour (e.g. multi-line blockquotes
+		// without trailing spaces). Default CommonMark collapses single newlines to
+		// spaces — remark-breaks restores the Obsidian/GitHub line-break semantics.
+		{ name: 'remark-breaks', plugin: remarkBreaks },
+		// Mark blocks preceded by a blank line so CSS can apply the inter-block gap
+		// ONLY there (see `.has-blank-before` in app.css), instead of a blanket
+		// adjacent-sibling margin. Must run BEFORE remarkRehype (needs mdast
+		// positions) and after remarkBreaks (which doesn't add/remove blocks).
+		{ name: 'cantip:blank-line-gaps', plugin: remarkBlankLineGaps },
+		{ name: 'remark-math', plugin: remarkMath, options: { singleDollarTextMath: true } },
+		// allowDangerousHtml: the generated markdown contains raw HTML (callouts,
+		// <img>, canvas containers) produced by the obsidian remark pipeline.
+		{ name: 'remark-rehype', plugin: remarkRehype, options: { allowDangerousHtml: true } },
+		{ name: 'rehype-katex', plugin: rehypeKatex },
+		// remarkBlankLineGaps puts the gap marker on the inner <code>; move it up to
+		// the <pre> so the inter-block gap actually applies (see plugin doc above).
+		{ name: 'cantip:hoist-blank-before-to-pre', plugin: rehypeHoistBlankBeforeToPre },
+		{ name: 'cantip:headings', plugin: rehypeHeadings },
+		{ name: 'rehype-stringify', plugin: rehypeStringify, options: { allowDangerousHtml: true } },
+	]
+}
 
-/** Compile a single markdown string to HTML + headings + frontmatter. */
-export async function compileMarkdown(markdown: string): Promise<Omit<CompiledDoc, 'id'>> {
+/**
+ * Build a `unified()` processor from a step list, applying the user's optional
+ * `pipeline` hook to the defaults first. With no hook, this reproduces the former
+ * fixed chain exactly.
+ */
+function buildProcessor(hook?: MarkdownPipelineHook) {
+	const steps = hook ? hook(defaultSteps()) : defaultSteps()
+	const processor = unified()
+	for (const step of steps) {
+		// unified accepts `(plugin)` or `(plugin, options)`; mirror that.
+		if (step.options === undefined) processor.use(step.plugin as never)
+		else processor.use(step.plugin as never, step.options as never)
+	}
+	return processor
+}
+
+/**
+ * Compile a single markdown string to HTML + headings + frontmatter.
+ *
+ * Pass a built processor (from `buildProcessor`) to reuse one across a dir; with
+ * none, builds the default pipeline per call (back-compat for standalone callers).
+ */
+export async function compileMarkdown(
+	markdown: string,
+	processor = buildProcessor(),
+): Promise<Omit<CompiledDoc, 'id'>> {
 	const mdast = processor.parse(markdown) as MdastRoot
 	const frontmatter = extractFrontmatter(mdast)
 	const file = await processor.process(markdown)
@@ -212,8 +250,18 @@ export async function compileMarkdown(markdown: string): Promise<Omit<CompiledDo
 	}
 }
 
-/** Walk a content directory and compile every .md file into the manifest. */
-export async function compileDir(contentRoot: string, logger: { info(m: string): void }): Promise<CompiledDoc[]> {
+/**
+ * Walk a content directory and compile every .md file into the manifest.
+ *
+ * `pipelineHook` (from `docs.config.ts` `markdown.pipeline`) customizes the
+ * remark/rehype chain; the processor is built once and reused across all files.
+ */
+export async function compileDir(
+	contentRoot: string,
+	logger: { info(m: string): void },
+	pipelineHook?: MarkdownPipelineHook,
+): Promise<CompiledDoc[]> {
+	const processor = buildProcessor(pipelineHook)
 	const docs: CompiledDoc[] = []
 
 	async function walk(dir: string): Promise<void> {
@@ -225,7 +273,7 @@ export async function compileDir(contentRoot: string, logger: { info(m: string):
 					await walk(full)
 				} else if (entry.isFile() && entry.name.endsWith('.md')) {
 					const raw = await fs.readFile(full, 'utf8')
-					const compiled = await compileMarkdown(raw)
+					const compiled = await compileMarkdown(raw, processor)
 					const rel = path.relative(contentRoot, full).replace(/\\/g, '/').replace(/\.md$/, '')
 					// Slugify the id with the same logic used to generate internal link
 					// hrefs (lowercase, slugified per segment) so routes match wikilinks.

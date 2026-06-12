@@ -41,7 +41,20 @@ export default defineConfig({
 	// Override the brand color (and any other OKLCH token) without touching CSS:
 	// theme: { colors: { dark: { '--brand': 'oklch(0.7 0.2 250)' } } },
 
+	// Customize the markdown pipeline (build-time). The hook receives cantip's
+	// default remark/rehype steps; return the chain to run (reorder/drop/extend):
+	//   markdown: {
+	//     pipeline: (steps) => [
+	//       ...steps,
+	//       { name: 'rehype-external-links', plugin: rehypeExternalLinks, options: { target: '_blank' } },
+	//     ],
+	//   },
+
 	// To swap a built-in component (TopBar/Toc/Home/DocPage), wrap the layout in
 	// your app/root.tsx — it's a runtime prop, no config needed:
 	//   <CantipProvider components={{ TopBar: MyTopBar }}><Layout/></CantipProvider>
+
+	// Order the sidebar: drop a `_meta.yaml` into any source folder —
+	//   order: [getting-started, installation, advanced]   # rest appends A→Z
+	//   label: { advanced: Advanced Topics }                # rename subfolders
 })

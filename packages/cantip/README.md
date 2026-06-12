@@ -99,6 +99,31 @@ export default defineConfig({
 - **Branding** — title, description, logos, favicon, language, default theme.
 - **Theme** — `theme.colors` OKLCH tokens, no CSS edits.
 
+## Order the sidebar
+
+By default a folder's children sort alphabetically. Drop a `_meta.yaml` (or
+`_meta.yml` / `_meta.json`) into any source folder to set an explicit order and
+rename subfolders:
+
+```yaml
+# docs/guide/_meta.yaml
+order:                 # children — pages AND subfolders — in this order
+  - getting-started
+  - installation
+  - advanced
+label:                 # rename subfolders (pages take their title from frontmatter)
+  advanced: Advanced Topics
+```
+
+- **Files and folders share one namespace** — list a child by its name (a page
+  `installation.md` is `installation`; a subfolder `advanced/` is `advanced`).
+  Names are matched after slugifying, so `Getting Started` and `getting-started`
+  both work.
+- **Order only what you care about** — listed children come first in the given
+  order; anything unlisted appends after, alphabetically. A folder with no
+  `_meta` stays fully alphabetical, exactly as before.
+- `_meta` files are read from your source vault and never rendered as pages.
+
 ## Extend it
 
 It's your Remix app — go as deep as you like:
@@ -118,6 +143,25 @@ It's your Remix app — go as deep as you like:
   import { loader } from 'cantip/source'
   const docs = loader({ source: { files: [/* your pages */] } })
   ```
+- **Customize the markdown pipeline** — `markdown.pipeline` in `docs.config.ts`
+  hands you the engine's default remark/rehype steps; return the chain you want
+  (full control — reorder, drop, replace, or insert). Steps are
+  `{ name, plugin, options? }`; cantip's own steps carry a `cantip:` name prefix.
+  Runs at build time, in the content generator (not the browser):
+  ```ts
+  import rehypeExternalLinks from 'rehype-external-links'
+  export default defineConfig({
+    markdown: {
+      pipeline: (steps) => [
+        ...steps,
+        { name: 'rehype-external-links', plugin: rehypeExternalLinks, options: { target: '_blank' } },
+      ],
+    },
+  })
+  ```
+  Omit `pipeline` and the default pipeline is unchanged. Ordering rules still
+  apply (remark steps before `remark-rehype`, rehype steps after); cantip trusts
+  your hook to keep it valid.
 
 ## Exports
 

@@ -91,12 +91,52 @@ export const docsConfigSchema = z.object({
 	theme: themeSchema.prefault({}),
 	ui: uiSchema,
 	/**
-	 * Reserved for custom remark/rehype plugins + callout types. NOT wired in this
-	 * phase (the markdown pipeline stays fixed); accepted so configs are
-	 * forward-compatible.
+	 * Markdown pipeline customization (build-time, runs in the content generator —
+	 * NOT in the browser).
+	 *
+	 * `pipeline` is a transform over the engine's default step list: it receives
+	 * the ordered built-in steps and returns the chain to actually run, so you have
+	 * FULL control — reorder, drop, replace, or insert remark/rehype plugins.
+	 * Omitting it leaves the default pipeline byte-for-byte unchanged.
+	 *
+	 *   markdown: {
+	 *     pipeline: (steps) => [
+	 *       ...steps,
+	 *       { name: 'rehype-external-links', plugin: rehypeExternalLinks, options: { target: '_blank' } },
+	 *     ],
+	 *   }
+	 *
+	 * Each step is `{ name, plugin, options? }`. cantip's own internal steps carry
+	 * a `cantip:` name prefix (e.g. `cantip:blank-line-gaps`) and encode Obsidian
+	 * rendering semantics — reorder around them, but dropping them changes output.
+	 * Ordering rules still apply: remark steps must precede `remark-rehype`, rehype
+	 * steps must follow it; cantip does not enforce this (full control = your call).
+	 *
+	 * Validated loosely (functions can't be deeply schema-checked); the generator
+	 * applies it. Not part of the serialized runtime config — it never leaves the
+	 * build process.
 	 */
-	markdown: z.unknown().optional(),
+	markdown: z
+		.object({
+			pipeline: z
+				.function()
+				.optional() as unknown as z.ZodOptional<z.ZodType<MarkdownPipelineHook>>,
+		})
+		.optional(),
 })
+
+/** One step in the markdown `unified()` pipeline: a named plugin + its options. */
+export interface MarkdownStep {
+	/** Stable identifier for filter/reorder/replace. cantip internals use a `cantip:` prefix. */
+	name: string
+	/** The unified plugin (remark/rehype). */
+	plugin: unknown
+	/** Options passed as the plugin's second `.use()` argument. */
+	options?: unknown
+}
+
+/** Transforms the default step list into the chain to run. See `markdown.pipeline`. */
+export type MarkdownPipelineHook = (steps: MarkdownStep[]) => MarkdownStep[]
 
 /** Authored (input) shape — what a user writes; most fields optional. */
 export type DocsUserConfig = z.input<typeof docsConfigSchema>

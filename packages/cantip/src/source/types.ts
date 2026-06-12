@@ -44,18 +44,26 @@ export interface VirtualPage {
 }
 
 /**
- * Optional folder metadata (ordering, custom label). Not required — when absent,
- * `loader()` derives folder labels from the segment and orders alphabetically.
- * Reserved for future explicit-ordering support.
+ * Optional folder metadata (ordering, custom labels). Not required — when absent,
+ * `loader()` orders a folder's children alphabetically and labels subfolders from
+ * their slug. Sourced from per-folder `_meta.{yaml,yml,json}` files (see
+ * `scripts/collect-meta.ts`).
  */
 export interface VirtualMeta {
 	type: 'meta'
-	/** Folder path this meta applies to (no leading/trailing slash). */
+	/** Folder path this meta applies to (no leading/trailing slash; '' = root). */
 	path: string
 	data: {
+		/** This folder's own display label (used by its PARENT when listing it). */
 		label?: string
-		/** Explicit child order (page/folder names). */
+		/**
+		 * Explicit order of this folder's direct children, by slugified name (pages
+		 * and subfolders share one namespace). Listed children come first in this
+		 * order; anything unlisted appends after, alphabetically.
+		 */
 		order?: string[]
+		/** Rename direct children: slugified child name → display label. */
+		childLabels?: Record<string, string>
 	}
 }
 

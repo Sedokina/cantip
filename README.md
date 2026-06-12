@@ -50,6 +50,11 @@ Everything lives in `docs.config.ts` (typed via `cantip/config`):
   root with no project concept.
 - **Branding** — title, description, logos, favicon, language, default theme.
 - **Theme** — `theme.colors` OKLCH tokens, overriding defaults with no CSS edits.
+- **Sidebar order** — drop a `_meta.yaml` into any source folder to order its
+  children (pages and subfolders) and rename subfolders; unlisted items append
+  alphabetically. No `_meta` = alphabetical, as before.
+- **Markdown pipeline** — `markdown.pipeline` hands you the default remark/rehype
+  steps to reorder/drop/replace/extend (full control, build-time).
 - **Components** — `components` swaps `Home` / `DocPage` / `TopBar` / `Toc` for
   your own `.tsx`.
 

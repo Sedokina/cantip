@@ -7,7 +7,7 @@
  * `sidebar.server.ts` (per-project tree), but now backend-agnostic — any Source
  * works, not just the Obsidian generator.
  */
-import type { PageData, Source, VirtualFile, VirtualPage } from './types'
+import type { PageData, Source, VirtualFile, VirtualMeta, VirtualPage } from './types'
 
 export type SidebarNodeType = 'directory' | 'file' | 'canvas' | 'image'
 
@@ -70,19 +70,32 @@ function isPage(f: VirtualFile): f is VirtualPage {
 }
 
 interface BuildNode {
+	/** This node's slug — its key in the parent map (matches _meta order/label keys). */
+	slug: string
+	/** Full id WITH the project prefix (e.g. `guide/advanced`) — the _meta path space. */
+	fullId: string
 	label: string
 	href?: string
 	nodeType?: SidebarNodeType
 	childMap: Map<string, BuildNode>
 }
 
+/** A folder's `_meta` data, as the loader consumes it. */
+type MetaData = NonNullable<VirtualMeta['data']>
+
 export function loader(options: LoaderOptions): LoaderOutput {
 	const { source, lang = 'en' } = options
 	const projectOf = options.projectOf ?? ((id: string) => id.split('/')[0] ?? '')
 
-	// Index every page by id, dropping drafts up front.
+	// Index every page by id, dropping drafts up front. Collect folder metas
+	// (ordering + labels) keyed by folder id; non-page files are otherwise ignored.
 	const pages = new Map<string, LoaderPage>()
+	const metas = new Map<string, MetaData>()
 	for (const f of source.files) {
+		if (f.type === 'meta') {
+			metas.set(f.path, f.data)
+			continue
+		}
 		if (!isPage(f)) continue
 		if (f.data.frontmatter.draft === true) continue
 		pages.set(f.path, { id: f.path, slugs: f.path.split('/'), data: f.data })
@@ -113,7 +126,9 @@ export function loader(options: LoaderOptions): LoaderOutput {
 				const seg = segments[i]!
 				const isLast = i === segments.length - 1
 				if (!current.has(seg)) {
-					current.set(seg, { label: isLast ? page.data.title : prettify(seg), childMap: new Map() })
+					// fullId carries the project prefix so it lines up with _meta paths.
+					const fullId = [projectId, ...segments.slice(0, i + 1)].filter(Boolean).join('/')
+					current.set(seg, { slug: seg, fullId, label: prettify(seg), childMap: new Map() })
 				}
 				const node = current.get(seg)!
 				if (isLast) {
@@ -124,7 +139,9 @@ export function loader(options: LoaderOptions): LoaderOutput {
 				current = node.childMap
 			}
 		}
-		return flatten(mapToNodes(rootMap, lang))
+		// The project root is itself a folder in the _meta space — its meta orders
+		// and labels the top-level children.
+		return flatten(mapToNodes(rootMap, projectId, lang, metas))
 	}
 
 	return {
@@ -137,16 +154,56 @@ export function loader(options: LoaderOptions): LoaderOutput {
 	}
 }
 
-function mapToNodes(map: Map<string, BuildNode>, lang: string): SidebarNode[] {
-	return Array.from(map.entries()).map(([, val]) => {
-		const children = mapToNodes(val.childMap, lang).sort((a, b) => a.label.localeCompare(b.label, lang))
+/**
+ * Build the ordered node list for one folder.
+ *
+ * `parentId` is the folder these nodes live in (its id in the _meta space). Its
+ * `_meta` (if any) supplies the explicit child `order` and `childLabels`. Order:
+ * children named in `order` come first, in that order; everything else follows in
+ * locale-alphabetical label order — so an author orders only what they care about
+ * and the rest stays predictable. A child folder may also carry its OWN `label`
+ * (in its own _meta), used when the parent doesn't override it.
+ */
+function mapToNodes(
+	map: Map<string, BuildNode>,
+	parentId: string,
+	lang: string,
+	metas: Map<string, MetaData>,
+): SidebarNode[] {
+	const parentMeta = metas.get(parentId)
+	const order = parentMeta?.order ?? []
+	const childLabels = parentMeta?.childLabels ?? {}
+	const orderIndex = new Map(order.map((slug, i) => [slug, i]))
+
+	const nodes = Array.from(map.values()).map((val) => {
+		const children = mapToNodes(val.childMap, val.fullId, lang, metas)
+		const isDir = (val.nodeType ?? (children.length > 0 ? 'directory' : 'file')) === 'directory'
+		// Label precedence: parent's childLabels → (folders) own _meta.label → the
+		// page title / prettified slug already on the node.
+		const label =
+			childLabels[val.slug] ?? (isDir ? metas.get(val.fullId)?.label : undefined) ?? val.label
 		return {
-			label: val.label,
-			href: val.href,
-			nodeType: val.nodeType ?? (children.length > 0 ? 'directory' : 'file'),
-			children,
+			slug: val.slug,
+			node: {
+				label,
+				href: val.href,
+				nodeType: val.nodeType ?? (children.length > 0 ? 'directory' : 'file'),
+				children,
+			} satisfies SidebarNode,
 		}
 	})
+
+	// Listed children first (in declared order); unlisted append, alphabetically.
+	nodes.sort((a, b) => {
+		const ai = orderIndex.get(a.slug)
+		const bi = orderIndex.get(b.slug)
+		if (ai !== undefined && bi !== undefined) return ai - bi
+		if (ai !== undefined) return -1
+		if (bi !== undefined) return 1
+		return a.node.label.localeCompare(b.node.label, lang)
+	})
+
+	return nodes.map((n) => n.node)
 }
 
 /** Flatten the tree into the id-keyed map the headless-tree sidebar consumes. */
