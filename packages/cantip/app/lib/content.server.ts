@@ -60,6 +60,19 @@ export async function getDoc(id: string): Promise<Doc | null> {
 	return { id: page.id, frontmatter: page.data.frontmatter, headings: page.data.headings, html: page.data.html }
 }
 
+/**
+ * Whether the doc at a URL pathname is a rendered canvas. Resolves permalinks the
+ * same way the doc route does, then reads the page's `isCanvas` flag. Used by the
+ * root layout to widen the tab strip over the (TOC-less) canvas column. Unknown
+ * paths → false.
+ */
+export async function isCanvasPath(pathname: string): Promise<boolean> {
+	const slug = decodeURIComponent(pathname).replace(/^\/+|\/+$/g, '')
+	if (!slug) return false
+	const id = L().resolvePermalink(slug) ?? slug
+	return L().getPage(id)?.data.isCanvas ?? false
+}
+
 /** The loaded content API (used by the sidebar builder). */
 export function content(): LoaderOutput {
 	return L()

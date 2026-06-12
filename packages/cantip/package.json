@@ -1,7 +1,7 @@
 {
   "name": "cantip",
   "type": "module",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Config-driven Remix documentation site engine — ingest Obsidian/markdown vaults, build an SSR docs site. \"How (to)\" in Kyrgyz.",
   "keywords": [
     "documentation",

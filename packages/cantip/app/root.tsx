@@ -60,7 +60,7 @@ export const links: LinksFunction = () => [
  */
 export function Layout() {
 	const TopBar = useComponent('TopBar')
-	const { sidebar, projectId } = useLoaderData<typeof loader>()
+	const { sidebar, projectId, isCanvas } = useLoaderData<typeof loader>()
 	const location = useLocation()
 	const [menuOpen, setMenuOpen] = useState(false)
 	const [projectsOpen, setProjectsOpen] = useState(false)
@@ -125,11 +125,16 @@ export function Layout() {
 						    travel range is the whole grid container's box (tall), not its own
 						    row — so it stays pinned while content scrolls. Making the inner
 						    strip sticky instead would fail, since its parent cell is only as
-						    tall as the strip. */}
+						    tall as the strip.
+						    On a canvas page the content <main> spans the content + TOC columns
+						    (xl:col-span-2) and there's no on-page TOC, so the strip spans them
+						    too — otherwise it would stop at the col-2/col-3 boundary, short of
+						    the full-width canvas below it. */}
 						<div
 							className={cn(
 								'sticky top-11 z-40 md:row-start-1',
 								sidebar ? 'md:col-start-2' : 'md:col-start-1',
+								isCanvas && 'xl:col-span-2',
 							)}
 						>
 							<TabBar />
