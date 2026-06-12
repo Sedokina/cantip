@@ -67,11 +67,13 @@ for the full export list.
 
 cantip is a **Vite plugin** (`cantip/vite`) plus exported routes/components. Your
 project is a normal Remix app; the plugin runs the content pipeline (markdown →
-HTML) before each build and on dev changes, emitting a single importable
-`app/generated/content.ts` module under your cwd, and registers the aliases the
-exported routes/components use. The generator is precompiled to `dist/*.mjs` (Node
-won't strip TS types under `node_modules`), and cantip ships `.d.ts` so your `tsc`
-stays clean.
+HTML) before each build and on dev changes, emitting `app/generated/content.json`
+under your cwd, and registers the aliases the exported routes/components use. The
+app reads that JSON via `fs` at runtime (not a bundled import), so the compiled
+content stays **out of your server bundle** — the build is content-agnostic, and
+content can be regenerated/swapped without rebuilding or restarting the app. The
+generator is precompiled to `dist/*.mjs` (Node won't strip TS types under
+`node_modules`), and cantip ships `.d.ts` so your `tsc` stays clean.
 
 **Content flows through a `Source` → `loader()` contract** (`cantip/source`). A
 Source is just `{ files: VirtualFile[] }` — the built-in Obsidian backend emits

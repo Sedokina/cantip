@@ -1,19 +1,35 @@
 /**
- * Runtime content API — now a thin wrapper over `loader()` (cantip/source) fed by
- * the generated `~/generated/content` module.
+ * Runtime content API — a thin wrapper over `loader()` (cantip/source) fed by the
+ * generated content Source.
  *
- * Previously this read JSON manifests from `process.cwd()/app/generated` via fs;
- * now the generator emits ONE importable `content.ts` (a `{ files, permalinks }`
- * Source), Vite resolves it through the `~/generated` alias, and `loader()` builds
- * the lookups in memory. No fs, no cwd fragility, fully typed. The exported
- * signatures are unchanged so route loaders keep working.
+ * The generator emits `app/generated/content.json` (a serialized `{ files,
+ * permalinks }` Source) and this module reads it via `fs` at runtime, rather than
+ * importing a bundled `content.ts`. That deliberately keeps the compiled content
+ * OUT of the app's server bundle: the Remix build is content-agnostic (build once,
+ * point at any content), and content can be regenerated/swapped without rebuilding
+ * or restarting — call `resetContent()` to drop the in-memory cache so the next
+ * request re-reads the file. The exported signatures are unchanged so route
+ * loaders keep working.
  */
-import { loader, type LoaderOutput } from 'cantip/source'
+import fs from 'node:fs'
+import path from 'node:path'
+
+import { loader, type LoaderOutput, type Source } from 'cantip/source'
 import { getProjectIdForDoc } from './projects'
 import { site } from './site'
-import { source } from '~/generated/content'
 
 export type { Heading, PageData } from 'cantip/source'
+
+// The generated content data, read from the user's cwd (where `remix-serve` runs
+// and where the generator writes). cwd-relative is safe here because the app is
+// always launched from the project root; the generator uses the same root.
+const CONTENT_FILE = path.resolve(process.cwd(), 'app/generated/content.json')
+
+/** Read + parse the generated content Source from disk. Throws if missing. */
+function readSource(): Source {
+	const raw = fs.readFileSync(CONTENT_FILE, 'utf8')
+	return JSON.parse(raw) as Source
+}
 
 /** The shape route loaders return for a single doc. */
 export interface Doc {
@@ -23,14 +39,24 @@ export interface Doc {
 	html: string
 }
 
-// Build the loader once per process. Project scoping uses the same rule as the
-// sidebar/projects layer (first id segment, with the general bucket folded in).
+// Build the loader once per process (reading content.json on first use). Project
+// scoping uses the same rule as the sidebar/projects layer (first id segment,
+// with the general bucket folded in).
 let _loader: LoaderOutput | null = null
 function L(): LoaderOutput {
 	if (!_loader) {
-		_loader = loader({ source, lang: site.lang, projectOf: getProjectIdForDoc })
+		_loader = loader({ source: readSource(), lang: site.lang, projectOf: getProjectIdForDoc })
 	}
 	return _loader
+}
+
+/**
+ * Drop the in-memory content cache. The next call rebuilds the loader from a fresh
+ * read of `content.json`. Lets a long-lived server pick up regenerated content
+ * (e.g. a "refresh" admin action / file watch) without a rebuild or restart.
+ */
+export function resetContent(): void {
+	_loader = null
 }
 
 /** The doc id a permalink points at, or null. */
