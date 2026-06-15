@@ -127,8 +127,8 @@ async function oldestOutputMtime(outputs: string[]): Promise<number> {
 async function isFresh(config: DocsConfig): Promise<boolean> {
 	const outputs = [
 		path.join(MANIFEST_DIR, 'content.json'),
-		path.join(MANIFEST_DIR, 'site.ts'),
-		path.join(MANIFEST_DIR, 'theme.generated.css'),
+		path.join(MANIFEST_DIR, 'site.json'),
+		path.join(MANIFEST_DIR, 'ui.ts'),
 	]
 	const oldestOut = await oldestOutputMtime(outputs)
 	if (oldestOut === -Infinity) return false // an output is missing
@@ -272,9 +272,9 @@ async function main() {
 		lang: config.site.lang,
 	})
 
-	// 7. Emit the resolved config as importable modules (`site.ts` client-safe
-	//    literals + `theme.generated.css` + `slots.ts`). Pass the doc ids so
-	//    per-project `landing` defaults resolve to each project's first doc.
+	// 7. Emit the resolved config: `site.json` (runtime-read branding/projects/
+	//    theme) + `ui.ts` (bundled translations). Pass the doc ids so per-project
+	//    `landing` defaults resolve to each project's first doc.
 	await emitGeneratedConfig({
 		config,
 		manifestDir: MANIFEST_DIR,

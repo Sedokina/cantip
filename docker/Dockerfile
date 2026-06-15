@@ -60,6 +60,14 @@ RUN if [ "$WITH_MERMAID" = "true" ]; then \
 		echo "skipping Chromium (WITH_MERMAID=$WITH_MERMAID) — mermaid diagrams will not render" ; \
 	fi
 
+# Build the Remix app ONCE, at image-build time. Since cantip >=0.6.0 reads ALL
+# per-client data at runtime (content.json + site.json), the server bundle is
+# client-AGNOSTIC — it has no baked-in branding/theme/projects/content. So this one
+# build serves any client; container boot just regenerates the data and serves, no
+# build at runtime. The build runs against the scaffold's seed config/content
+# (overwritten at boot), which is fine precisely because none of it ends up bundled.
+RUN npm run build && echo "built client-agnostic server bundle"
+
 EXPOSE 3000
 ENV PORT=3000 HOST=0.0.0.0
 

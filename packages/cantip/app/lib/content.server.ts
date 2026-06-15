@@ -15,8 +15,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { loader, type LoaderOutput, type Source } from 'cantip/source'
-import { getProjectIdForDoc } from './projects'
-import { site } from './site'
+import { getProjectIdForDoc, getSiteData } from './site.server'
 
 export type { Heading, PageData } from 'cantip/source'
 
@@ -45,7 +44,7 @@ export interface Doc {
 let _loader: LoaderOutput | null = null
 function L(): LoaderOutput {
 	if (!_loader) {
-		_loader = loader({ source: readSource(), lang: site.lang, projectOf: getProjectIdForDoc })
+		_loader = loader({ source: readSource(), lang: getSiteData().site.lang, projectOf: getProjectIdForDoc })
 	}
 	return _loader
 }

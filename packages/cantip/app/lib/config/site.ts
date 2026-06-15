@@ -1,16 +1,19 @@
 /**
- * The client-safe site shape.
+ * The generated site shapes — split into a RUNTIME-read part and a BUNDLED part.
  *
- * The build pipeline emits `app/generated/site.ts` (a plain-literal module)
- * conforming to `GeneratedSite`. Unlike `config.json` (read via `fs` in
- * `.server` code), this module is IMPORTED, so Vite bundles it into BOTH the
- * client and server bundles — letting client components (`ProjectSwitcher`,
- * `_index`, `Search`, `MobileProjectsPanel`) read projects/branding/ui strings
- * synchronously with no runtime file access.
+ * `GeneratedSite` (branding, projects, general, theme) is emitted as
+ * `app/generated/site.json` and read via `fs` at runtime in `app/lib/site.server.ts`
+ * (the same pattern as `content.json`). Keeping it OUT of the bundle makes the
+ * Remix server build client-agnostic: the build can run once (e.g. in a Docker
+ * image) and serve any client's branding/theme, and branding/theme can change
+ * without rebuilding — only `site.json` is regenerated.
  *
- * It intentionally carries only the serializable, non-sensitive subset of the
- * config (no theme CSS, no markdown plugins). The seed file shipped in the repo
- * is overwritten on every `generate`.
+ * `GeneratedUi` (localized UI strings) is emitted as `app/generated/ui.ts`, a
+ * plain-literal module that IS imported (so Vite bundles it client + server),
+ * which keeps `t()` synchronous + isomorphic. UI strings are translations keyed by
+ * `lang` (engine data), not per-client visuals, so bundling them is fine.
+ *
+ * The seed files shipped in the repo are overwritten on every `generate`.
  */
 
 export interface SiteProject {
@@ -22,6 +25,13 @@ export interface SiteProject {
 	description: string
 }
 
+/** Resolved theme color token maps (CSS custom-property name → value). */
+export interface ThemeColors {
+	light: Record<string, string>
+	dark: Record<string, string>
+}
+
+/** Runtime-read site data (`app/generated/site.json`). No `ui` — that's bundled. */
 export interface GeneratedSite {
 	site: {
 		title: string
@@ -39,5 +49,11 @@ export interface GeneratedSite {
 		logo: string
 		description: string
 	}
+	/** Theme color tokens, rendered into an inline `:root`/`.dark` style at runtime. */
+	theme: ThemeColors
+}
+
+/** Bundled UI strings (`app/generated/ui.ts`) — translations, read via `t()`. */
+export interface GeneratedUi {
 	ui: Record<string, string>
 }

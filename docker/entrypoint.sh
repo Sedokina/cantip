@@ -8,10 +8,10 @@
 #   /docs/<content dirs>   (required) — sources referenced by docs.config.ts
 #   /docs/public/          (optional) — favicon / logos / per-project svgs
 #
-# Content is split out of the app bundle (cantip >=0.5.0), so after the initial
-# build a content refresh only needs `cantip generate` (no rebuild) — send SIGHUP
-# to this process to regenerate. Branding/theme changes (anything bundled into
-# site.ts at build time) still require a full restart.
+# ALL per-client data — content AND branding/projects/theme — is read from disk at
+# runtime (cantip >=0.6.0), so the app is built once at image-build time and boot
+# is just `cantip generate` + serve. Any change (content or branding/theme) needs
+# only a regenerate, no rebuild — send SIGHUP to this process to apply it.
 set -eu
 
 APP=/app
@@ -75,32 +75,30 @@ if [ -d "$DOCS/public" ]; then
 	log "merged public/ assets from volume"
 fi
 
-# ── Generate + build ────────────────────────────────────────────────────────
-# Generate content ONCE explicitly, then build with CANTIP_SKIP_GENERATE so the
-# build's passes (client + SSR + internal) don't each regenerate. Deterministic:
-# the build trusts the app/generated/* we just produced. This is what keeps boot
-# fast (one generate, not ~5).
-log "generating content from docs.config.ts…"
+# ── Generate + serve (NO build) ─────────────────────────────────────────────
+# The Remix app was already built at image-build time, and cantip >=0.6.0 reads
+# ALL per-client data (content + branding/projects/theme) from disk at runtime —
+# so the baked bundle is client-agnostic and we only need to regenerate the data
+# for THIS client, then serve. No `remix vite:build` at boot.
+log "generating content + site data from docs.config.ts…"
 npx cantip generate
 
-log "building the Remix app (per-client branding/theme is bundled here)…"
-CANTIP_SKIP_GENERATE=1 npm run build
-
-# ── Serve, with SIGHUP = regenerate content (no rebuild) ────────────────────
+# ── Serve, with SIGHUP = regenerate (no rebuild) ────────────────────────────
 log "starting server on ${HOST:-0.0.0.0}:${PORT:-3000}"
 npm run start &
 SERVER_PID=$!
 
-# SIGHUP: regenerate content.json from the (possibly updated) volume, then bounce
-# the server process so it re-reads content.json on next request — no rebuild.
+# SIGHUP: regenerate from the (possibly updated) volume, then bounce the server so
+# it re-reads the data on next request — no rebuild. As of cantip >=0.6.0 this
+# refreshes BRANDING + THEME + PROJECTS too (all runtime data), not just content.
 refresh() {
-	log "SIGHUP — regenerating content (no rebuild)…"
-	npx cantip generate || log "regenerate failed; keeping current content"
+	log "SIGHUP — regenerating content + site data (no rebuild)…"
+	npx cantip generate || log "regenerate failed; keeping current data"
 	kill "$SERVER_PID" 2>/dev/null || true
 	wait "$SERVER_PID" 2>/dev/null || true
 	npm run start &
 	SERVER_PID=$!
-	log "content refreshed; server restarted (app NOT rebuilt)"
+	log "data refreshed; server restarted (app NOT rebuilt)"
 }
 trap refresh HUP
 

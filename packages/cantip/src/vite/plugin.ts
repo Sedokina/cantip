@@ -88,8 +88,8 @@ export function cantip(options: CantipPluginOptions = {}): Plugin {
 		name: 'cantip',
 
 		// Register the import aliases cantip's bundled routes/components rely on.
-		// `~/generated/*` → the consumer's generated artifacts (site.ts, slots.ts,
-		// theme.generated.css); `~/*` → cantip's own app/ (components, lib, styles).
+		// `~/generated/*` → the consumer's generated artifacts (ui.ts; content.json
+		// + site.json are read via fs, not aliased); `~/*` → cantip's own app/.
 		// `~/generated` must precede `~/` (Vite matches alias entries in order).
 		config() {
 			return {

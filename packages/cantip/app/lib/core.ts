@@ -6,8 +6,10 @@
  * framework-agnostic primitives (`loader`, `Source`, `VirtualFile`), import
  * `cantip/source` directly.
  *
- * The content/sidebar helpers are server-only (they read the generated content
- * module); the project + permalink helpers are isomorphic.
+ * The content/sidebar/site helpers here are SERVER-ONLY (they read the generated
+ * content + site.json from disk). For the project list on the CLIENT, use the
+ * `useProjects()` / `useProject()` hooks from the `SiteProvider` context instead.
+ * The permalink + pure project helpers are isomorphic.
  */
 export {
 	getDoc,
@@ -27,12 +29,23 @@ export {
 	type FlatSidebarMap,
 } from './sidebar.server'
 
+// Server-side site data + project helpers (read site.json from disk).
 export {
+	getSiteData,
 	getProjects,
 	getProject,
 	getProjectIdForDoc,
 	getActiveProjectId,
+} from './site.server'
+
+// Isomorphic pure project logic + the Project type.
+export {
+	resolveProjects,
+	projectIdForDoc,
+	activeProjectId,
+	findProject,
+	GENERAL_PROJECT_ID,
 	type Project,
-} from './projects'
+} from './projects-core'
 
 export { loader, type Source, type VirtualFile, type PageData } from 'cantip/source'

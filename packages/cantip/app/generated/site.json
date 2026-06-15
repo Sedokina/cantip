@@ -1,0 +1,16 @@
+{
+	"site": {
+		"title": "Docs",
+		"description": "",
+		"lang": "ru",
+		"favicon": "/favicon.svg",
+		"logo": { "light": "/logo-light.svg", "dark": "/logo-dark.svg" },
+		"defaultTheme": "dark"
+	},
+	"projects": [],
+	"general": { "enabled": false, "id": "general", "name": "Без проекта", "logo": "/projects/general.svg", "description": "" },
+	"theme": {
+		"light": { "--background": "oklch(1 0 0)", "--foreground": "oklch(0.145 0 0)" },
+		"dark": { "--background": "oklch(0.145 0 0)", "--foreground": "oklch(0.985 0 0)" }
+	}
+}

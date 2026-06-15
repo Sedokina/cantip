@@ -4,7 +4,8 @@ import type { MetaFunction } from '@remix-run/node'
 
 import type { loader } from './doc.server'
 import { getPriority } from '~/lib/utils'
-import { t, pageTitle } from '~/lib/site'
+import { t } from '~/lib/site'
+import { pageTitleFromMatches } from '~/lib/meta'
 import { useComponent, useOverride } from '~/lib/components'
 import PageFloatingMenu from '~/components/PageFloatingMenu'
 import CanvasMount from '~/components/CanvasMount'
@@ -50,8 +51,8 @@ function FrontmatterTable({ frontmatter }: { frontmatter: Record<string, unknown
 // (`cantip/routes/doc.server`). The consumer's route stub imports the loader from
 // there, keeping this component module client-safe. `meta` only needs the loader
 // TYPE (import type above), which erases at build.
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-	return [{ title: pageTitle(data?.title) }]
+export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
+	return [{ title: pageTitleFromMatches(matches, data?.title) }]
 }
 
 /**

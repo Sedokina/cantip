@@ -8,18 +8,23 @@ to scaffold a Remix app per client.
 
 The app shell baked into the image is scaffolded by **`create-cantip`** itself, so
 it is exactly a fresh `npm create cantip` project (single source of truth — the
-image tracks the scaffolder automatically). The client's docs arrive at runtime on
-a volume mounted at `/docs`. On boot the entrypoint:
+image tracks the scaffolder automatically). The Remix app is **built once at
+image-build time**; because cantip ≥0.6.0 reads ALL per-client data
+(`content.json` + `site.json`: content, branding, projects, theme) from disk at
+runtime, that build is **client-agnostic** — it bakes in nothing client-specific.
+
+The client's docs arrive at runtime on a volume mounted at `/docs`. On boot the
+entrypoint:
 
 1. links `/docs/docs.config.ts` + the content dirs it references into the app,
 2. merges `/docs/public/` branding assets,
-3. runs `cantip generate` (markdown → HTML, search index, mermaid, canvas),
-4. runs `remix vite:build` (per-client branding + theme are bundled here),
-5. serves with `remix-serve` on port 3000.
+3. runs `cantip generate` (markdown → HTML, search index, mermaid, canvas, plus
+   `site.json` for branding/projects/theme),
+4. serves with `remix-serve` on port 3000.
 
-Because cantip ≥0.5.0 reads compiled content from `app/generated/content.json` via
-`fs` at runtime (it is **not** bundled into the server), content can be refreshed
-**without a rebuild** — see [Live content refresh](#live-content-refresh).
+There is **no `remix vite:build` at boot** — it already ran in the image. Boot is
+just generate + serve, and any change (content OR branding/theme) is applied by a
+regenerate, **without a rebuild** — see [Live refresh](#live-content-refresh).
 
 ## Build
 
@@ -28,7 +33,7 @@ Because cantip ≥0.5.0 reads compiled content from `app/generated/content.json`
 docker build -f docker/Dockerfile -t cantip-host:latest .
 
 # pin the cantip line for a repeatable image:
-docker build -f docker/Dockerfile --build-arg CANTIP_VERSION=0.5.0 -t cantip-host:0.5.0 .
+docker build -f docker/Dockerfile --build-arg CANTIP_VERSION=0.6.0 -t cantip-host:0.6.0 .
 
 # no mermaid in your docs? skip Chromium for a ~1.5GB-smaller image:
 docker build -f docker/Dockerfile --build-arg WITH_MERMAID=false -t cantip-host:slim .
@@ -36,7 +41,7 @@ docker build -f docker/Dockerfile --build-arg WITH_MERMAID=false -t cantip-host:
 
 | Build arg | Default | Meaning |
 |-----------|---------|---------|
-| `CANTIP_VERSION` | `latest` | cantip line to scaffold; pin (e.g. `0.5.0`) for reproducibility |
+| `CANTIP_VERSION` | `latest` | cantip line to scaffold; pin (e.g. `0.6.0`) for reproducibility |
 | `WITH_MERMAID` | `true` | install Playwright Chromium so ```mermaid diagrams render |
 
 ## Run
@@ -56,25 +61,26 @@ docker run --rm -p 3000:3000 -v "$(pwd):/docs:ro" cantip-host:latest
 Open http://localhost:3000. A read-only (`:ro`) mount is fine — the build writes
 only inside the container. See `docker-compose.yml` for a compose example.
 
-## Live content refresh
+## Live refresh
 
-Update the docs on the volume, then signal the running container to regenerate —
-**no image rebuild, no full app rebuild**, just `cantip generate` + a fast process
-bounce (new content is read from `content.json` on the next request):
+Update anything on the volume — content, branding, theme, the project list — then
+signal the running container to regenerate. **No image rebuild, no app rebuild**,
+just `cantip generate` + a fast process bounce (the new data is read from
+`content.json` / `site.json` on the next request):
 
 ```sh
 docker kill -s HUP <container>
 ```
 
-Branding / theme / project-list changes (anything in `docs.config.ts` that ends up
-in `site.ts`) ARE bundled at build time, so those need a full container restart.
+As of cantip ≥0.6.0 this covers branding/theme/projects too — they're runtime data
+now, not bundled — so nothing needs a full rebuild or image rebuild.
 
 ## Notes / tunables
 
-- **Cold start** runs one `cantip generate` + `remix vite:build` (≈25 s for ~640
-  pages; the generate dominates). Inherent: per-client branding is compiled into
-  the bundle, so a build is required; only *content* is decoupled from it. See
-  "Architecture & gotchas" for why it's one generate and not several.
+- **Cold start** runs one `cantip generate` + `remix-serve` (≈17 s for ~640 pages;
+  the generate dominates) — **no `remix vite:build`**, which already ran at
+  image-build time. The bundle is client-agnostic, so the same image serves any
+  client.
 - **Image size** is dominated by Chromium — use `WITH_MERMAID=false` to shrink it.
 - **Multiple projects** in one `docs.config.ts` are served by a single container.
 - The image installs the optional peers `pagefind` (search) + `rehype-mermaid`
@@ -108,9 +114,10 @@ volume, not the image. Copying it into `/app` makes its imports resolve from the
 image's `node_modules`. (Content dirs are still symlinked — they can be large and
 are only read, never imported.)
 
-**Boot does one `cantip generate`, not several.** A `remix vite:build` runs the
-generate-on-`buildStart` hook once per pass (client + SSR + internal). The
-entrypoint generates once explicitly, then builds with `CANTIP_SKIP_GENERATE=1`
-so the passes skip regeneration (the plugin still guards on `content.json`
-existing, so a misconfigured flag regenerates rather than shipping an empty site).
-This is why boot is ~24 s, not ~2 min.
+**The build runs at image-build, not at boot.** Because cantip ≥0.6.0 reads all
+per-client data at runtime (`content.json` + `site.json`), the server bundle is
+client-agnostic, so `npm run build` runs once in the Dockerfile. Boot is just
+`cantip generate` (one pass) + `remix-serve`. If you ever reintroduce a build at
+boot, note that `remix vite:build` triggers the generate-on-`buildStart` hook once
+per pass (client + SSR + internal) — guard it with `CANTIP_SKIP_GENERATE=1` after
+an explicit generate, or it regenerates several times.

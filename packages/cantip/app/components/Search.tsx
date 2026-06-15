@@ -11,7 +11,8 @@ import {
 	X,
 } from 'lucide-react'
 
-import { getProject } from '~/lib/projects'
+import { findProject, type Project } from '~/lib/projects-core'
+import { useProjects } from '~/lib/site-context'
 import { t } from '~/lib/site'
 import { cn } from '~/lib/utils'
 
@@ -96,10 +97,12 @@ function projectFromPath(pathname: string): string {
 /**
  * Display label for a project id. The id is the vault directory (the value
  * Pagefind filters on); show the human name from the project registry instead,
- * falling back to the raw id for any project not in the registry.
+ * falling back to the raw id for any project not in the registry. Takes the
+ * project list explicitly (it's runtime data now, read from context in the
+ * component and passed down).
  */
-function projectLabel(id: string): string {
-	return getProject(id)?.name ?? id
+function projectLabel(projects: Project[], id: string): string {
+	return findProject(projects, id)?.name ?? id
 }
 
 /** A node in the directory tree built from the flat list of relative paths. */
@@ -263,6 +266,7 @@ export function Search({
 	 */
 	trigger?: (open: () => void) => JSX.Element
 }) {
+	const projects = useProjects()
 	const [open, setOpen] = useState(false)
 	const [query, setQuery] = useState('')
 	const [results, setResults] = useState<PagefindData[]>([])
@@ -667,7 +671,7 @@ export function Search({
 										<option value="">{t('allProjects')}</option>
 										{projectOptions.map((p) => (
 											<option key={p} value={p}>
-												{projectLabel(p)}
+												{projectLabel(projects, p)}
 											</option>
 										))}
 									</select>
@@ -852,7 +856,7 @@ export function Search({
 							<div className="flex items-center justify-between gap-2 border-b px-3 py-2">
 								<span className="flex items-center gap-2 text-sm font-medium">
 									<FolderTree className="size-4 shrink-0 text-muted-foreground" />
-									{t('folderIn')} «{projectLabel(project)}»
+									{t('folderIn')} «{projectLabel(projects, project)}»
 								</span>
 								{/* Top-right X cancels, like the backdrop — no scope change. */}
 								<button
@@ -878,7 +882,7 @@ export function Search({
 												)}
 											>
 												<Folder className="size-3.5 shrink-0 text-muted-foreground" />
-												<span className="truncate">{projectLabel(project)} ({t('wholeProject')})</span>
+												<span className="truncate">{projectLabel(projects, project)} ({t('wholeProject')})</span>
 											</button>
 										</li>
 										{dirTree.map((node) => (

@@ -2,35 +2,38 @@ import { useEffect, useState } from 'react'
 import { Moon, Sun } from 'lucide-react'
 
 import { Button } from '~/components/ui/button'
-import { site, t } from '~/lib/site'
+import { t } from '~/lib/site'
+import { useSite } from '~/lib/site-context'
 
 const STORAGE_KEY = 'theme'
 
-/** Whether the site defaults to dark when the user hasn't picked a theme. */
-const DEFAULTS_DARK = site.defaultTheme !== 'light'
-
 /**
- * Inline script injected into <head> (before paint) so the correct theme class
- * is on <html> before first render — avoids a flash of the wrong theme. Uses the
- * configured `site.defaultTheme` when nothing is stored.
+ * Build the inline script injected into <head> (before paint) so the correct theme
+ * class is on <html> before first render — avoids a flash of the wrong theme. Uses
+ * the configured `defaultTheme` when nothing is stored. A factory (not a constant)
+ * because `defaultTheme` is now runtime loader data, built in root.tsx.
  */
-export const themeInitScript = `(function(){try{var t=localStorage.getItem('${STORAGE_KEY}');var d=t?t==='dark':${DEFAULTS_DARK};document.documentElement.classList.toggle('dark',d);}catch(e){document.documentElement.classList.${DEFAULTS_DARK ? 'add' : 'remove'}('dark');}})();`
+export function buildThemeInitScript(defaultTheme: 'dark' | 'light'): string {
+	const defaultsDark = defaultTheme !== 'light'
+	return `(function(){try{var t=localStorage.getItem('${STORAGE_KEY}');var d=t?t==='dark':${defaultsDark};document.documentElement.classList.toggle('dark',d);}catch(e){document.documentElement.classList.${defaultsDark ? 'add' : 'remove'}('dark');}})();`
+}
 
-function getInitialIsDark(): boolean {
-	if (typeof document === 'undefined') return DEFAULTS_DARK
+function getInitialIsDark(defaultsDark: boolean): boolean {
+	if (typeof document === 'undefined') return defaultsDark
 	return document.documentElement.classList.contains('dark')
 }
 
 export function ThemeToggle({ className }: { className?: string }) {
+	const defaultsDark = useSite().defaultTheme !== 'light'
 	// Render a stable icon during SSR/first paint; sync to the real DOM state
 	// after mount so the button reflects whatever the init script applied.
-	const [isDark, setIsDark] = useState(DEFAULTS_DARK)
+	const [isDark, setIsDark] = useState(defaultsDark)
 	const [mounted, setMounted] = useState(false)
 
 	useEffect(() => {
 		setMounted(true)
-		setIsDark(getInitialIsDark())
-	}, [])
+		setIsDark(getInitialIsDark(defaultsDark))
+	}, [defaultsDark])
 
 	function toggle() {
 		const next = !isDark

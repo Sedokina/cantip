@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from '@remix-run/react'
 import { Check, ChevronsUpDown } from 'lucide-react'
 
-import { getProjects, getProject, type Project } from '~/lib/projects'
+import { type Project } from '~/lib/projects-core'
+import { useProjects, useProject } from '~/lib/site-context'
 import { t } from '~/lib/site'
 import { cn } from '~/lib/utils'
 
@@ -35,10 +36,10 @@ interface Props {
  */
 export default function ProjectSwitcher({ activeId, className }: Props) {
 	const navigate = useNavigate()
-	const projects = getProjects()
+	const projects = useProjects()
 	// null when no project is selected (e.g. on `/`) — the trigger shows a
 	// neutral "choose a project" label instead of defaulting to the first.
-	const active = activeId ? (getProject(activeId) ?? null) : null
+	const active = useProject(activeId ?? '') ?? null
 
 	const [open, setOpen] = useState(false)
 	const rootRef = useRef<HTMLDivElement>(null)

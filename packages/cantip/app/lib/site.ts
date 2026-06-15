@@ -1,16 +1,13 @@
 /**
- * Isomorphic accessors for site branding + UI strings.
+ * `t(key)` — localized UI strings.
  *
- * Thin ergonomic layer over the generated `~/generated/site` module (plain
- * literals bundled by Vite, safe on client + server). Components import `site`
- * for branding (title, logos, favicon) and `t(key)` for localized UI strings
- * instead of reaching into the generated shape directly — so the generated
- * contract can evolve without touching call sites.
+ * UI strings are translations keyed by `lang` (engine data, not per-client
+ * visuals), so they're emitted as a BUNDLED module (`~/generated/ui`) and read
+ * synchronously here — isomorphic, no runtime file access. Per-client branding,
+ * projects, and theme moved to runtime data (see `site.server.ts` / the
+ * `SiteProvider` context in `site-context.tsx`); page titles moved to `meta.ts`.
  */
-import { SITE } from '~/generated/site'
-
-/** Site branding/meta (title, description, lang, favicon, logos, default theme). */
-export const site = SITE.site
+import { UI } from '~/generated/ui'
 
 /**
  * A localized UI string by key (see `app/lib/config/defaults.ts` for the
@@ -18,10 +15,5 @@ export const site = SITE.site
  * rather than rendering blank.
  */
 export function t(key: string): string {
-	return SITE.ui[key] ?? key
-}
-
-/** The page `<title>` for a doc: `"<docTitle> — <siteTitle>"`, or just the site title. */
-export function pageTitle(docTitle?: string | null): string {
-	return docTitle ? `${docTitle} — ${site.title}` : site.title
+	return UI.ui[key] ?? key
 }

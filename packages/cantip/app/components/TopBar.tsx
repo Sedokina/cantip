@@ -6,7 +6,8 @@ import ProjectSwitcher from '~/components/ProjectSwitcher'
 import { openShortcutsHelp } from '~/components/ShortcutsHelp'
 import { Button } from '~/components/ui/button'
 import { cn } from '~/lib/utils'
-import { site, t } from '~/lib/site'
+import { t } from '~/lib/site'
+import { useSite } from '~/lib/site-context'
 
 interface Props {
 	/** Active project id, or null when no project is selected (e.g. `/`). */
@@ -21,6 +22,7 @@ interface Props {
  * Desktop only — mobile has its own bottom bar with the switcher and toggle.
  */
 export default function TopBar({ projectId }: Props) {
+	const site = useSite()
 	return (
 		<div
 			className={cn(

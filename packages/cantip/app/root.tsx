@@ -11,31 +11,31 @@ import { useEffect, useState } from 'react'
 import type { LinksFunction } from '@remix-run/node'
 
 import type { loader } from './root.server'
-import { site } from '~/lib/site'
 import Sidebar from '~/components/Sidebar'
 import { CantipProvider, useComponent } from '~/lib/components'
+import { SiteProvider } from '~/lib/site-context'
+import { renderThemeCss } from '~/lib/theme-css'
 import TabBar from '~/components/TabBar'
 import MobileBottomBar from '~/components/MobileBottomBar'
 import MobileProjectsPanel from '~/components/MobileProjectsPanel'
 import { ShortcutsHelp } from '~/components/ShortcutsHelp'
 import { TabsProvider } from '~/lib/tabs'
 import { cn } from '~/lib/utils'
-import { themeInitScript } from '~/components/theme-toggle'
+import { buildThemeInitScript } from '~/components/theme-toggle'
 import { sidebarWidthInitScript } from '~/components/Sidebar'
 
 import tailwindStyles from '~/styles/tailwind.css?url'
 import appStyles from '~/styles/app.css?url'
 import katexStyles from 'katex/dist/katex.min.css?url'
-// Generated from docs.config.ts `theme` — loaded LAST so its :root/.dark token
-// overrides win over the defaults declared in tailwind.css.
-import themeStyles from '~/generated/theme.generated.css?url'
 
+// NOTE: branding (favicon) + theme are NOT in links() — that function has no
+// loader access, and they're per-client runtime data now. The favicon <link> and
+// the theme <style> are rendered inside Layout from loader data instead. The theme
+// <style> is emitted AFTER <Links/> so its :root/.dark tokens win over tailwind.css.
 export const links: LinksFunction = () => [
 	{ rel: 'stylesheet', href: tailwindStyles },
 	{ rel: 'stylesheet', href: appStyles },
-	{ rel: 'stylesheet', href: themeStyles },
 	{ rel: 'stylesheet', href: katexStyles },
-	{ rel: 'icon', type: 'image/svg+xml', href: site.favicon },
 ]
 
 // NOTE: the root `loader` is NOT exported here — it lives in `./root.server`
@@ -60,7 +60,8 @@ export const links: LinksFunction = () => [
  */
 export function Layout() {
 	const TopBar = useComponent('TopBar')
-	const { sidebar, projectId, isCanvas } = useLoaderData<typeof loader>()
+	const { sidebar, projectId, isCanvas, site, projects, general, theme } =
+		useLoaderData<typeof loader>()
 	const location = useLocation()
 	const [menuOpen, setMenuOpen] = useState(false)
 	const [projectsOpen, setProjectsOpen] = useState(false)
@@ -72,18 +73,29 @@ export function Layout() {
 	}, [location.pathname])
 
 	return (
-		<html lang={site.lang} className={site.defaultTheme === 'light' ? undefined : 'dark'}>
-			<head>
-				<meta charSet="utf-8" />
-				<meta name="viewport" content="width=device-width, initial-scale=1" />
-				<Meta />
-				<Links />
-				{/* Set the theme class before paint to avoid a flash of the wrong theme. */}
-				<script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-				{/* Apply the persisted sidebar width before paint to avoid a layout shift. */}
-				<script dangerouslySetInnerHTML={{ __html: sidebarWidthInitScript }} />
-			</head>
-			<body>
+		<SiteProvider value={{ site, projects, general, theme }}>
+			<html lang={site.lang} className={site.defaultTheme === 'light' ? undefined : 'dark'}>
+				<head>
+					<meta charSet="utf-8" />
+					<meta name="viewport" content="width=device-width, initial-scale=1" />
+					<Meta />
+					<Links />
+					{/* Per-client branding/theme, rendered from loader data (runtime, not
+					    bundled). The theme <style> comes AFTER <Links/> so its :root/.dark
+					    tokens override tailwind.css; SSR'd in <head> → present on first paint,
+					    no flash. The favicon <link> moves here for the same reason. */}
+					<link rel="icon" type="image/svg+xml" href={site.favicon} />
+					<style dangerouslySetInnerHTML={{ __html: renderThemeCss(theme) }} />
+					{/* Set the theme class before paint to avoid a flash of the wrong theme.
+					    The init script needs site.defaultTheme (loader data), so it's built
+					    here rather than as a module-level constant. */}
+					<script
+						dangerouslySetInnerHTML={{ __html: buildThemeInitScript(site.defaultTheme) }}
+					/>
+					{/* Apply the persisted sidebar width before paint to avoid a layout shift. */}
+					<script dangerouslySetInnerHTML={{ __html: sidebarWidthInitScript }} />
+				</head>
+				<body>
 				<TabsProvider projectId={projectId}>
 					{/* Desktop top bar with theme toggle: in-flow at the top (takes layout
 					    space), floats and hides on scroll-down / shows on scroll-up. */}
@@ -181,12 +193,16 @@ export function Layout() {
 				<ScrollRestoration />
 				<Scripts />
 			</body>
-		</html>
+			</html>
+		</SiteProvider>
 	)
 }
 
-// Re-export the provider so a consumer can `import { CantipProvider } from 'cantip/root'`.
+// Re-export the providers so a consumer composing their own app/root.tsx can wrap
+// the tree themselves. A custom root MUST include <SiteProvider value={…}> fed from
+// the root loader data, or client components reading site/projects will throw.
 export { CantipProvider } from '~/lib/components'
+export { SiteProvider } from '~/lib/site-context'
 
 /**
  * Default root: the layout wrapped in an empty provider (no overrides). Lets the

@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { useNavigate } from '@remix-run/react'
 import { Check, X } from 'lucide-react'
 
-import { getProjects, getProject, type Project } from '~/lib/projects'
+import { type Project } from '~/lib/projects-core'
+import { useProjects, useProject } from '~/lib/site-context'
 import { ThemeToggle } from '~/components/theme-toggle'
 import { t } from '~/lib/site'
 import { cn } from '~/lib/utils'
@@ -39,8 +40,8 @@ interface Props {
  */
 export default function MobileProjectsPanel({ activeId, open, onClose }: Props) {
 	const navigate = useNavigate()
-	const projects = getProjects()
-	const active = activeId ? (getProject(activeId) ?? null) : null
+	const projects = useProjects()
+	const active = useProject(activeId ?? '') ?? null
 
 	// Escape closes; lock background scroll while open.
 	useEffect(() => {

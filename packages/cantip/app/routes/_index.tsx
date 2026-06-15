@@ -2,13 +2,13 @@ import { Link } from '@remix-run/react'
 import type { MetaFunction } from '@remix-run/node'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
-import { getProjects } from '~/lib/projects'
-import { site } from '~/lib/site'
+import { useSite, useProjects } from '~/lib/site-context'
+import { siteTitleFromMatches } from '~/lib/meta'
 import { useOverride } from '~/lib/components'
 
-export const meta: MetaFunction = () => [{ title: site.title }]
-
-const projects = getProjects()
+// Site title comes from the root loader (runtime data), read via route matches —
+// meta() has no loader-data of its own here but can see ancestor match data.
+export const meta: MetaFunction = ({ matches }) => [{ title: siteTitleFromMatches(matches) }]
 
 /**
  * Route default export: render the user's `Home` override when configured, else
@@ -21,6 +21,8 @@ export default function IndexRoute() {
 }
 
 function EngineIndex() {
+	const site = useSite()
+	const projects = useProjects()
 	return (
 		<main className="mx-auto w-full min-w-0 max-w-[calc(720px+5rem)] px-10 pb-16 pt-8 max-md:px-4 max-md:pb-20">
 			<article className="content">
