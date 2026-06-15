@@ -1,0 +1,68 @@
+name: Docker image
+
+# Build the generic cantip-host image and push it to GitHub Container Registry on
+# every v* tag (and `latest`). Auth uses the built-in GITHUB_TOKEN — no extra
+# secret. The image scaffolds the app for the tagged cantip version, so the tag's
+# engine must already be published to npm (the Release workflow does that in
+# parallel; the Dockerfile's `npx create-cantip@<version>` will retry until it's
+# available).
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+jobs:
+  build-push:
+    name: Build & push to ghcr.io
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive the cantip version from the tag
+        id: ver
+        # v0.6.0 -> 0.6.0 ; on workflow_dispatch (no tag) fall back to `latest`.
+        run: |
+          ref="${GITHUB_REF_NAME}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            echo "cantip=${ref#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "cantip=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Tags: the version (e.g. 0.6.0) + `latest`. The repo owner is lowercased for
+      # the ghcr path (ghcr.io/<owner>/cantip-host).
+      - name: Compute image tags
+        id: tags
+        run: |
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          ver="${{ steps.ver.outputs.cantip }}"
+          {
+            echo "tags=ghcr.io/${owner}/cantip-host:${ver},ghcr.io/${owner}/cantip-host:latest"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          build-args: |
+            CANTIP_VERSION=${{ steps.ver.outputs.cantip }}
+            WITH_MERMAID=true
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
