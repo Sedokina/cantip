@@ -69,11 +69,21 @@ for entry in "$DOCS"/*; do
 	log "linked content '$name' from volume"
 done
 
-# Merge client public/ assets over the scaffolded seed public/ (favicon, logos).
+# Merge the client's public/ assets (favicon, logos) from the volume into the
+# app's public/ dir, over the scaffold's seed.
 if [ -d "$DOCS/public" ]; then
 	cp -a "$DOCS/public/." "$APP/public/" 2>/dev/null || true
 	log "merged public/ assets from volume"
 fi
+
+# Sync the app's public/ into build/client/ — the dir `remix-serve` actually serves
+# static files from. The app was built at image-build time, so build/client/ holds
+# the SEED favicon/logos/pagefind; without this sync those stale seeds shadow the
+# real assets (build/client/ takes precedence over public/ for same-name files).
+# Run AFTER generate so it also carries the generated pagefind index + vault images.
+sync_public() {
+	cp -a "$APP/public/." "$APP/build/client/" 2>/dev/null || true
+}
 
 # ── Generate + serve (NO build) ─────────────────────────────────────────────
 # The Remix app was already built at image-build time, and cantip >=0.6.0 reads
@@ -82,6 +92,7 @@ fi
 # for THIS client, then serve. No `remix vite:build` at boot.
 log "generating content + site data from docs.config.ts…"
 npx cantip generate
+sync_public
 
 # ── Serve, with SIGHUP = regenerate (no rebuild) ────────────────────────────
 log "starting server on ${HOST:-0.0.0.0}:${PORT:-3000}"
@@ -93,7 +104,11 @@ SERVER_PID=$!
 # refreshes BRANDING + THEME + PROJECTS too (all runtime data), not just content.
 refresh() {
 	log "SIGHUP — regenerating content + site data (no rebuild)…"
-	npx cantip generate || log "regenerate failed; keeping current data"
+	if npx cantip generate; then
+		sync_public  # carry refreshed pagefind / vault images / branding into build/client
+	else
+		log "regenerate failed; keeping current data"
+	fi
 	kill "$SERVER_PID" 2>/dev/null || true
 	wait "$SERVER_PID" 2>/dev/null || true
 	npm run start &
