@@ -12,8 +12,7 @@ import {
 } from 'lucide-react'
 
 import { findProject, type Project } from '~/lib/projects-core'
-import { useProjects } from '~/lib/site-context'
-import { t } from '~/lib/site'
+import { useProjects, useT } from '~/lib/site-context'
 import { cn } from '~/lib/utils'
 
 /**
@@ -266,6 +265,7 @@ export function Search({
 	 */
 	trigger?: (open: () => void) => JSX.Element
 }) {
+	const t = useT()
 	const projects = useProjects()
 	const [open, setOpen] = useState(false)
 	const [query, setQuery] = useState('')

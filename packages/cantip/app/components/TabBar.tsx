@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DropdownMenu, DropdownMenuItem } from "~/components/ui/dropdown-menu";
 import { useTabs, normTabPath } from "~/lib/tabs";
 import { useKeyboardShortcuts, type Shortcut } from "~/lib/useKeyboardShortcuts";
-import { t } from "~/lib/site";
+import { useT } from "~/lib/site-context";
 import { cn } from "~/lib/utils";
 
 /**
@@ -74,6 +74,7 @@ function useOverlayScrollbar(deps: unknown[]) {
  * region) closes all tabs at once.
  */
 export default function TabBar() {
+  const t = useT();
   const { tabs, closeTab, closeAll } = useTabs();
   const navigate = useNavigate();
   const location = useLocation();

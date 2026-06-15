@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { Moon, Sun } from 'lucide-react'
 
 import { Button } from '~/components/ui/button'
-import { t } from '~/lib/site'
-import { useSite } from '~/lib/site-context'
+import { useSite, useT } from '~/lib/site-context'
 
 const STORAGE_KEY = 'theme'
 
@@ -24,6 +23,7 @@ function getInitialIsDark(defaultsDark: boolean): boolean {
 }
 
 export function ThemeToggle({ className }: { className?: string }) {
+	const t = useT()
 	const defaultsDark = useSite().defaultTheme !== 'light'
 	// Render a stable icon during SSR/first paint; sync to the real DOM state
 	// after mount so the button reflects whatever the init script applied.

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useStickyBox } from 'react-sticky-box'
 import type { Heading } from '~/lib/content.server'
-import { t } from '~/lib/site'
+import { useT } from '~/lib/site-context'
 import { cn } from '~/lib/utils'
 
 // Headings shown in every TOC: section (h2) and subsection (h3) only.
@@ -63,6 +63,7 @@ export function useActiveHeading(shown: Heading[]) {
 
 // Shared link list rendered by the desktop sidebar TOC and the mobile TOC modal.
 export function TocLinks({ shown }: { shown: Heading[] }) {
+	const t = useT()
 	const activeSlug = useActiveHeading(shown)
 
 	if (shown.length === 0) {
@@ -94,6 +95,7 @@ export function TocLinks({ shown }: { shown: Heading[] }) {
 }
 
 export default function Toc({ headings }: { headings: Heading[] }) {
+	const t = useT()
 	const shown = tocHeadings(headings)
 
 	// "Smart sticky" via react-sticky-box: a short TOC pins below the TopBar and

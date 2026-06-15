@@ -23,7 +23,7 @@ import { createPortal } from 'react-dom'
 import type { FlatSidebarItem, FlatSidebarMap, SidebarNodeType } from '~/lib/sidebar.server'
 import { Button } from '~/components/ui/button'
 import { useTabs } from '~/lib/tabs'
-import { t } from '~/lib/site'
+import { useT } from '~/lib/site-context'
 import { useKeyboardShortcuts, type Shortcut } from '~/lib/useKeyboardShortcuts'
 import { cn } from '~/lib/utils'
 
@@ -200,11 +200,14 @@ interface SearchHit {
 
 /** What the file-search modal matches against. */
 type SearchScope = 'all' | 'files' | 'directories'
-const SCOPE_OPTIONS: { value: SearchScope; label: string }[] = [
-	{ value: 'all', label: t('scopeAll') },
-	{ value: 'files', label: t('scopeFiles') },
-	{ value: 'directories', label: t('scopeDirectories') },
-]
+/** Scope options + labels. A function (not a const) since `t` is runtime data now. */
+function scopeOptions(t: (key: string) => string): { value: SearchScope; label: string }[] {
+	return [
+		{ value: 'all', label: t('scopeAll') },
+		{ value: 'files', label: t('scopeFiles') },
+		{ value: 'directories', label: t('scopeDirectories') },
+	]
+}
 
 /**
  * WebStorm-style "search by file" modal: a centered overlay with a query input
@@ -225,6 +228,7 @@ function FileSearchModal({
 	onClose: () => void
 	onPick: (id: string) => void
 }) {
+	const t = useT()
 	const [query, setQuery] = useState('')
 	const [scope, setScope] = useState<SearchScope>('all')
 	const [active, setActive] = useState(0)
@@ -323,7 +327,7 @@ function FileSearchModal({
 						className="h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
 					/>
 					<div className="flex shrink-0 items-center gap-0.5 rounded-md bg-muted p-0.5" role="tablist">
-						{SCOPE_OPTIONS.map((opt) => (
+						{scopeOptions(t).map((opt) => (
 							<button
 								key={opt.value}
 								type="button"
@@ -417,6 +421,7 @@ function RowMenu({
 	forceShow?: boolean
 	actions: RowMenuItem[]
 }) {
+	const t = useT()
 	const [open, setOpen] = useState(false)
 	const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
 	const btnRef = useRef<HTMLButtonElement>(null)
@@ -506,6 +511,7 @@ function RowMenu({
 }
 
 export default function Sidebar({ data, currentPath, open = false, className }: Props) {
+	const t = useT()
 	const navigate = useNavigate()
 	const { hasTabs, openTab } = useTabs()
 

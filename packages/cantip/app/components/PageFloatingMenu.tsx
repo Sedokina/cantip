@@ -4,7 +4,7 @@ import { ArrowUp, ChevronLeft, ChevronRight, List, Search as SearchIcon, X } fro
 import type { Heading } from '~/lib/content.server'
 import { TocLinks, tocHeadings } from '~/components/Toc'
 import FindOnPage from '~/components/FindOnPage'
-import { t } from '~/lib/site'
+import { useT } from '~/lib/site-context'
 import { cn } from '~/lib/utils'
 
 /** Shared tab class — IDENTICAL to MobileBottomBar's `tab`, so this row reads as
@@ -35,6 +35,7 @@ const tab =
  * The TOC sheet it opens uses the modal tier (z-[200]).
  */
 export default function PageFloatingMenu({ headings }: { headings: Heading[] }) {
+	const t = useT()
 	const shown = tocHeadings(headings)
 	const [visible, setVisible] = useState(true)
 	const [open, setOpen] = useState(false)
@@ -179,6 +180,7 @@ export default function PageFloatingMenu({ headings }: { headings: Heading[] }) 
  * link closes the sheet (the link's hash navigation scrolls to the heading).
  */
 function TocSheet({ shown, onClose }: { shown: Heading[]; onClose: () => void }) {
+	const t = useT()
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
 			if (e.key === 'Escape') onClose()

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-import { t } from '~/lib/site'
+import { useT } from '~/lib/site-context'
 
 /**
  * The document body HTML is rendered server-side and injected via
@@ -23,10 +23,10 @@ const WRAP_ICON =
 const NOWRAP_ICON =
 	'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>'
 
-const WRAP_LABEL = t('wrapLines')
-const NOWRAP_LABEL = t('noWrapLines')
-
 export function CodeWrapToggle({ deps }: { deps?: string }) {
+	const t = useT()
+	const WRAP_LABEL = t('wrapLines')
+	const NOWRAP_LABEL = t('noWrapLines')
 	useEffect(() => {
 		const blocks = document.querySelectorAll<HTMLPreElement>('.content .body pre')
 		const cleanups: Array<() => void> = []
@@ -74,7 +74,7 @@ export function CodeWrapToggle({ deps }: { deps?: string }) {
 		})
 
 		return () => cleanups.forEach((fn) => fn())
-	}, [deps])
+	}, [deps, WRAP_LABEL, NOWRAP_LABEL])
 
 	return null
 }

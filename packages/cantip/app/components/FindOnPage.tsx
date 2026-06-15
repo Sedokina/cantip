@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, Search as SearchIcon, X } from 'lucide-react'
 
-import { t } from '~/lib/site'
+import { useT } from '~/lib/site-context'
 import { cn } from '~/lib/utils'
 
 /**
@@ -89,6 +89,7 @@ function findRanges(root: Element, query: string): Range[] {
 }
 
 export default function FindOnPage({ onClose }: { onClose: () => void }) {
+	const t = useT()
 	const [query, setQuery] = useState('')
 	const [ranges, setRanges] = useState<Range[]>([])
 	const [current, setCurrent] = useState(0)

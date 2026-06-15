@@ -19,6 +19,7 @@ export interface SiteData {
 	projects: Project[]
 	general: GeneratedSite['general']
 	theme: GeneratedSite['theme']
+	ui: GeneratedSite['ui']
 }
 
 const SiteContext = createContext<SiteData | null>(null)
@@ -52,6 +53,17 @@ export function useProject(id: string): Project | undefined {
 }
 
 /**
+ * The localized-string translator. `const t = useT()` then `t('projects')`. UI
+ * strings are runtime data now (they depend on `lang`), so this reads them from
+ * context rather than a bundled module. Falls back to the key when a string is
+ * missing, so a typo renders visibly rather than blank.
+ */
+export function useT(): (key: string) => string {
+	const { ui } = useSiteData()
+	return (key: string) => ui[key] ?? key
+}
+
+/**
  * Build the `SiteData` provider value from raw loader data. The loader already
  * resolves `projects`, but this keeps a single place to derive the context value
  * (and re-resolve if a consumer passes only the raw `GeneratedSite`).
@@ -61,11 +73,13 @@ export function siteDataFromLoader(data: {
 	projects?: Project[]
 	general: GeneratedSite['general']
 	theme: GeneratedSite['theme']
+	ui: GeneratedSite['ui']
 }): SiteData {
 	return {
 		site: data.site,
 		projects: data.projects ?? resolveProjects(data as unknown as GeneratedSite),
 		general: data.general,
 		theme: data.theme,
+		ui: data.ui,
 	}
 }

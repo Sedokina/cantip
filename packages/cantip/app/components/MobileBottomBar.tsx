@@ -2,7 +2,7 @@ import { Home, FolderTree, LayoutGrid, Search as SearchIcon } from 'lucide-react
 import { Link } from '@remix-run/react'
 
 import { Search } from '~/components/Search'
-import { t } from '~/lib/site'
+import { useT } from '~/lib/site-context'
 import { cn } from '~/lib/utils'
 
 interface Props {
@@ -39,6 +39,7 @@ export default function MobileBottomBar({
 	onToggleDirs,
 	onToggleProjects,
 }: Props) {
+	const t = useT()
 	return (
 		<nav
 			className={cn(

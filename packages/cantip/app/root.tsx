@@ -60,7 +60,7 @@ export const links: LinksFunction = () => [
  */
 export function Layout() {
 	const TopBar = useComponent('TopBar')
-	const { sidebar, projectId, isCanvas, site, projects, general, theme } =
+	const { sidebar, projectId, isCanvas, site, projects, general, theme, ui } =
 		useLoaderData<typeof loader>()
 	const location = useLocation()
 	const [menuOpen, setMenuOpen] = useState(false)
@@ -73,7 +73,7 @@ export function Layout() {
 	}, [location.pathname])
 
 	return (
-		<SiteProvider value={{ site, projects, general, theme }}>
+		<SiteProvider value={{ site, projects, general, theme, ui }}>
 			<html lang={site.lang} className={site.defaultTheme === 'light' ? undefined : 'dark'}>
 				<head>
 					<meta charSet="utf-8" />

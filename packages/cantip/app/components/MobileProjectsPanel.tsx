@@ -3,9 +3,8 @@ import { useNavigate } from '@remix-run/react'
 import { Check, X } from 'lucide-react'
 
 import { type Project } from '~/lib/projects-core'
-import { useProjects, useProject } from '~/lib/site-context'
+import { useProjects, useProject, useT } from '~/lib/site-context'
 import { ThemeToggle } from '~/components/theme-toggle'
-import { t } from '~/lib/site'
 import { cn } from '~/lib/utils'
 
 /** Logo sized via inline style to win the unlayered `img{height:auto}` cascade. */
@@ -39,6 +38,7 @@ interface Props {
  * Escape + body-scroll-lock, mirroring the Search/ProjectSwitcher pattern.
  */
 export default function MobileProjectsPanel({ activeId, open, onClose }: Props) {
+	const t = useT()
 	const navigate = useNavigate()
 	const projects = useProjects()
 	const active = useProject(activeId ?? '') ?? null

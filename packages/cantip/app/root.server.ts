@@ -35,5 +35,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
 		projects: getProjects(),
 		general: data.general,
 		theme: data.theme,
+		ui: data.ui,
 	}
 }

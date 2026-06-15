@@ -31,7 +31,7 @@ export interface ThemeColors {
 	dark: Record<string, string>
 }
 
-/** Runtime-read site data (`app/generated/site.json`). No `ui` — that's bundled. */
+/** Runtime-read site data (`app/generated/site.json`) — everything per-client. */
 export interface GeneratedSite {
 	site: {
 		title: string
@@ -51,9 +51,10 @@ export interface GeneratedSite {
 	}
 	/** Theme color tokens, rendered into an inline `:root`/`.dark` style at runtime. */
 	theme: ThemeColors
-}
-
-/** Bundled UI strings (`app/generated/ui.ts`) — translations, read via `t()`. */
-export interface GeneratedUi {
+	/**
+	 * Localized UI strings (`defaultUiFor(lang)` + overrides). Read at runtime, not
+	 * bundled — they depend on `lang`, which the build doesn't know. Consumed via
+	 * the `useT()` hook (client) / the `SiteProvider` context.
+	 */
 	ui: Record<string, string>
 }

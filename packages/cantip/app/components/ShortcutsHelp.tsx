@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { ALL_SHORTCUTS, groupLabelKey, type ShortcutGroup, type ShortcutInfo } from '~/lib/useKeyboardShortcuts'
-import { t } from '~/lib/site'
+import { useT } from '~/lib/site-context'
 
 /**
  * The `?` cheatsheet. Single-key shortcuts are powerful but invisible, so — like
@@ -29,6 +29,7 @@ export function openShortcutsHelp() {
 }
 
 export function ShortcutsHelp() {
+	const t = useT()
 	const [open, setOpen] = useState(false)
 
 	// `?` toggles the overlay — but only outside text fields and with no other

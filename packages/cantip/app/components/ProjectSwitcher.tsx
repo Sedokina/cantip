@@ -3,8 +3,7 @@ import { useNavigate } from '@remix-run/react'
 import { Check, ChevronsUpDown } from 'lucide-react'
 
 import { type Project } from '~/lib/projects-core'
-import { useProjects, useProject } from '~/lib/site-context'
-import { t } from '~/lib/site'
+import { useProjects, useProject, useT } from '~/lib/site-context'
 import { cn } from '~/lib/utils'
 
 /** Logo + height tuned to dodge the unlayered `img{height:auto}` cascade (inline style wins). */
@@ -35,6 +34,7 @@ interface Props {
  * re-derives the active project and swaps the sidebar to its menu.
  */
 export default function ProjectSwitcher({ activeId, className }: Props) {
+	const t = useT()
 	const navigate = useNavigate()
 	const projects = useProjects()
 	// null when no project is selected (e.g. on `/`) — the trigger shows a

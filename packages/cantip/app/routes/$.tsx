@@ -4,7 +4,7 @@ import type { MetaFunction } from '@remix-run/node'
 
 import type { loader } from './doc.server'
 import { getPriority } from '~/lib/utils'
-import { t } from '~/lib/site'
+import { useT } from '~/lib/site-context'
 import { pageTitleFromMatches } from '~/lib/meta'
 import { useComponent, useOverride } from '~/lib/components'
 import PageFloatingMenu from '~/components/PageFloatingMenu'
@@ -30,6 +30,7 @@ function formatValue(value: unknown): string {
 
 /** A generic key→value table of every frontmatter field, collapsed by default. */
 function FrontmatterTable({ frontmatter }: { frontmatter: Record<string, unknown> }) {
+	const t = useT()
 	const entries = Object.entries(frontmatter)
 	if (entries.length === 0) return null
 	return (
