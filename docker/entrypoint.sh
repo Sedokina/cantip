@@ -26,29 +26,47 @@ if [ ! -f "$DOCS/docs.config.ts" ]; then
 	exit 1
 fi
 
-# ── Link the client's docs into the app (replacing the scaffolded seed) ──────
-# Symlink (not copy) so the app reads the live volume; content can be large.
+# ── Bring the client's docs into the app (replacing the scaffolded seed) ─────
+# Content dirs are symlinked (they can be large; we don't want to copy). But
+# docs.config.ts is COPIED, not symlinked: it does `import 'cantip/config'`, and
+# Node resolves a module's imports relative to the file's REAL path — a symlink
+# would resolve `cantip` from the volume (/docs/node_modules), which a client
+# volume won't have. Copying into /app makes it resolve from the image's
+# node_modules. Find the config under whatever extension the client used.
 cd "$APP"
 
-rm -f "$APP/docs.config.ts"
-ln -s "$DOCS/docs.config.ts" "$APP/docs.config.ts"
-log "linked docs.config.ts from volume"
+rm -f "$APP"/docs.config.ts "$APP"/docs.config.js "$APP"/docs.config.mjs
+for ext in ts js mjs; do
+	if [ -f "$DOCS/docs.config.$ext" ]; then
+		cp "$DOCS/docs.config.$ext" "$APP/docs.config.$ext"
+		log "copied docs.config.$ext from volume"
+		break
+	fi
+done
 
 # Drop the seed content dir the scaffold shipped (template/docs) so it can't leak
 # into the client's site; the volume provides the real sources.
 rm -rf "$APP/docs"
 
-# Link every top-level content dir / file the volume provides (except public/,
-# handled below). Config `source:` paths resolve against the app root, so a config
-# pointing at ./projects/foo needs /docs/projects present.
+# Link the volume's CONTENT into the app — and ONLY content. The image owns the
+# Remix app shell (vite.config.ts, package.json, tsconfig.json, node_modules, the
+# app/ stubs); a client volume must never override those, or module resolution +
+# the build break (e.g. `import 'cantip'` in docs.config.ts resolving against the
+# volume instead of the image). So we DENY app-shell names and link the rest —
+# the content source dirs the config's `source:` paths reference (resolved against
+# the app root, so a config pointing at ./projects/foo needs /docs/projects).
 for entry in "$DOCS"/*; do
 	name=$(basename "$entry")
 	case "$name" in
-		docs.config.ts|public|node_modules|build|app) continue ;;
+		# already linked / handled, or app-shell files the image owns:
+		docs.config.ts|docs.config.js|docs.config.mjs|public) continue ;;
+		node_modules|build|app|vite.config.ts|vite.config.js|tsconfig.json) continue ;;
+		package.json|package-lock.json|npm-shrinkwrap.json|yarn.lock|pnpm-lock.yaml) continue ;;
+		.git|.gitignore|.dockerignore|README.md|Dockerfile|docker) continue ;;
 	esac
 	rm -rf "$APP/$name"
 	ln -s "$entry" "$APP/$name"
-	log "linked $name from volume"
+	log "linked content '$name' from volume"
 done
 
 # Merge client public/ assets over the scaffolded seed public/ (favicon, logos).
