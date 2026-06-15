@@ -1,16 +1,18 @@
 name: Docker image
 
-# Build the generic cantip-host image and push it to GitHub Container Registry on
-# every v* tag (and `latest`). Auth uses the built-in GITHUB_TOKEN — no extra
-# secret. The image scaffolds the app for the tagged cantip version, so the tag's
-# engine must already be published to npm (the Release workflow does that in
-# parallel; the Dockerfile's `npx create-cantip@<version>` will retry until it's
-# available).
+# Build the generic cantip-host image and push it to GitHub Container Registry.
+#
+# The image scaffolds the app via `npx create-cantip@<version>`, so that version
+# must already be on npm. To avoid racing the npm publish, this workflow runs AFTER
+# the Release workflow COMPLETES (workflow_run) rather than off the tag directly —
+# so by the time we build, the Release job has published the engine. A
+# workflow_dispatch is also provided for manual/ad-hoc builds of a given version.
+# Auth uses the built-in GITHUB_TOKEN — no extra secret.
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_run:
+    workflows: ['Release']
+    types: [completed]
   workflow_dispatch:
     inputs:
       version:
@@ -22,6 +24,11 @@ jobs:
   build-push:
     name: Build & push to ghcr.io
     runs-on: ubuntu-latest
+    # On the workflow_run path, only build if the Release actually SUCCEEDED (don't
+    # publish an image for a failed/cancelled release). Manual dispatch always runs.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     permissions:
       contents: read
       packages: write
@@ -30,24 +37,26 @@ jobs:
 
       - name: Derive the cantip version
         id: ver
-        # Tag push: v0.6.0 -> 0.6.0. Manual run: use the `version` input
-        # (defaults to `latest`). The image is tagged with this value + `latest`.
+        # workflow_run (after Release): use the version from packages/cantip's
+        # package.json on the checked-out default branch — that's the version the
+        # release just published, and it's more reliable than head_branch for a
+        # tag-triggered upstream run. Manual run: use the `version` input.
         run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            echo "cantip=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            ver="$(node -p "require('./packages/cantip/package.json').version")"
+            echo "cantip=${ver}" >> "$GITHUB_OUTPUT"
           else
             echo "cantip=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
           fi
 
-      # The Release (npm) and this Docker workflow both trigger off the same v*
-      # tag and run IN PARALLEL. The image build does `npx create-cantip@<version>`,
-      # so it must wait until that version is actually on npm — otherwise it builds
-      # against a missing/old version (or no-ops). Poll npm before building.
+      # Belt-and-suspenders: even after Release succeeds, a just-published version
+      # can take a moment to propagate across npm's CDN edges. Poll briefly so the
+      # build never hits a transient ETARGET.
       - name: Wait for create-cantip@<version> on npm
         if: steps.ver.outputs.cantip != 'latest'
         run: |
           ver="${{ steps.ver.outputs.cantip }}"
-          for i in $(seq 1 60); do
+          for i in $(seq 1 40); do
             if npm view "create-cantip@${ver}" version >/dev/null 2>&1; then
               echo "create-cantip@${ver} is available."
               exit 0
