@@ -18,7 +18,12 @@ const logger: Logger = {
 }
 
 // All build artifacts live under the USER's cwd (not inside the engine package),
-// matching the runtime contract in `app/lib/content.server.ts` + `config.server.ts`.
+// matching the runtime contract in `app/lib/content.server.ts` (which reads
+// `cwd/app/generated/content.json`). This couples generate + serve to a SHARED
+// cwd: launch either from the wrong directory and they silently read/write a
+// different `app/generated`. The Vite plugin spawns this generator with the
+// app's cwd; deployments (e.g. the Docker host) must keep config + content under
+// that same root — see docker/README.md "Architecture & gotchas".
 const CWD = process.cwd()
 const CONTENT_ROOT = path.resolve(CWD, 'content')
 const PUBLIC_ROOT = path.resolve(CWD, 'public')

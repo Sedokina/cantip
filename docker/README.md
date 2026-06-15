@@ -71,10 +71,46 @@ in `site.ts`) ARE bundled at build time, so those need a full container restart.
 
 ## Notes / tunables
 
-- **Cold start** runs `cantip generate` + `remix vite:build` (≈30–60 s for ~640
-  pages). Inherent: per-client branding is compiled into the bundle; only
-  *content* is decoupled.
+- **Cold start** runs one `cantip generate` + `remix vite:build` (≈25 s for ~640
+  pages; the generate dominates). Inherent: per-client branding is compiled into
+  the bundle, so a build is required; only *content* is decoupled from it. See
+  "Architecture & gotchas" for why it's one generate and not several.
 - **Image size** is dominated by Chromium — use `WITH_MERMAID=false` to shrink it.
 - **Multiple projects** in one `docs.config.ts` are served by a single container.
 - The image installs the optional peers `pagefind` (search) + `rehype-mermaid`
   (diagrams) on top of the scaffold, since a generic host should support both.
+
+## Architecture & gotchas (for maintainers)
+
+Editing `entrypoint.sh`? Read this first — it encodes two non-obvious invariants
+that, when broken, fail in confusing ways.
+
+**The image owns the app shell; the volume provides ONLY content.** The baked app
+(`vite.config.ts`, `package.json`, `tsconfig.json`, `node_modules`, the `app/`
+route stubs) belongs to the image. A client volume must supply *only*
+`docs.config.ts`, the content dirs its `source:` paths reference, and optional
+`public/` assets. The entrypoint therefore links volume entries through a
+**denylist** of app-shell names — never an allowlist of "everything but a few".
+
+> Why it matters: if the volume's own `vite.config.ts` / `package.json` get linked
+> over the image's, module resolution breaks. `docs.config.ts` does `import
+> 'cantip/config'`, and the generator then resolves `cantip` against the *volume*
+> (which a content-only client doesn't have) instead of the image. The generate
+> writes `content.json` to the wrong directory, the build's `buildStart` sees
+> `contentExists=false`, `CANTIP_SKIP_GENERATE` never fires, and every build pass
+> regenerates (~5×, ~2-min boots). It can appear to "work" if the mounted volume
+> happens to be a full cantip project with its own `node_modules` — that masks the
+> bug until a content-only client (or a `:ro` mount) hits it.
+
+**`docs.config.ts` is COPIED, not symlinked.** Node resolves a module's imports by
+the file's **real** path, so a symlinked config resolves `import 'cantip'` from the
+volume, not the image. Copying it into `/app` makes its imports resolve from the
+image's `node_modules`. (Content dirs are still symlinked — they can be large and
+are only read, never imported.)
+
+**Boot does one `cantip generate`, not several.** A `remix vite:build` runs the
+generate-on-`buildStart` hook once per pass (client + SSR + internal). The
+entrypoint generates once explicitly, then builds with `CANTIP_SKIP_GENERATE=1`
+so the passes skip regeneration (the plugin still guards on `content.json`
+existing, so a misconfigured flag regenerates rather than shipping an empty site).
+This is why boot is ~24 s, not ~2 min.
