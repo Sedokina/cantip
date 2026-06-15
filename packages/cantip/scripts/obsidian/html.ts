@@ -48,7 +48,35 @@ async function getTransform(): Promise<Transform> {
 	return transformPromise
 }
 
+// Bound how many mermaid diagrams render at once. `rehype-mermaid` (via
+// `mermaid-isomorphic`) reuses a SINGLE headless Chromium, but opens one page
+// per in-flight render — and the callers fan out without limit: the remark
+// transform calls this once per diagram (Promise.all in handleMermaid) and the
+// file pipeline processes every vault file at once (Promise.allSettled in
+// files.ts). On small, swap-less containers, dozens of simultaneous Chromium
+// pages exhaust memory and the build hangs non-deterministically. A global
+// limiter caps how many pages are open in the shared browser at any moment.
+// The default of 2 also keeps the browser warm between renders (the renderer
+// closes Chromium whenever no render is in flight, so serializing fully would
+// relaunch it per diagram). Tune with CANTIP_MERMAID_CONCURRENCY.
+const renderConcurrency = Math.max(1, Number(process.env.CANTIP_MERMAID_CONCURRENCY) || 2)
+let activeRenders = 0
+const renderWaiters: Array<() => void> = []
+
+async function withRenderLimit<T>(fn: () => Promise<T>): Promise<T> {
+	while (activeRenders >= renderConcurrency) {
+		await new Promise<void>((resolve) => renderWaiters.push(resolve))
+	}
+	activeRenders++
+	try {
+		return await fn()
+	} finally {
+		activeRenders--
+		renderWaiters.shift()?.()
+	}
+}
+
 export async function transformHtmlToString(html: string): Promise<string> {
 	const transform = await getTransform()
-	return transform(html)
+	return withRenderLimit(() => transform(html))
 }
