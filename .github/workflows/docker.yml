@@ -11,7 +11,12 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'cantip version to build (e.g. 0.6.0). Tags the image with it + latest.'
+        required: false
+        default: 'latest'
 
 jobs:
   build-push:
@@ -23,15 +28,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Derive the cantip version from the tag
+      - name: Derive the cantip version
         id: ver
-        # v0.6.0 -> 0.6.0 ; on workflow_dispatch (no tag) fall back to `latest`.
+        # Tag push: v0.6.0 -> 0.6.0. Manual run: use the `version` input
+        # (defaults to `latest`). The image is tagged with this value + `latest`.
         run: |
-          ref="${GITHUB_REF_NAME}"
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            echo "cantip=${ref#v}" >> "$GITHUB_OUTPUT"
+            echo "cantip=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
           else
-            echo "cantip=latest" >> "$GITHUB_OUTPUT"
+            echo "cantip=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: docker/setup-buildx-action@v3
@@ -50,9 +55,12 @@ jobs:
         run: |
           owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
           ver="${{ steps.ver.outputs.cantip }}"
-          {
-            echo "tags=ghcr.io/${owner}/cantip-host:${ver},ghcr.io/${owner}/cantip-host:latest"
-          } >> "$GITHUB_OUTPUT"
+          repo="ghcr.io/${owner}/cantip-host"
+          if [ "$ver" = "latest" ]; then
+            echo "tags=${repo}:latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "tags=${repo}:${ver},${repo}:latest" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build & push
         uses: docker/build-push-action@v6
