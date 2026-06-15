@@ -39,6 +39,25 @@ jobs:
             echo "cantip=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
           fi
 
+      # The Release (npm) and this Docker workflow both trigger off the same v*
+      # tag and run IN PARALLEL. The image build does `npx create-cantip@<version>`,
+      # so it must wait until that version is actually on npm — otherwise it builds
+      # against a missing/old version (or no-ops). Poll npm before building.
+      - name: Wait for create-cantip@<version> on npm
+        if: steps.ver.outputs.cantip != 'latest'
+        run: |
+          ver="${{ steps.ver.outputs.cantip }}"
+          for i in $(seq 1 60); do
+            if npm view "create-cantip@${ver}" version >/dev/null 2>&1; then
+              echo "create-cantip@${ver} is available."
+              exit 0
+            fi
+            echo "waiting for create-cantip@${ver} on npm ($i)…"
+            sleep 15
+          done
+          echo "create-cantip@${ver} did not appear on npm in time." >&2
+          exit 1
+
       - uses: docker/setup-buildx-action@v3
 
       - name: Log in to ghcr.io
