@@ -85,6 +85,13 @@ now, not bundled — so nothing needs a full rebuild or image rebuild.
 - **Multiple projects** in one `docs.config.ts` are served by a single container.
 - The image installs the optional peers `pagefind` (search) + `rehype-mermaid`
   (diagrams) on top of the scaffold, since a generic host should support both.
+- **Mermaid + Chromium in containers.** Diagrams render via headless Chromium at
+  generate time. cantip launches it with `--no-sandbox --disable-dev-shm-usage`
+  (the latter avoids Docker's tiny 64MB `/dev/shm`, which can otherwise make a
+  multi-diagram generate hang non-deterministically). If it still stalls on a
+  diagram-heavy vault, the cause is usually memory — give the container more RAM /
+  swap, or run a `WITH_MERMAID=false` image. Override the flags via
+  `CANTIP_CHROMIUM_ARGS` (space-separated) if you need different ones.
 
 ## Architecture & gotchas (for maintainers)
 
