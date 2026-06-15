@@ -103,11 +103,21 @@ export function cantip(options: CantipPluginOptions = {}): Plugin {
 		},
 
 		// Generate before the build (and before the dev server's first request).
-		// `buildStart` runs for both `vite build` and `vite dev`. `skipIfFresh` lets
-		// the SSR pass no-op when the client pass already produced up-to-date output
-		// (the two passes are separate plugin instances, so `didGenerate` can't span
-		// them — the env-flagged freshness check in the generator does).
+		// `buildStart` runs for both `vite build` and `vite dev`.
+		//
+		// CANTIP_SKIP_GENERATE: when set, skip generation entirely. The caller
+		// guarantees `app/generated/*` is already up-to-date (e.g. a Docker
+		// entrypoint that ran `cantip generate` once, then builds). Deterministic —
+		// no mtime guessing — and avoids the redundant regen on each of a build's
+		// client+SSR passes (separate plugin instances, so `didGenerate` can't span
+		// them). For non-orchestrated builds, `skipIfFresh` still collapses the
+		// repeated passes via the generator's freshness check.
 		async buildStart() {
+			// Honor the skip only when the generated content actually exists — guards
+			// against a misconfigured CANTIP_SKIP_GENERATE producing an empty site.
+			if (process.env.CANTIP_SKIP_GENERATE && existsSync(path.join(generatedDir, 'content.json'))) {
+				return
+			}
 			if (didGenerate) return
 			didGenerate = true
 			await runGenerate(cwd, true)
