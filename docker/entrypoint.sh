@@ -58,15 +58,15 @@ if [ -d "$DOCS/public" ]; then
 fi
 
 # ── Generate + build ────────────────────────────────────────────────────────
-# One explicit, forced generate up front (robust regardless of volume file
-# mtimes). The build's two passes (client + SSR) then see up-to-date output and
-# skip regeneration via the plugin's freshness guard — so content is generated
-# exactly once per boot, not three times.
+# Generate content ONCE explicitly, then build with CANTIP_SKIP_GENERATE so the
+# build's passes (client + SSR + internal) don't each regenerate. Deterministic:
+# the build trusts the app/generated/* we just produced. This is what keeps boot
+# fast (one generate, not ~5).
 log "generating content from docs.config.ts…"
 npx cantip generate
 
 log "building the Remix app (per-client branding/theme is bundled here)…"
-npm run build
+CANTIP_SKIP_GENERATE=1 npm run build
 
 # ── Serve, with SIGHUP = regenerate content (no rebuild) ────────────────────
 log "starting server on ${HOST:-0.0.0.0}:${PORT:-3000}"
