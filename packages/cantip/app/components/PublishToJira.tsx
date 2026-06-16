@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useFetcher } from '@remix-run/react'
 import { X } from 'lucide-react'
 
@@ -90,6 +91,11 @@ export default function PublishToJira({
 
 	if (!config.data?.enabled) return null
 
+	const openWith = (sel: Selection | null) => {
+		setSelection(sel)
+		setOpen(true)
+	}
+
 	return (
 		<div className="my-4">
 			<button
@@ -112,7 +118,90 @@ export default function PublishToJira({
 					onClose={() => setOpen(false)}
 				/>
 			)}
+			{/* Discoverability: a floating action above any text selected in the body. */}
+			<SelectionToolbar active={!open} onPublish={openWith} />
 		</div>
+	)
+}
+
+/**
+ * A small floating "Publish to Jira" pill that appears above the current text
+ * selection inside the article body — so it's obvious you can publish a
+ * selection. Tracks the selection via mouse/keyboard/selection events, captures
+ * it when shown (so the click can't lose it), and portals into <body> so fixed
+ * positioning isn't trapped by a transformed ancestor.
+ */
+function SelectionToolbar({ active, onPublish }: { active: boolean; onPublish: (sel: Selection) => void }) {
+	const ref = useRef<HTMLDivElement>(null)
+	const captured = useRef<Selection | null>(null)
+	const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+	const WIDTH = 150
+
+	useEffect(() => {
+		if (!active) {
+			setPos(null)
+			return
+		}
+		const update = () => {
+			const sel = captureSelection()
+			const native = window.getSelection()
+			if (!sel || !native || native.rangeCount === 0) {
+				setPos(null)
+				return
+			}
+			captured.current = sel
+			const rect = native.getRangeAt(0).getBoundingClientRect()
+			setPos({
+				top: Math.max(8, rect.top - 44),
+				left: Math.min(Math.max(8, rect.left + rect.width / 2 - WIDTH / 2), window.innerWidth - WIDTH - 8),
+			})
+		}
+		const onSelChange = () => {
+			const native = window.getSelection()
+			if (!native || native.isCollapsed) setPos(null)
+		}
+		const onMouseDown = (e: MouseEvent) => {
+			// Keep the pill alive when its own button is the click target.
+			if (ref.current && e.target instanceof Node && ref.current.contains(e.target)) return
+			setPos(null)
+		}
+		const hide = () => setPos(null)
+		document.addEventListener('mouseup', update)
+		document.addEventListener('keyup', update)
+		document.addEventListener('selectionchange', onSelChange)
+		document.addEventListener('mousedown', onMouseDown)
+		window.addEventListener('scroll', hide, true)
+		window.addEventListener('resize', hide)
+		return () => {
+			document.removeEventListener('mouseup', update)
+			document.removeEventListener('keyup', update)
+			document.removeEventListener('selectionchange', onSelChange)
+			document.removeEventListener('mousedown', onMouseDown)
+			window.removeEventListener('scroll', hide, true)
+			window.removeEventListener('resize', hide)
+		}
+	}, [active])
+
+	if (!pos || typeof document === 'undefined') return null
+	return createPortal(
+		<div
+			ref={ref}
+			className="fixed z-100 rounded-md border bg-popover p-1 shadow-lg"
+			style={{ top: pos.top, left: pos.left }}
+		>
+			<button
+				type="button"
+				onClick={() => {
+					const sel = captured.current
+					setPos(null)
+					if (sel) onPublish(sel)
+				}}
+				className="inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium hover:bg-muted"
+			>
+				Publish to Jira
+			</button>
+		</div>,
+		document.body,
 	)
 }
 
