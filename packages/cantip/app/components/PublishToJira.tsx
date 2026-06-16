@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useFetcher } from '@remix-run/react'
+import { useFetcher, useLocation } from '@remix-run/react'
 import { X } from 'lucide-react'
 
 /**
@@ -20,8 +20,17 @@ import { X } from 'lucide-react'
  * `/api/jira` route so credentials never reach the browser.
  */
 
-interface JiraClientConfig {
+interface JiraStatus {
+	/** Publishing is available at all (OAuth configured or a shared account set). */
 	enabled: boolean
+	/** This browser can publish right now (own OAuth session, or shared fallback). */
+	connected: boolean
+	/** How it's connected: as the user (oauth) or via the shared account. */
+	mode: 'oauth' | 'shared' | null
+	/** Display name when connected via OAuth. */
+	user: string | null
+	/** OAuth is configured, so we can offer "Connect Jira". */
+	oauthAvailable: boolean
 	defaultProject: string | null
 	defaultIssueType: string
 }
@@ -93,21 +102,27 @@ export default function PublishToJira({
 	title: string
 	linkedTickets: string[]
 }) {
-	const config = useFetcher<JiraClientConfig>()
+	const config = useFetcher<JiraStatus>()
+	const location = useLocation()
 	const [open, setOpen] = useState(false)
 	const [selection, setSelection] = useState<Selection | null>(null)
 
-	// Load enablement config once; the condition is false again once data is set.
+	// Load status once; the condition is false again once data is set. Re-loads
+	// after the OAuth round-trip too, since that's a fresh document load.
 	useEffect(() => {
 		if (config.state === 'idle' && config.data == null) config.load('/api/jira')
 	}, [config.state, config.data])
 
 	if (!config.data?.enabled) return null
+	const status = config.data
 
 	const openWith = (sel: Selection | null) => {
 		setSelection(sel)
 		setOpen(true)
 	}
+	// Where to return after the OAuth round-trip / disconnect.
+	const here = location.pathname + location.search
+	const connectUrl = `/jira/connect?redirectTo=${encodeURIComponent(here)}`
 
 	return (
 		<div className="shrink-0">
@@ -120,7 +135,10 @@ export default function PublishToJira({
 					title={title}
 					linkedTickets={linkedTickets}
 					selection={selection}
-					defaults={{ project: config.data.defaultProject, issueType: config.data.defaultIssueType }}
+					status={status}
+					connectUrl={connectUrl}
+					here={here}
+					defaults={{ project: status.defaultProject, issueType: status.defaultIssueType }}
 					onClose={() => setOpen(false)}
 				/>
 			)}
@@ -277,11 +295,60 @@ function SelectionToolbar({ active, onPublish }: { active: boolean; onPublish: (
 	)
 }
 
+/**
+ * The connection state shown at the top of the dialog: a Connect prompt when
+ * the browser has no Jira identity, "Connected as <user> · Disconnect" under
+ * OAuth, or a shared-account note (with an optional connect link) on fallback.
+ */
+function AuthBar({ status, connectUrl, here }: { status: JiraStatus; connectUrl: string; here: string }) {
+	if (!status.connected) {
+		return (
+			<div className="space-y-2">
+				<p className="text-sm text-muted-foreground">Connect your Jira account to publish as yourself.</p>
+				<a
+					href={connectUrl}
+					className="inline-flex items-center gap-2 rounded-md border bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90"
+				>
+					<JiraIcon className="size-4" />
+					Connect Jira
+				</a>
+			</div>
+		)
+	}
+	if (status.mode === 'oauth') {
+		return (
+			<div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+				<span>Connected as {status.user || 'your Jira account'}</span>
+				<form method="post" action="/jira/disconnect">
+					<input type="hidden" name="redirectTo" value={here} />
+					<button type="submit" className="underline hover:text-foreground">
+						Disconnect
+					</button>
+				</form>
+			</div>
+		)
+	}
+	// Shared account fallback.
+	return (
+		<div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+			<span>Publishing via the shared account</span>
+			{status.oauthAvailable && (
+				<a href={connectUrl} className="underline hover:text-foreground">
+					Connect your Jira
+				</a>
+			)}
+		</div>
+	)
+}
+
 function PublishDialog({
 	pageId,
 	title,
 	linkedTickets,
 	selection,
+	status,
+	connectUrl,
+	here,
 	defaults,
 	onClose,
 }: {
@@ -289,6 +356,9 @@ function PublishDialog({
 	title: string
 	linkedTickets: string[]
 	selection: Selection | null
+	status: JiraStatus
+	connectUrl: string
+	here: string
 	defaults: { project: string | null; issueType: string }
 	onClose: () => void
 }) {
@@ -426,6 +496,9 @@ function PublishDialog({
 				</div>
 
 				<div className="space-y-3 px-4 py-3">
+					<AuthBar status={status} connectUrl={connectUrl} here={here} />
+					{status.connected && (
+					<>
 					{/* Source toggle — only when the reader had text selected. */}
 					{selection && (
 						<div>
@@ -597,21 +670,25 @@ function PublishDialog({
 						</p>
 					)}
 					{result && !result.ok && <p className="text-sm text-red-700 dark:text-red-400">{result.error}</p>}
+					</>
+					)}
 				</div>
 
-				<div className="flex justify-end gap-2 border-t px-4 py-3">
-					<button type="button" onClick={onClose} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">
-						{result?.ok ? 'Close' : 'Cancel'}
-					</button>
-					<button
-						type="button"
-						onClick={onPublish}
-						disabled={!canSubmit}
-						className="rounded-md border bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
-					>
-						{submitting ? 'Publishing…' : intent === 'create' ? 'Create issue' : 'Update ticket'}
-					</button>
-				</div>
+				{status.connected && (
+					<div className="flex justify-end gap-2 border-t px-4 py-3">
+						<button type="button" onClick={onClose} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">
+							{result?.ok ? 'Close' : 'Cancel'}
+						</button>
+						<button
+							type="button"
+							onClick={onPublish}
+							disabled={!canSubmit}
+							className="rounded-md border bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
+						>
+							{submitting ? 'Publishing…' : intent === 'create' ? 'Create issue' : 'Update ticket'}
+						</button>
+					</div>
+				)}
 			</div>
 		</div>
 	)
