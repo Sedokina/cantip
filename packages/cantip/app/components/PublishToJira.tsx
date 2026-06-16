@@ -97,17 +97,10 @@ export default function PublishToJira({
 	}
 
 	return (
-		<div className="my-4">
-			<button
-				type="button"
-				// Capture on mousedown: the click that opens the dialog would otherwise
-				// collapse the selection before we can read it.
-				onMouseDown={() => setSelection(captureSelection())}
-				onClick={() => setOpen(true)}
-				className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm font-medium hover:bg-muted"
-			>
-				Publish to Jira
-			</button>
+		<div className="shrink-0">
+			{/* File-scope action, on the right of the title. Selection-scope lives in
+			    the floating pill below, so this always publishes the whole page. */}
+			<PageActions onPublish={() => openWith(null)} />
 			{open && (
 				<PublishDialog
 					pageId={pageId}
@@ -121,6 +114,67 @@ export default function PublishToJira({
 			{/* Discoverability: a floating action above any text selected in the body. */}
 			<SelectionToolbar active={!open} onPublish={openWith} />
 		</div>
+	)
+}
+
+/**
+ * The page-level ("file scope") actions next to the title. On desktop the
+ * actions sit inline; on mobile they collapse behind a ⋯ menu so the title row
+ * stays uncluttered. Currently a single action (Publish to Jira), structured so
+ * more page commands can be added later.
+ */
+function PageActions({ onPublish }: { onPublish: () => void }) {
+	const [menuOpen, setMenuOpen] = useState(false)
+	const ref = useRef<HTMLDivElement>(null)
+
+	// Close the mobile menu on any outside click.
+	useEffect(() => {
+		if (!menuOpen) return
+		const onDocClick = (e: MouseEvent) => {
+			if (ref.current && e.target instanceof Node && !ref.current.contains(e.target)) setMenuOpen(false)
+		}
+		document.addEventListener('mousedown', onDocClick)
+		return () => document.removeEventListener('mousedown', onDocClick)
+	}, [menuOpen])
+
+	return (
+		<>
+			{/* Desktop: inline button. */}
+			<button
+				type="button"
+				onClick={onPublish}
+				className="hidden items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm font-medium hover:bg-muted md:inline-flex"
+			>
+				Publish to Jira
+			</button>
+
+			{/* Mobile: collapsed ⋯ menu. */}
+			<div ref={ref} className="relative md:hidden">
+				<button
+					type="button"
+					aria-label="Page actions"
+					aria-expanded={menuOpen}
+					onClick={() => setMenuOpen((o) => !o)}
+					className="inline-flex size-8 items-center justify-center rounded-md border bg-background text-lg leading-none hover:bg-muted"
+				>
+					⋯
+				</button>
+				{menuOpen && (
+					<div className="absolute right-0 z-50 mt-1 min-w-[12rem] rounded-md border bg-popover p-1 shadow-lg">
+						<button
+							type="button"
+							onClick={() => {
+								setMenuOpen(false)
+								onPublish()
+							}}
+							className="block w-full rounded px-2.5 py-1.5 text-left text-sm hover:bg-muted"
+						>
+							Publish to Jira
+						</button>
+					</div>
+				)}
+			</div>
+		</>
 	)
 }
 

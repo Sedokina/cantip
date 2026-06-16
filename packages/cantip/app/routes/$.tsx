@@ -119,12 +119,18 @@ function EngineDocPage() {
 			    the last lines of content never hide behind either, open or closed. */}
 			<main className="mx-auto w-full min-w-0 max-w-[calc(720px+5rem)] px-10 pb-16 pt-8 max-md:px-4 max-md:pb-[calc(2*var(--mobile-bar-height)+env(safe-area-inset-bottom)+3rem)]">
 				<article className="content">
-					<h1 className="title-row">
-						{title}
-						{priority && <PriorityBadge priority={priority} />}
-					</h1>
+					<div className="flex items-start justify-between gap-4">
+						<h1 className="title-row">
+							{title}
+							{priority && <PriorityBadge priority={priority} />}
+						</h1>
+						<PublishToJira
+							pageId={doc.id}
+							title={title}
+							linkedTickets={collectLinkedTickets(doc.frontmatter, doc.html)}
+						/>
+					</div>
 					<FrontmatterTable frontmatter={doc.frontmatter} />
-					<PublishToJira pageId={doc.id} title={title} linkedTickets={collectLinkedTickets(doc.frontmatter, doc.html)} />
 					<div className="body" dangerouslySetInnerHTML={{ __html: doc.html }} />
 				</article>
 			</main>
