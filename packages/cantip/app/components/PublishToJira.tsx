@@ -151,7 +151,7 @@ function PublishDialog({
 
 	// update fields
 	const [issueKey, setIssueKey] = useState(linkedTickets[0] ?? '')
-	const [updateMode, setUpdateMode] = useState<'replace' | 'comment'>('replace')
+	const [updateMode, setUpdateMode] = useState<'replace' | 'comment'>('comment')
 
 	// Escape closes the dialog.
 	useEffect(() => {
@@ -402,8 +402,8 @@ function PublishDialog({
 								<legend className="mb-1 text-xs font-medium text-muted-foreground">What to update</legend>
 								{(
 									[
-										['replace', 'Replace the description'],
 										['comment', 'Add the content as a comment'],
+										['replace', 'Replace the description'],
 									] as const
 								).map(([value, label]) => (
 									<label key={value} className="flex items-center gap-2 text-sm">
