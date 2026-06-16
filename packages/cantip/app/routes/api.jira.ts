@@ -18,6 +18,7 @@ import { getDoc } from '~/lib/content.server'
 import {
 	addComment,
 	createIssue,
+	dropLeadingTitle,
 	getIssueSummaries,
 	getJiraClientConfig,
 	getJiraConfig,
@@ -121,7 +122,9 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	const selection = body.selectionHtml?.trim()
 	if (selection && selection.length > MAX_SELECTION_CHARS) return fail('Selection is too large', 413)
-	const description = htmlToAdf(selection || doc.html)
+	// Whole-page: drop the leading `# Title` (it's already the summary). A
+	// selection is published verbatim.
+	const description = selection ? htmlToAdf(selection) : dropLeadingTitle(htmlToAdf(doc.html))
 
 	try {
 		if (body.intent === 'create') {

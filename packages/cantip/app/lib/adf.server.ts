@@ -260,6 +260,19 @@ export function htmlToAdf(html: string): AdfDoc {
 	return { version: 1, type: 'doc', content }
 }
 
+/**
+ * Drop a leading level-1 heading from an ADF doc. A page's body starts with its
+ * `# Title`, which becomes the issue summary — so repeating it in the
+ * description is redundant. Used for whole-page publishes (not selections).
+ */
+export function dropLeadingTitle(doc: AdfDoc): AdfDoc {
+	const [first, ...rest] = doc.content
+	if (first?.type === 'heading' && (first.attrs as { level?: number } | undefined)?.level === 1) {
+		return { ...doc, content: rest.length ? rest : [{ type: 'paragraph', content: [] }] }
+	}
+	return doc
+}
+
 /** Wrap plain text (e.g. a raw selection) as an ADF doc, one paragraph per block. */
 export function textToAdf(text: string): AdfDoc {
 	const content: AdfNode[] = text

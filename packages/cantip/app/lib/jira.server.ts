@@ -23,7 +23,7 @@
 import type { AdfDoc } from '~/lib/adf.server'
 
 // Re-export the HTML→ADF helpers so callers have one Jira entry point.
-export { htmlToAdf, textToAdf } from '~/lib/adf.server'
+export { htmlToAdf, textToAdf, dropLeadingTitle } from '~/lib/adf.server'
 export type { AdfDoc } from '~/lib/adf.server'
 
 /** Resolved, validated Jira connection config (null when not configured). */
