@@ -37,6 +37,13 @@ export const projectSchema = z.object({
 	description: z.string().default(''),
 	/** Ingest `.canvas` files from this source too. */
 	canvas: z.boolean().default(false),
+	/**
+	 * Keep each note's authored frontmatter (incl. `title`) instead of the default
+	 * Obsidian behavior of titling a page by its filename. Off by default so a
+	 * vault's filenames stay the source of truth; turn on for loose markdown
+	 * folders that carry a real `title:` field.
+	 */
+	copyFrontmatter: z.boolean().default(false),
 	/** Globs (relative to `source`) to skip, e.g. `['CLAUDE.md']`. */
 	ignore: z.array(z.string()).default([]),
 })
@@ -51,6 +58,8 @@ export const generalSchema = z.object({
 	description: z.string().default(''),
 	/** Ingest `.canvas` files from this source too. */
 	canvas: z.boolean().default(false),
+	/** Keep authored frontmatter (incl. `title`) instead of titling by filename. */
+	copyFrontmatter: z.boolean().default(false),
 	ignore: z.array(z.string()).default([]),
 })
 

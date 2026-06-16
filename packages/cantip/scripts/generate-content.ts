@@ -39,14 +39,24 @@ const OUTPUT_ROOTS = { content: CONTENT_ROOT, public: PUBLIC_ROOT }
  * whose docs sit at the root (output `.`).
  */
 function buildWorkLists(config: DocsConfig) {
-	const vaults = config.projects.map((p) => ({ vault: p.source, output: p.id, ignore: p.ignore }))
+	const vaults = config.projects.map((p) => ({
+		vault: p.source,
+		output: p.id,
+		ignore: p.ignore,
+		copyFrontmatter: p.copyFrontmatter,
+	}))
 	const canvas = config.projects
 		.filter((p) => p.canvas)
 		.map((p) => ({ vault: p.source, output: p.id }))
 
 	if (config.general.enabled && config.general.source) {
 		// General docs live at the root: output '.' writes straight into content/.
-		vaults.push({ vault: config.general.source, output: '.', ignore: config.general.ignore })
+		vaults.push({
+			vault: config.general.source,
+			output: '.',
+			ignore: config.general.ignore,
+			copyFrontmatter: config.general.copyFrontmatter,
+		})
 		if (config.general.canvas) {
 			canvas.push({ vault: config.general.source, output: '.' })
 		}

@@ -26,6 +26,10 @@ export default defineConfig({
 		enabled: true,
 		source: './docs',
 		canvas: true, // ingest .canvas files from ./docs too (e.g. docs/welcome.canvas)
+		// Honor each file's `title:` frontmatter. Off by default (a page is titled
+		// by its filename, Obsidian-style); on here because these loose docs set a
+		// real title. Drop this to title pages by filename instead.
+		copyFrontmatter: true,
 	},
 
 	// Named projects (uncomment to use instead of / alongside `general`):
