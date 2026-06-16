@@ -85,6 +85,21 @@ function trimInline(nodes: AdfNode[]): AdfNode[] {
 	return nodes.filter((n) => n.type !== 'text' || String(n.text).length > 0)
 }
 
+/**
+ * Build a text node with ADF-legal marks. Marks are deduped by type, and —
+ * crucially — the `code` mark may only coexist with `link` in ADF, so when it's
+ * present we drop every other mark. Emitting e.g. code+strong (from `**`x`**`)
+ * makes Jira reject the whole document with INVALID_INPUT.
+ */
+function textNode(text: string, marks: Mark[]): AdfNode {
+	if (marks.length === 0) return { type: 'text', text }
+	const byType = new Map<string, Mark>()
+	for (const m of marks) byType.set(m.type, m)
+	let legal = [...byType.values()]
+	if (byType.has('code')) legal = legal.filter((m) => m.type === 'code' || m.type === 'link')
+	return legal.length ? { type: 'text', text, marks: legal } : { type: 'text', text }
+}
+
 /** Walk inline content, accumulating marks down the tree. */
 function inlineNodes(nodes: HNode[], marks: Mark[]): AdfNode[] {
 	const out: AdfNode[] = []
@@ -92,7 +107,7 @@ function inlineNodes(nodes: HNode[], marks: Mark[]): AdfNode[] {
 		if (node.type === 'text') {
 			// HTML collapses runs of whitespace; mirror that for prose text.
 			const text = (node.value ?? '').replace(/\s+/g, ' ')
-			if (text) out.push(marks.length ? { type: 'text', text, marks } : { type: 'text', text })
+			if (text) out.push(textNode(text, marks))
 			continue
 		}
 		if (node.type !== 'element' || !node.tagName) continue
@@ -105,7 +120,7 @@ function inlineNodes(nodes: HNode[], marks: Mark[]): AdfNode[] {
 			const src = node.properties?.src
 			if (typeof src === 'string' && src) {
 				const alt = typeof node.properties?.alt === 'string' && node.properties.alt ? node.properties.alt : src
-				out.push({ type: 'text', text: alt, marks: [...marks, { type: 'link', attrs: { href: src } }] })
+				out.push(textNode(alt, [...marks, { type: 'link', attrs: { href: src } }]))
 			}
 			continue
 		}
