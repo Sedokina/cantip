@@ -8,6 +8,7 @@ import { useT } from '~/lib/site-context'
 import { pageTitleFromMatches } from '~/lib/meta'
 import { useComponent, useOverride } from '~/lib/components'
 import PageFloatingMenu from '~/components/PageFloatingMenu'
+import PublishToJira from '~/components/PublishToJira'
 import CanvasMount from '~/components/CanvasMount'
 import { CodeWrapToggle } from '~/components/CodeWrapToggle'
 
@@ -122,6 +123,7 @@ function EngineDocPage() {
 						{priority && <PriorityBadge priority={priority} />}
 					</h1>
 					<FrontmatterTable frontmatter={doc.frontmatter} />
+					<PublishToJira pageId={doc.id} title={title} />
 					<div className="body" dangerouslySetInnerHTML={{ __html: doc.html }} />
 				</article>
 			</main>

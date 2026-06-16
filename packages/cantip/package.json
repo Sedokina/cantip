@@ -56,6 +56,10 @@
       "types": "./dist/types/app/routes/_index.d.ts",
       "default": "./app/routes/_index.tsx"
     },
+    "./routes/api.jira": {
+      "types": "./dist/types/app/routes/api.jira.d.ts",
+      "default": "./app/routes/api.jira.ts"
+    },
     "./entry.server": {
       "types": "./dist/types/app/entry.server.d.ts",
       "default": "./app/entry.server.tsx"
