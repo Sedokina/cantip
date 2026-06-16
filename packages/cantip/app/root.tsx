@@ -109,7 +109,11 @@ export function Layout() {
 					    sidebar column is dropped and content starts at the first column. */}
 					<div
 						className={cn(
-							'grid min-h-screen grid-cols-1 grid-rows-[auto_minmax(0,1fr)]',
+							// min-height fills the viewport so short pages don't leave a gap, but
+							// on desktop the in-flow TopBar (h-11 = 2.75rem) sits ABOVE this grid,
+							// so a full 100dvh here would overflow by exactly the bar — a small
+							// scroll on every page. Subtract the bar at md+ (it's hidden on mobile).
+							'grid min-h-[100dvh] grid-cols-1 grid-rows-[auto_minmax(0,1fr)] md:min-h-[calc(100dvh-2.75rem)]',
 							// No sidebar (e.g. `/`): a single full-width content column, no
 							// reserved TOC column — the page has no TOC, so leaving that column
 							// in place would push the centered content left of true center.

@@ -95,7 +95,7 @@ function EngineDocPage() {
 		// Canvas pages span the content + TOC columns (everything right of the sidebar).
 		return (
 			<>
-				<main className="min-w-0 xl:col-span-2">
+				<main className="canvas-main min-w-0 xl:col-span-2">
 					<article className="content">
 						<h1 className="title-row canvas-title px-10">
 							{title}

@@ -198,12 +198,37 @@ img {
 	word-break: break-word;
 }
 
-/* ---- Canvas pages ---- */
+/* ---- Canvas pages ----
+   The canvas page is fullscreen and never scrolls vertically: the <main> is
+   locked to exactly the height left below the sticky bars (`--scroll-offset`
+   already accounts for the TopBar + open TabBar), clips its overflow, and lays
+   its children out as a flex column. The title takes its intrinsic height and
+   the canvas flexes to fill whatever remains, so the diagram always fits the
+   page exactly. On mobile (no top bars) we instead carve out the fixed bottom
+   nav so the canvas isn't hidden behind it. */
+.canvas-main {
+	display: flex;
+	flex-direction: column;
+	height: calc(100dvh - var(--scroll-offset));
+	overflow: hidden;
+}
+@media (max-width: 47.99rem) {
+	.canvas-main {
+		height: calc(100dvh - var(--mobile-bar-height));
+	}
+}
+.canvas-main > .content,
+.canvas-main .body {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 0;
+}
 .canvas-container {
 	position: relative;
 	width: 100%;
-	height: calc(100vh - 4rem);
-	min-height: 480px;
+	flex: 1 1 auto;
+	min-height: 0;
 	overflow: hidden;
 	background: var(--background);
 }
