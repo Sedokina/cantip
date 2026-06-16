@@ -97,13 +97,10 @@ function EngineDocPage() {
 			<>
 				<main className="min-w-0 xl:col-span-2">
 					<article className="content">
-						<h1 className="title-row px-10">
+						<h1 className="title-row canvas-title px-10">
 							{title}
 							{priority && <PriorityBadge priority={priority} />}
 						</h1>
-						<div className="px-10">
-							<FrontmatterTable frontmatter={doc.frontmatter} />
-						</div>
 						<div className="body" dangerouslySetInnerHTML={{ __html: doc.html }} />
 					</article>
 				</main>

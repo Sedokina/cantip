@@ -25,6 +25,7 @@ export default defineConfig({
 	general: {
 		enabled: true,
 		source: './docs',
+		canvas: true, // ingest .canvas files from ./docs too (e.g. docs/welcome.canvas)
 	},
 
 	// Named projects (uncomment to use instead of / alongside `general`):

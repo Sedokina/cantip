@@ -32,8 +32,9 @@ const OUTPUT_ROOTS = { content: CONTENT_ROOT, public: PUBLIC_ROOT }
 
 /**
  * Derive the ingestion work-lists from the resolved config. Each project (and the
- * optional `general` bucket, when it has a `source`) becomes one vault; projects
- * flagged `canvas` additionally feed the canvas pass. `output` is the project id
+ * optional `general` bucket, when it has a `source`) becomes one vault; any source
+ * flagged `canvas` (a project or the general bucket) additionally feeds the canvas
+ * pass. `output` is the project id
  * — the first id segment of every doc it produces — except the general bucket,
  * whose docs sit at the root (output `.`).
  */
@@ -46,6 +47,9 @@ function buildWorkLists(config: DocsConfig) {
 	if (config.general.enabled && config.general.source) {
 		// General docs live at the root: output '.' writes straight into content/.
 		vaults.push({ vault: config.general.source, output: '.', ignore: config.general.ignore })
+		if (config.general.canvas) {
+			canvas.push({ vault: config.general.source, output: '.' })
+		}
 	}
 	return { vaults, canvas }
 }

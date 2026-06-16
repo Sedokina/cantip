@@ -1,0 +1,47 @@
+{
+	"nodes": [
+		{
+			"id": "title",
+			"type": "text",
+			"text": "# Canvas\n\nObsidian `.canvas` files render as an interactive, pan-and-zoom diagram.",
+			"x": -260,
+			"y": -180,
+			"width": 360,
+			"height": 140,
+			"color": "5"
+		},
+		{
+			"id": "write",
+			"type": "text",
+			"text": "**Write**\n\nDrop a `.canvas` file into a source folder.",
+			"x": -320,
+			"y": 80,
+			"width": 220,
+			"height": 110
+		},
+		{
+			"id": "build",
+			"type": "text",
+			"text": "**Build**\n\ncantip converts it to a mountable canvas page.",
+			"x": -40,
+			"y": 80,
+			"width": 220,
+			"height": 110,
+			"color": "4"
+		},
+		{
+			"id": "view",
+			"type": "text",
+			"text": "**View**\n\nPan, zoom, and follow the minimap in the browser.",
+			"x": 240,
+			"y": 80,
+			"width": 220,
+			"height": 110
+		}
+	],
+	"edges": [
+		{ "id": "e1", "fromNode": "title", "fromSide": "bottom", "toNode": "write", "toSide": "top" },
+		{ "id": "e2", "fromNode": "write", "fromSide": "right", "toNode": "build", "toSide": "left", "label": "generate" },
+		{ "id": "e3", "fromNode": "build", "fromSide": "right", "toNode": "view", "toSide": "left", "label": "serve" }
+	]
+}

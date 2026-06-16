@@ -49,6 +49,8 @@ export const generalSchema = z.object({
 	source: z.string().optional(),
 	logo: z.string().default('/projects/general.svg'),
 	description: z.string().default(''),
+	/** Ingest `.canvas` files from this source too. */
+	canvas: z.boolean().default(false),
 	ignore: z.array(z.string()).default([]),
 })
 
