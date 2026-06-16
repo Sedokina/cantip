@@ -72,15 +72,14 @@ function firstLine(text: string): string {
 }
 
 /**
- * A small Jira brand mark (Atlassian's trademark), used as the publish
- * affordance. lucide ships no brand logos, so it's an inline SVG. Replace the
- * paths with your exact brand asset if you have one.
+ * The Jira logo (Atlassian's trademark; path from the CC0 simple-icons set).
+ * lucide ships no brand logos, so it's inlined here as a single SVG rather than
+ * pulling in a whole icon package for one mark.
  */
 function JiraIcon({ className }: { className?: string }) {
 	return (
-		<svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-			<path fill="#2684FF" d="M12 2 2 12l10 10 10-10z" />
-			<path fill="#fff" fillOpacity="0.4" d="M12 7 7 12l5 5 5-5z" />
+		<svg viewBox="0 0 24 24" className={className} fill="#2684FF" aria-hidden="true">
+			<path d="M11.571 11.513H0a5.218 5.218 0 0 0 5.232 5.215h2.13v2.057A5.215 5.215 0 0 0 12.575 24V12.518a1.005 1.005 0 0 0-1.005-1.005zm5.723-5.756H5.736a5.215 5.215 0 0 0 5.215 5.214h2.129v2.058a5.218 5.218 0 0 0 5.215 5.214V6.758a1.001 1.001 0 0 0-1.001-1.001zM23.013 0H11.455a5.215 5.215 0 0 0 5.215 5.215h2.129v2.057A5.215 5.215 0 0 0 24 12.483V1.005A1.001 1.001 0 0 0 23.013 0Z" />
 		</svg>
 	)
 }
