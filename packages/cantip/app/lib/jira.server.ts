@@ -176,16 +176,31 @@ export interface JiraIssueType {
 	name: string
 }
 
+type RawIssueType = { id: string; name: string; subtask?: boolean }
+
+const keepCreatable = (types: RawIssueType[]): JiraIssueType[] =>
+	// Subtasks can't be created standalone (they need a parent), so they'd error.
+	types.filter((t) => !t.subtask).map((t) => ({ id: t.id, name: t.name }))
+
 /**
- * List the issue types creatable in a project. Subtasks are excluded — they
- * can't be created standalone (they need a parent), so they'd only error.
+ * List the issue types creatable in a project.
+ *
+ * Prefers the granular create-metadata endpoint, but some instances/permission
+ * setups return an empty list there, so we fall back to the (deprecated but
+ * widely available) classic createmeta with `expand=projects.issuetypes`.
  */
 export async function listIssueTypes(config: JiraConfig, projectKey: string): Promise<JiraIssueType[]> {
-	const path = `/rest/api/3/issue/createmeta/${encodeURIComponent(projectKey)}/issuetypes`
-	const res = (await jiraFetch(config, path, { method: 'GET' })) as {
-		values?: Array<{ id: string; name: string; subtask?: boolean }>
-	}
-	return (res.values ?? []).filter((t) => !t.subtask).map((t) => ({ id: t.id, name: t.name }))
+	const key = encodeURIComponent(projectKey)
+	const granular = (await jiraFetch(config, `/rest/api/3/issue/createmeta/${key}/issuetypes`, {
+		method: 'GET',
+	})) as { values?: RawIssueType[] }
+	const fromGranular = keepCreatable(granular.values ?? [])
+	if (fromGranular.length > 0) return fromGranular
+
+	const classic = (await jiraFetch(config, `/rest/api/3/issue/createmeta?projectKeys=${key}&expand=projects.issuetypes`, {
+		method: 'GET',
+	})) as { projects?: Array<{ issuetypes?: RawIssueType[] }> }
+	return keepCreatable(classic.projects?.[0]?.issuetypes ?? [])
 }
 
 /**

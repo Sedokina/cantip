@@ -192,13 +192,25 @@ function PublishDialog({
 		types.load(`/api/jira?resource=issuetypes&project=${encodeURIComponent(project)}`)
 	}, [project])
 
-	// Once types arrive, preselect the configured default (or the first).
+	// Issue-type load states — kept distinct so an empty result doesn't look
+	// like a perpetual "Loading…".
 	const typeList = types.data?.issueTypes ?? []
+	const typesLoaded = !!project && types.state === 'idle' && types.data != null
+	const typesPending = !!project && !typesLoaded
+	const typesEmpty = typesLoaded && typeList.length === 0
+
+	// Preselect the configured default (or the first). When the project returns
+	// no types at all, fall the field back to a free-text default so create still
+	// works (the user can type e.g. "Task").
 	useEffect(() => {
-		if (issueType || typeList.length === 0) return
-		const preferred = typeList.some((t) => t.name === defaults.issueType) ? defaults.issueType : null
-		setIssueType(preferred ?? typeList[0].name)
-	}, [typeList, issueType, defaults.issueType])
+		if (issueType) return
+		if (typeList.length > 0) {
+			const preferred = typeList.some((t) => t.name === defaults.issueType) ? defaults.issueType : null
+			setIssueType(preferred ?? typeList[0].name)
+		} else if (typesEmpty) {
+			setIssueType(defaults.issueType)
+		}
+	}, [typeList, typesEmpty, issueType, defaults.issueType])
 
 	const summaryOf = (key: string) => issues.data?.issues?.find((i) => i.key === key)?.summary
 
@@ -322,19 +334,34 @@ function PublishDialog({
 
 								<label className="block">
 									<span className="mb-1 block text-xs font-medium text-muted-foreground">Issue type</span>
-									<select
-										value={issueType}
-										onChange={(e) => setIssueType(e.target.value)}
-										disabled={typeList.length === 0}
-										className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
-									>
-										{typeList.length === 0 && <option value="">{project ? 'Loading…' : '—'}</option>}
-										{typeList.map((t) => (
-											<option key={t.id} value={t.name}>
-												{t.name}
-											</option>
-										))}
-									</select>
+									{typesEmpty ? (
+										<>
+											<input
+												type="text"
+												value={issueType}
+												onChange={(e) => setIssueType(e.target.value)}
+												placeholder={`e.g. ${defaults.issueType}`}
+												className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+											/>
+											<span className="mt-1 block text-xs text-muted-foreground">
+												Jira returned no types for this project — type one.
+											</span>
+										</>
+									) : (
+										<select
+											value={issueType}
+											onChange={(e) => setIssueType(e.target.value)}
+											disabled={typeList.length === 0}
+											className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+										>
+											{typeList.length === 0 && <option value="">{typesPending ? 'Loading…' : '—'}</option>}
+											{typeList.map((t) => (
+												<option key={t.id} value={t.name}>
+													{t.name}
+												</option>
+											))}
+										</select>
+									)}
 								</label>
 							</div>
 						</>
