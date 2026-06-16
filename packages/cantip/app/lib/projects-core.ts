@@ -34,7 +34,7 @@ export function generalProject(general: GeneratedSite['general']): Project {
 		id: GENERAL_PROJECT_ID,
 		name: general.name,
 		logo: general.logo,
-		landing: '/',
+		landing: general.landing,
 		description: general.description,
 	}
 }
@@ -83,6 +83,11 @@ export function findProject(projects: Project[], id: string): Project | undefine
 export function activeProjectId(projects: Project[], pathname: string): string | null {
 	const byId = indexById(projects)
 	const first = decodeURIComponent(pathname).split('/').filter(Boolean)[0] ?? ''
+	// Root path (`/`): the home picker, no active project.
+	if (!first) return null
+	// A named project owns the URLs prefixed with its id.
 	if (byId.has(first) && first !== GENERAL_PROJECT_ID) return first
-	return null
+	// Any other non-root path is a general (root-served) doc — its id carries no
+	// project prefix — so it activates the general bucket when that bucket exists.
+	return byId.has(GENERAL_PROJECT_ID) ? GENERAL_PROJECT_ID : null
 }

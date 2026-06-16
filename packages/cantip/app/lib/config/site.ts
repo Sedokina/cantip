@@ -48,6 +48,8 @@ export interface GeneratedSite {
 		name: string
 		logo: string
 		description: string
+		/** Where the general card / switcher navigates — its first doc, else `/`. */
+		landing: string
 	}
 	/** Theme color tokens, rendered into an inline `:root`/`.dark` style at runtime. */
 	theme: ThemeColors

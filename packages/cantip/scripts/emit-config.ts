@@ -69,7 +69,8 @@ export async function emitGeneratedConfig({ config, manifestDir, index, logger }
 		}
 	})
 
-	const generalHasDocs = config.general.enabled && firstGeneralDoc(index, projectIds) !== null
+	const firstGeneral = firstGeneralDoc(index, projectIds)
+	const generalHasDocs = config.general.enabled && firstGeneral !== null
 	const site: GeneratedSite = {
 		site: {
 			title: config.site.title,
@@ -86,6 +87,9 @@ export async function emitGeneratedConfig({ config, manifestDir, index, logger }
 			name: config.general.name,
 			logo: config.general.logo,
 			description: config.general.description,
+			// Land on the bucket's first doc (same default rule as named projects);
+			// `/` when it somehow has none, so the card is never a dead end.
+			landing: firstGeneral ? `/${firstGeneral}/` : '/',
 		},
 		// Theme tokens (defaults already merged with the user's overrides). Travels
 		// in site.json and is rendered into an inline :root/.dark <style> at runtime

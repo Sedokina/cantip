@@ -116,18 +116,30 @@ export function loader(options: LoaderOptions): LoaderOutput {
 
 	function getSidebar(projectId: string): FlatSidebarMap {
 		const rootMap = new Map<string, BuildNode>()
+		const prefix = projectId + '/'
+		// A "root-served" project (e.g. the general bucket) places its docs at the
+		// URL root, so their ids carry NO leading project segment. Detect that — if
+		// any matched page isn't prefixed with the project id — so we neither slice
+		// off a real segment nor synthesize a phantom project prefix in the _meta
+		// space. Named projects (every id prefixed) keep their original behavior.
+		let rootServed = false
 		for (const page of pages.values()) {
 			if (projectOf(page.id) !== projectId) continue
-			// Drop the leading project segment; remaining segments form the tree.
-			const segments = page.id.split('/').slice(1)
+			const hasPrefix = page.id === projectId || page.id.startsWith(prefix)
+			if (!hasPrefix) rootServed = true
+			// Named project: drop the leading project segment. Root-served: keep the
+			// full id — the segments ARE the tree path.
+			const segments = hasPrefix ? page.id.split('/').slice(1) : page.id.split('/')
 			if (segments.length === 0) continue
 			let current = rootMap
 			for (let i = 0; i < segments.length; i++) {
 				const seg = segments[i]!
 				const isLast = i === segments.length - 1
 				if (!current.has(seg)) {
-					// fullId carries the project prefix so it lines up with _meta paths.
-					const fullId = [projectId, ...segments.slice(0, i + 1)].filter(Boolean).join('/')
+					// fullId mirrors the real id space (prefixed only when ids carry it)
+					// so it lines up with _meta paths.
+					const sub = segments.slice(0, i + 1)
+					const fullId = (hasPrefix ? [projectId, ...sub] : sub).filter(Boolean).join('/')
 					current.set(seg, { slug: seg, fullId, label: prettify(seg), childMap: new Map() })
 				}
 				const node = current.get(seg)!
@@ -140,8 +152,10 @@ export function loader(options: LoaderOptions): LoaderOutput {
 			}
 		}
 		// The project root is itself a folder in the _meta space — its meta orders
-		// and labels the top-level children.
-		return flatten(mapToNodes(rootMap, projectId, lang, metas))
+		// and labels the top-level children. For a root-served bucket that folder is
+		// the content root, keyed by the empty id (see collect-meta `toFolderId`).
+		const rootMetaId = rootServed ? '' : projectId
+		return flatten(mapToNodes(rootMap, rootMetaId, lang, metas))
 	}
 
 	return {
