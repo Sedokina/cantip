@@ -71,6 +71,20 @@ function firstLine(text: string): string {
 	return line.slice(0, 120)
 }
 
+/**
+ * A small Jira brand mark (Atlassian's trademark), used as the publish
+ * affordance. lucide ships no brand logos, so it's an inline SVG. Replace the
+ * paths with your exact brand asset if you have one.
+ */
+function JiraIcon({ className }: { className?: string }) {
+	return (
+		<svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+			<path fill="#2684FF" d="M12 2 2 12l10 10 10-10z" />
+			<path fill="#fff" fillOpacity="0.4" d="M12 7 7 12l5 5 5-5z" />
+		</svg>
+	)
+}
+
 export default function PublishToJira({
 	pageId,
 	title,
@@ -143,9 +157,11 @@ function PageActions({ onPublish }: { onPublish: () => void }) {
 			<button
 				type="button"
 				onClick={onPublish}
-				className="hidden items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm font-medium hover:bg-muted md:inline-flex"
+				aria-label="Publish to Jira"
+				title="Publish to Jira"
+				className="hidden size-8 items-center justify-center rounded-md border bg-background hover:bg-muted md:inline-flex"
 			>
-				Publish to Jira
+				<JiraIcon className="size-5" />
 			</button>
 
 			{/* Mobile: collapsed ⋯ menu. */}
@@ -167,8 +183,9 @@ function PageActions({ onPublish }: { onPublish: () => void }) {
 								setMenuOpen(false)
 								onPublish()
 							}}
-							className="block w-full rounded px-2.5 py-1.5 text-left text-sm hover:bg-muted"
+							className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-sm hover:bg-muted"
 						>
+							<JiraIcon className="size-4" />
 							Publish to Jira
 						</button>
 					</div>
@@ -189,7 +206,7 @@ function SelectionToolbar({ active, onPublish }: { active: boolean; onPublish: (
 	const ref = useRef<HTMLDivElement>(null)
 	const captured = useRef<Selection | null>(null)
 	const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
-	const WIDTH = 150
+	const WIDTH = 44 // icon-only pill, for centering over the selection
 
 	useEffect(() => {
 		if (!active) {
@@ -245,14 +262,16 @@ function SelectionToolbar({ active, onPublish }: { active: boolean; onPublish: (
 		>
 			<button
 				type="button"
+				aria-label="Publish to Jira"
+				title="Publish to Jira"
 				onClick={() => {
 					const sel = captured.current
 					setPos(null)
 					if (sel) onPublish(sel)
 				}}
-				className="inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium hover:bg-muted"
+				className="inline-flex items-center justify-center rounded px-1.5 py-1 hover:bg-muted"
 			>
-				Publish to Jira
+				<JiraIcon className="size-5" />
 			</button>
 		</div>,
 		document.body,
