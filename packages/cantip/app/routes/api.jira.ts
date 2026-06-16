@@ -12,14 +12,44 @@
  * leave the server (see jira.server.ts). The browser talks only to this route.
  */
 import { json } from '@remix-run/node'
-import type { ActionFunctionArgs } from '@remix-run/node'
+import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node'
 
 import { getDoc } from '~/lib/content.server'
-import { createIssue, getJiraClientConfig, getJiraConfig, htmlToAdf, JiraError } from '~/lib/jira.server'
+import {
+	createIssue,
+	getJiraClientConfig,
+	getJiraConfig,
+	htmlToAdf,
+	JiraError,
+	listIssueTypes,
+	listProjects,
+} from '~/lib/jira.server'
 
-/** GET — the client reads this to know whether (and how) to offer publishing. */
-export function loader() {
-	return json(getJiraClientConfig())
+/**
+ * GET — three shapes, keyed by `?resource`:
+ *   (none)                        → enablement config (drives the button)
+ *   ?resource=projects            → projects the account can publish into
+ *   ?resource=issuetypes&project= → issue types creatable in that project
+ */
+export async function loader({ request }: LoaderFunctionArgs) {
+	const resource = new URL(request.url).searchParams.get('resource')
+	if (!resource) return json(getJiraClientConfig())
+
+	const config = getJiraConfig()
+	if (!config) return json({ error: 'Jira is not configured on this server' }, { status: 503 })
+
+	try {
+		if (resource === 'projects') return json({ projects: await listProjects(config) })
+		if (resource === 'issuetypes') {
+			const project = new URL(request.url).searchParams.get('project')
+			if (!project) return json({ error: 'Missing project' }, { status: 400 })
+			return json({ issueTypes: await listIssueTypes(config, project) })
+		}
+		return json({ error: `Unknown resource: ${resource}` }, { status: 400 })
+	} catch (err) {
+		if (err instanceof JiraError) return json({ error: err.message }, { status: err.status })
+		return json({ error: 'Failed to reach Jira' }, { status: 502 })
+	}
 }
 
 /** Shape of the POST body (Slice 1 supports `intent: 'create'` only). */

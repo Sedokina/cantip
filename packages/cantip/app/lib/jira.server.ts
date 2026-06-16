@@ -20,6 +20,11 @@
  * The feature is "enabled" iff the three required vars are present. When any is
  * missing every export degrades gracefully (config is null; the button hides).
  */
+import type { AdfDoc } from '~/lib/adf.server'
+
+// Re-export the HTML→ADF helpers so callers have one Jira entry point.
+export { htmlToAdf, textToAdf } from '~/lib/adf.server'
+export type { AdfDoc } from '~/lib/adf.server'
 
 /** Resolved, validated Jira connection config (null when not configured). */
 export interface JiraConfig {
@@ -70,70 +75,6 @@ export function getJiraClientConfig(): JiraClientConfig {
 function authHeader(config: JiraConfig): string {
 	const basic = Buffer.from(`${config.email}:${config.token}`).toString('base64')
 	return `Basic ${basic}`
-}
-
-// ── ADF (Atlassian Document Format) ────────────────────────────────────────
-// Jira Cloud stores descriptions as ADF, a JSON tree — not markdown or HTML.
-// A minimal ADF doc is `{ version: 1, type: 'doc', content: [...blocks] }`.
-
-/** A single ADF block node. */
-type AdfNode = Record<string, unknown>
-
-/** An ADF document root. */
-export interface AdfDoc {
-	version: 1
-	type: 'doc'
-	content: AdfNode[]
-}
-
-const HTML_ENTITIES: Record<string, string> = {
-	'&amp;': '&',
-	'&lt;': '<',
-	'&gt;': '>',
-	'&quot;': '"',
-	'&#39;': "'",
-	'&nbsp;': ' ',
-}
-
-/** Decode the handful of HTML entities the renderer emits. */
-function decodeEntities(text: string): string {
-	return text.replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (m) => HTML_ENTITIES[m] ?? m)
-}
-
-/** Build an ADF doc from already-split block strings (drops empties). */
-function adfFromBlocks(blocks: string[]): AdfDoc {
-	const content: AdfNode[] = blocks
-		.map((b) => decodeEntities(b.replace(/\s+/g, ' ').trim()))
-		.filter((text) => text.length > 0)
-		.map((text) => ({ type: 'paragraph', content: [{ type: 'text', text }] }))
-	// ADF rejects an empty doc; guarantee at least one (empty) paragraph.
-	if (content.length === 0) content.push({ type: 'paragraph', content: [] })
-	return { version: 1, type: 'doc', content }
-}
-
-/**
- * Convert rendered page HTML to a minimal ADF document.
- *
- * SLICE 1 (intentionally crude): at runtime we only have the page's
- * pre-rendered HTML (the source markdown is not in the build artifact). We turn
- * block-closing tags into paragraph breaks, strip the remaining tags, and emit
- * one paragraph per block — so ALL structure and inline formatting (headings,
- * bold, links, code, lists, tables) is flattened to plain-text paragraphs.
- * Rich, structure-preserving conversion (headings, lists, code blocks → real
- * ADF nodes) is a later slice; isolating it here means only this function
- * changes when we upgrade it.
- */
-export function htmlToAdf(html: string): AdfDoc {
-	const withBreaks = html
-		.replace(/<\/(p|div|li|blockquote|pre|tr|h[1-6]|ul|ol|table)>/gi, '$&\n\n')
-		.replace(/<br\s*\/?>/gi, '\n')
-	const stripped = withBreaks.replace(/<[^>]+>/g, '')
-	return adfFromBlocks(stripped.split(/\n{2,}/))
-}
-
-/** Wrap a plain string (e.g. a text selection) as an ADF doc, one para per line. */
-export function textToAdf(text: string): AdfDoc {
-	return adfFromBlocks(text.split(/\n{2,}/))
 }
 
 // ── REST calls ──────────────────────────────────────────────────────────────
@@ -213,4 +154,36 @@ export async function createIssue(
 	}
 	const result = (await jiraFetch(config, '/rest/api/3/issue', { method: 'POST', body })) as { key: string }
 	return { key: result.key, url: browseUrl(config, result.key) }
+}
+
+/** A project the user can publish into (for the dialog's project picker). */
+export interface JiraProject {
+	key: string
+	name: string
+}
+
+/** List the projects visible to the configured account (capped at 100). */
+export async function listProjects(config: JiraConfig): Promise<JiraProject[]> {
+	const res = (await jiraFetch(config, '/rest/api/3/project/search?maxResults=100&orderBy=key', {
+		method: 'GET',
+	})) as { values?: Array<{ key: string; name: string }> }
+	return (res.values ?? []).map((p) => ({ key: p.key, name: p.name }))
+}
+
+/** An issue type valid for a given project (for the dialog's type picker). */
+export interface JiraIssueType {
+	id: string
+	name: string
+}
+
+/**
+ * List the issue types creatable in a project. Subtasks are excluded — they
+ * can't be created standalone (they need a parent), so they'd only error.
+ */
+export async function listIssueTypes(config: JiraConfig, projectKey: string): Promise<JiraIssueType[]> {
+	const path = `/rest/api/3/issue/createmeta/${encodeURIComponent(projectKey)}/issuetypes`
+	const res = (await jiraFetch(config, path, { method: 'GET' })) as {
+		values?: Array<{ id: string; name: string; subtask?: boolean }>
+	}
+	return (res.values ?? []).filter((t) => !t.subtask).map((t) => ({ id: t.id, name: t.name }))
 }

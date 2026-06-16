@@ -113,6 +113,7 @@
   },
   "dependencies": {
     "@headless-tree/core": "^1.7.0",
+    "hast-util-from-html": "^2.0.3",
     "@headless-tree/react": "^1.7.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/vite": "^4.3.0",
