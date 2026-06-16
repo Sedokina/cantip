@@ -60,6 +60,18 @@
       "types": "./dist/types/app/routes/api.jira.d.ts",
       "default": "./app/routes/api.jira.ts"
     },
+    "./routes/jira.connect": {
+      "types": "./dist/types/app/routes/jira.connect.d.ts",
+      "default": "./app/routes/jira.connect.ts"
+    },
+    "./routes/jira.callback": {
+      "types": "./dist/types/app/routes/jira.callback.d.ts",
+      "default": "./app/routes/jira.callback.ts"
+    },
+    "./routes/jira.disconnect": {
+      "types": "./dist/types/app/routes/jira.disconnect.d.ts",
+      "default": "./app/routes/jira.disconnect.ts"
+    },
     "./entry.server": {
       "types": "./dist/types/app/entry.server.d.ts",
       "default": "./app/entry.server.tsx"

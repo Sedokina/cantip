@@ -5,23 +5,25 @@
  *
  *   export { loader, action } from 'cantip/routes/api.jira'
  *
- * GET  /api/jira  → non-secret config used to decide whether to show the button.
+ * GET  /api/jira  → status (is publishing available, is this browser connected).
  * POST /api/jira  → perform a publish action (JSON body, see PublishRequest).
  *
- * This is the ONE place cantip writes to an external service. Credentials never
- * leave the server (see jira.server.ts). The browser talks only to this route.
+ * Who the request publishes AS is resolved per-request by `getJiraAuth`: the
+ * browser's own OAuth identity if connected, else the shared env account. When
+ * a token refresh happens mid-request, the new session cookie rides back on the
+ * response via `auth.commit`.
  */
 import { json } from '@remix-run/node'
 import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node'
 
 import { getDoc } from '~/lib/content.server'
+import { getJiraAuth, getJiraStatus } from '~/lib/jira-auth.server'
 import {
 	addComment,
 	createIssue,
 	dropLeadingTitle,
 	getIssueSummaries,
-	getJiraClientConfig,
-	getJiraConfig,
+	getJiraDefaults,
 	htmlToAdf,
 	JiraError,
 	listIssueTypes,
@@ -29,46 +31,56 @@ import {
 	updateIssueDescription,
 } from '~/lib/jira.server'
 
+/** Set-Cookie header init for a refreshed/cleared session, if any. */
+function cookieInit(commit?: string): ResponseInit {
+	return commit ? { headers: { 'Set-Cookie': commit } } : {}
+}
+
 /**
  * GET — keyed by `?resource`:
- *   (none)                        → enablement config (drives the button)
- *   ?resource=projects            → projects the account can publish into
+ *   (none)                        → status (drives the button / connect prompt)
+ *   ?resource=projects            → projects the identity can publish into
  *   ?resource=issuetypes&project= → issue types creatable in that project
- *   ?resource=issues&keys=A-1,B-2 → summaries for the page's linked tickets
+ *   ?resource=issues&keys=A-1,B-2 → summary + status for the page's tickets
  */
 export async function loader({ request }: LoaderFunctionArgs) {
 	const url = new URL(request.url)
 	const resource = url.searchParams.get('resource')
-	if (!resource) return json(getJiraClientConfig())
 
-	const config = getJiraConfig()
-	if (!config) return json({ error: 'Jira is not configured on this server' }, { status: 503 })
+	if (!resource) {
+		const { commit, ...status } = await getJiraStatus(request)
+		return json({ ...status, ...getJiraDefaults() }, cookieInit(commit))
+	}
+
+	const auth = await getJiraAuth(request)
+	const init = cookieInit(auth.commit)
+	if (!auth.connection) return json({ error: 'Not connected to Jira' }, { ...init, status: 503 })
+	const conn = auth.connection
 
 	try {
-		if (resource === 'projects') return json({ projects: await listProjects(config) })
+		if (resource === 'projects') return json({ projects: await listProjects(conn) }, init)
 		if (resource === 'issuetypes') {
 			const project = url.searchParams.get('project')
-			if (!project) return json({ error: 'Missing project' }, { status: 400 })
-			return json({ issueTypes: await listIssueTypes(config, project) })
+			if (!project) return json({ error: 'Missing project' }, { ...init, status: 400 })
+			return json({ issueTypes: await listIssueTypes(conn, project) }, init)
 		}
 		if (resource === 'issues') {
 			const keys = (url.searchParams.get('keys') ?? '')
 				.split(',')
 				.map((k) => k.trim())
 				.filter(Boolean)
-			return json({ issues: keys.length ? await getIssueSummaries(config, keys) : [] })
+			return json({ issues: keys.length ? await getIssueSummaries(conn, keys) : [] }, init)
 		}
-		return json({ error: `Unknown resource: ${resource}` }, { status: 400 })
+		return json({ error: `Unknown resource: ${resource}` }, { ...init, status: 400 })
 	} catch (err) {
-		if (err instanceof JiraError) return json({ error: err.message }, { status: err.status })
-		return json({ error: 'Failed to reach Jira' }, { status: 502 })
+		if (err instanceof JiraError) return json({ error: err.message }, { ...init, status: err.status })
+		return json({ error: 'Failed to reach Jira' }, { ...init, status: 502 })
 	}
 }
 
 /** Shape of the POST body. `intent` selects create vs update. */
 interface PublishRequest {
 	intent?: string
-	/** The page id whose content seeds the issue, e.g. "krista/glossary/term". */
 	pageId?: string
 	/** create: optional summary override; defaults to the page title. */
 	summary?: string
@@ -80,27 +92,22 @@ interface PublishRequest {
 	issueKey?: string
 	/** update: replace the description, or add the content as a new comment. */
 	mode?: 'replace' | 'comment'
-	/**
-	 * When present, the issue body comes from this HTML fragment (a user's text
-	 * selection) instead of the whole page. Parsed into ADF server-side, so only
-	 * known block/inline nodes survive — arbitrary markup can't pass through.
-	 */
+	/** When present, the body comes from this HTML fragment (a text selection). */
 	selectionHtml?: string
 }
 
 /** Guard against a pathological selection payload (well above any real selection). */
 const MAX_SELECTION_CHARS = 200_000
 
-/** Uniform error envelope so the client can surface a message inline. */
-function fail(message: string, status: number) {
-	return json({ ok: false as const, error: message }, { status })
-}
-
 export async function action({ request }: ActionFunctionArgs) {
-	if (request.method !== 'POST') return fail('Method not allowed', 405)
+	if (request.method !== 'POST') return json({ ok: false as const, error: 'Method not allowed' }, { status: 405 })
 
-	const config = getJiraConfig()
-	if (!config) return fail('Jira is not configured on this server', 503)
+	const auth = await getJiraAuth(request)
+	const init = cookieInit(auth.commit)
+	const fail = (message: string, status: number) => json({ ok: false as const, error: message }, { ...init, status })
+
+	if (!auth.connection) return fail('Not connected to Jira', 503)
+	const conn = auth.connection
 
 	let body: PublishRequest
 	try {
@@ -113,8 +120,6 @@ export async function action({ request }: ActionFunctionArgs) {
 		return fail(`Unsupported intent: ${body.intent ?? '(none)'}`, 400)
 	}
 
-	// Both intents seed the issue body from the page — either the whole page or,
-	// when the client sends a `selectionHtml` fragment, just the selected text.
 	const pageId = body.pageId?.trim()
 	if (!pageId) return fail('Missing pageId', 400)
 	const doc = await getDoc(pageId)
@@ -128,16 +133,17 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	try {
 		if (body.intent === 'create') {
-			const projectKey = body.projectKey?.trim() || config.defaultProject
+			const defaults = getJiraDefaults()
+			const projectKey = body.projectKey?.trim() || defaults.defaultProject
 			if (!projectKey) return fail('No project key given and JIRA_DEFAULT_PROJECT is not set', 400)
-			const issueType = body.issueType?.trim() || config.defaultIssueType
+			const issueType = body.issueType?.trim() || defaults.defaultIssueType
 			const summary =
 				body.summary?.trim() ||
 				(doc.frontmatter.title as string | undefined)?.trim() ||
 				pageId.split('/').pop() ||
 				pageId
-			const issue = await createIssue(config, { projectKey, issueType, summary, description })
-			return json({ ok: true as const, ...issue })
+			const issue = await createIssue(conn, { projectKey, issueType, summary, description })
+			return json({ ok: true as const, ...issue }, init)
 		}
 
 		// intent === 'update'
@@ -145,9 +151,9 @@ export async function action({ request }: ActionFunctionArgs) {
 		if (!issueKey) return fail('Missing issueKey', 400)
 		const issue =
 			body.mode === 'comment'
-				? await addComment(config, issueKey, description)
-				: await updateIssueDescription(config, issueKey, description)
-		return json({ ok: true as const, ...issue })
+				? await addComment(conn, issueKey, description)
+				: await updateIssueDescription(conn, issueKey, description)
+		return json({ ok: true as const, ...issue }, init)
 	} catch (err) {
 		if (err instanceof JiraError) return fail(err.message, err.status >= 400 && err.status < 600 ? err.status : 502)
 		return fail(err instanceof Error ? err.message : 'Unknown error talking to Jira', 502)

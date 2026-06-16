@@ -3,22 +3,22 @@
  *
  * Cantip is a read-only, build-time engine: the running server only ever READS
  * generated content. Publishing to Jira is the one place it reaches OUT to a
- * live, authenticated, write-capable service — so it lives behind a resource
- * route (`routes/api.jira`) and never runs in the browser (credentials must stay
- * server-side, and Jira's REST API blocks browser CORS anyway).
+ * live, authenticated, write-capable service — so it lives behind resource
+ * routes and never runs in the browser (credentials must stay server-side, and
+ * Jira's REST API blocks browser CORS anyway).
  *
- * Configuration is ENV-ONLY (no `docs.config.ts` surface): a single shared Jira
- * service-account identity. There is no per-user auth — the cantip user is
- * irrelevant; identity matters only inside Jira.
+ * Two auth schemes are supported (see jira-auth.server.ts for the resolver):
+ *   • Per-user OAuth 2.0 (3LO) — each browser connects its own Jira identity;
+ *     REST goes through api.atlassian.com with a Bearer token.
+ *   • A shared env service account (Basic auth) — the fallback when a user
+ *     hasn't connected their own Jira (also handy for cron/automation).
  *
- *   JIRA_BASE_URL            https://your-org.atlassian.net   (required)
- *   JIRA_EMAIL               service-account@your-org.com     (required)
- *   JIRA_API_TOKEN           <Atlassian API token>            (required)
- *   JIRA_DEFAULT_PROJECT     PROJ                             (optional)
- *   JIRA_DEFAULT_ISSUE_TYPE  Task                             (optional, default "Task")
+ * This module is auth-agnostic: every REST call takes a `JiraConnection` that
+ * already carries the base URLs + Authorization header, so it doesn't care
+ * which scheme produced it.
  *
- * The feature is "enabled" iff the three required vars are present. When any is
- * missing every export degrades gracefully (config is null; the button hides).
+ * Shared-account env vars (all optional — feature degrades off when unset):
+ *   JIRA_BASE_URL  JIRA_EMAIL  JIRA_API_TOKEN  JIRA_DEFAULT_PROJECT  JIRA_DEFAULT_ISSUE_TYPE
  */
 import type { AdfDoc } from '~/lib/adf.server'
 
@@ -26,7 +26,7 @@ import type { AdfDoc } from '~/lib/adf.server'
 export { htmlToAdf, textToAdf, dropLeadingTitle } from '~/lib/adf.server'
 export type { AdfDoc } from '~/lib/adf.server'
 
-/** Resolved, validated Jira connection config (null when not configured). */
+/** Resolved shared-account env config (null when not fully configured). */
 export interface JiraConfig {
 	baseUrl: string
 	email: string
@@ -35,17 +35,10 @@ export interface JiraConfig {
 	defaultIssueType: string
 }
 
-/** Non-secret subset safe to send to the browser (drives the Publish button). */
-export interface JiraClientConfig {
-	enabled: boolean
-	defaultProject: string | null
-	defaultIssueType: string
-}
-
 /**
- * Read + validate Jira env config. Returns null unless all three required vars
- * are set, so callers can treat null as "feature off". A trailing slash on the
- * base URL is trimmed so REST paths concatenate safely.
+ * Read + validate the shared-account env config. Returns null unless all three
+ * credentials are set, so callers treat null as "no env fallback". A trailing
+ * slash on the base URL is trimmed so REST paths concatenate safely.
  */
 export function getJiraConfig(): JiraConfig | null {
 	const baseUrl = process.env.JIRA_BASE_URL?.trim().replace(/\/+$/, '')
@@ -61,20 +54,30 @@ export function getJiraConfig(): JiraConfig | null {
 	}
 }
 
-/** Project the env config down to the non-secret bits the client needs. */
-export function getJiraClientConfig(): JiraClientConfig {
-	const config = getJiraConfig()
+/** The publish defaults (project/issue-type) the dialog seeds from, from env. */
+export function getJiraDefaults(): { defaultProject: string | null; defaultIssueType: string } {
 	return {
-		enabled: config !== null,
-		defaultProject: config?.defaultProject ?? null,
-		defaultIssueType: config?.defaultIssueType ?? 'Task',
+		defaultProject: process.env.JIRA_DEFAULT_PROJECT?.trim() || null,
+		defaultIssueType: process.env.JIRA_DEFAULT_ISSUE_TYPE?.trim() || 'Task',
 	}
 }
 
-/** The Basic auth header value for Jira Cloud: base64("email:token"). */
-function authHeader(config: JiraConfig): string {
+/**
+ * Everything `jiraFetch` needs, independent of auth scheme. `apiBase` is where
+ * REST calls go; `siteUrl` is the human Jira site used for browse links — they
+ * differ under OAuth, where REST is proxied via api.atlassian.com while issues
+ * still live on the org's `*.atlassian.net` site.
+ */
+export interface JiraConnection {
+	apiBase: string
+	siteUrl: string
+	authHeader: string
+}
+
+/** Build a connection from the shared env account (Basic auth, same host for both). */
+export function connectionFromEnv(config: JiraConfig): JiraConnection {
 	const basic = Buffer.from(`${config.email}:${config.token}`).toString('base64')
-	return `Basic ${basic}`
+	return { apiBase: config.baseUrl, siteUrl: config.baseUrl, authHeader: `Basic ${basic}` }
 }
 
 // ── REST calls ──────────────────────────────────────────────────────────────
@@ -112,14 +115,14 @@ function jiraErrorMessage(status: number, body: unknown): string {
 
 /** REST helper: sets auth + JSON headers, parses Jira's errors uniformly. */
 async function jiraFetch(
-	config: JiraConfig,
+	conn: JiraConnection,
 	path: string,
 	init: { method: string; body?: unknown },
 ): Promise<unknown> {
-	const res = await fetch(`${config.baseUrl}${path}`, {
+	const res = await fetch(`${conn.apiBase}${path}`, {
 		method: init.method,
 		headers: {
-			Authorization: authHeader(config),
+			Authorization: conn.authHeader,
 			Accept: 'application/json',
 			'Content-Type': 'application/json',
 		},
@@ -132,8 +135,8 @@ async function jiraFetch(
 }
 
 /** Build the human-facing browse URL for an issue key. */
-function browseUrl(config: JiraConfig, key: string): string {
-	return `${config.baseUrl}/browse/${key}`
+function browseUrl(conn: JiraConnection, key: string): string {
+	return `${conn.siteUrl}/browse/${key}`
 }
 
 /**
@@ -141,7 +144,7 @@ function browseUrl(config: JiraConfig, key: string): string {
  * description is sent as ADF. Returns the new issue's key + browse URL.
  */
 export async function createIssue(
-	config: JiraConfig,
+	conn: JiraConnection,
 	input: { projectKey: string; issueType: string; summary: string; description: AdfDoc },
 ): Promise<JiraIssueRef> {
 	const body = {
@@ -152,8 +155,8 @@ export async function createIssue(
 			description: input.description,
 		},
 	}
-	const result = (await jiraFetch(config, '/rest/api/3/issue', { method: 'POST', body })) as { key: string }
-	return { key: result.key, url: browseUrl(config, result.key) }
+	const result = (await jiraFetch(conn, '/rest/api/3/issue', { method: 'POST', body })) as { key: string }
+	return { key: result.key, url: browseUrl(conn, result.key) }
 }
 
 /** A project the user can publish into (for the dialog's project picker). */
@@ -162,9 +165,9 @@ export interface JiraProject {
 	name: string
 }
 
-/** List the projects visible to the configured account (capped at 100). */
-export async function listProjects(config: JiraConfig): Promise<JiraProject[]> {
-	const res = (await jiraFetch(config, '/rest/api/3/project/search?maxResults=100&orderBy=key', {
+/** List the projects visible to the connected identity (capped at 100). */
+export async function listProjects(conn: JiraConnection): Promise<JiraProject[]> {
+	const res = (await jiraFetch(conn, '/rest/api/3/project/search?maxResults=100&orderBy=key', {
 		method: 'GET',
 	})) as { values?: Array<{ key: string; name: string }> }
 	return (res.values ?? []).map((p) => ({ key: p.key, name: p.name }))
@@ -189,15 +192,15 @@ const keepCreatable = (types: RawIssueType[]): JiraIssueType[] =>
  * setups return an empty list there, so we fall back to the (deprecated but
  * widely available) classic createmeta with `expand=projects.issuetypes`.
  */
-export async function listIssueTypes(config: JiraConfig, projectKey: string): Promise<JiraIssueType[]> {
+export async function listIssueTypes(conn: JiraConnection, projectKey: string): Promise<JiraIssueType[]> {
 	const key = encodeURIComponent(projectKey)
-	const granular = (await jiraFetch(config, `/rest/api/3/issue/createmeta/${key}/issuetypes`, {
+	const granular = (await jiraFetch(conn, `/rest/api/3/issue/createmeta/${key}/issuetypes`, {
 		method: 'GET',
 	})) as { values?: RawIssueType[] }
 	const fromGranular = keepCreatable(granular.values ?? [])
 	if (fromGranular.length > 0) return fromGranular
 
-	const classic = (await jiraFetch(config, `/rest/api/3/issue/createmeta?projectKeys=${key}&expand=projects.issuetypes`, {
+	const classic = (await jiraFetch(conn, `/rest/api/3/issue/createmeta?projectKeys=${key}&expand=projects.issuetypes`, {
 		method: 'GET',
 	})) as { projects?: Array<{ issuetypes?: RawIssueType[] }> }
 	return keepCreatable(classic.projects?.[0]?.issuetypes ?? [])
@@ -208,24 +211,24 @@ export async function listIssueTypes(config: JiraConfig, projectKey: string): Pr
  * 204 No Content on success. Returns the issue's key + browse URL.
  */
 export async function updateIssueDescription(
-	config: JiraConfig,
+	conn: JiraConnection,
 	key: string,
 	description: AdfDoc,
 ): Promise<JiraIssueRef> {
-	await jiraFetch(config, `/rest/api/3/issue/${encodeURIComponent(key)}`, {
+	await jiraFetch(conn, `/rest/api/3/issue/${encodeURIComponent(key)}`, {
 		method: 'PUT',
 		body: { fields: { description } },
 	})
-	return { key, url: browseUrl(config, key) }
+	return { key, url: browseUrl(conn, key) }
 }
 
 /** Add a comment (ADF body) to an existing issue. Returns its key + browse URL. */
-export async function addComment(config: JiraConfig, key: string, body: AdfDoc): Promise<JiraIssueRef> {
-	await jiraFetch(config, `/rest/api/3/issue/${encodeURIComponent(key)}/comment`, {
+export async function addComment(conn: JiraConnection, key: string, body: AdfDoc): Promise<JiraIssueRef> {
+	await jiraFetch(conn, `/rest/api/3/issue/${encodeURIComponent(key)}/comment`, {
 		method: 'POST',
 		body: { body },
 	})
-	return { key, url: browseUrl(config, key) }
+	return { key, url: browseUrl(conn, key) }
 }
 
 /** An issue's key, summary and status, for the "update existing" picker. */
@@ -243,15 +246,15 @@ export interface JiraIssueSummary {
 
 /**
  * Fetch summary + status for a set of issue keys (the page's linked tickets).
- * Keys that don't resolve — deleted, typo'd, or not visible to the account —
+ * Keys that don't resolve — deleted, typo'd, or not visible to the identity —
  * are silently dropped rather than failing the whole list. Order is preserved.
  */
-export async function getIssueSummaries(config: JiraConfig, keys: string[]): Promise<JiraIssueSummary[]> {
+export async function getIssueSummaries(conn: JiraConnection, keys: string[]): Promise<JiraIssueSummary[]> {
 	const found = new Map<string, JiraIssueSummary>()
 	await Promise.all(
 		keys.map(async (key) => {
 			try {
-				const res = (await jiraFetch(config, `/rest/api/3/issue/${encodeURIComponent(key)}?fields=summary,status`, {
+				const res = (await jiraFetch(conn, `/rest/api/3/issue/${encodeURIComponent(key)}?fields=summary,status`, {
 					method: 'GET',
 				})) as { fields?: { summary?: string; status?: { name?: string; statusCategory?: { key?: string } } } }
 				const status = res.fields?.status
