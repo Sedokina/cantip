@@ -187,3 +187,56 @@ export async function listIssueTypes(config: JiraConfig, projectKey: string): Pr
 	}
 	return (res.values ?? []).filter((t) => !t.subtask).map((t) => ({ id: t.id, name: t.name }))
 }
+
+/**
+ * Replace an existing issue's description with `description` (ADF). Jira returns
+ * 204 No Content on success. Returns the issue's key + browse URL.
+ */
+export async function updateIssueDescription(
+	config: JiraConfig,
+	key: string,
+	description: AdfDoc,
+): Promise<JiraIssueRef> {
+	await jiraFetch(config, `/rest/api/3/issue/${encodeURIComponent(key)}`, {
+		method: 'PUT',
+		body: { fields: { description } },
+	})
+	return { key, url: browseUrl(config, key) }
+}
+
+/** Add a comment (ADF body) to an existing issue. Returns its key + browse URL. */
+export async function addComment(config: JiraConfig, key: string, body: AdfDoc): Promise<JiraIssueRef> {
+	await jiraFetch(config, `/rest/api/3/issue/${encodeURIComponent(key)}/comment`, {
+		method: 'POST',
+		body: { body },
+	})
+	return { key, url: browseUrl(config, key) }
+}
+
+/** An issue's key + current summary, for the "update existing" picker. */
+export interface JiraIssueSummary {
+	key: string
+	summary: string
+}
+
+/**
+ * Fetch summaries for a set of issue keys (the page's linked tickets). Keys that
+ * don't resolve — deleted, typo'd, or not visible to the account — are silently
+ * dropped rather than failing the whole list. Input order is preserved.
+ */
+export async function getIssueSummaries(config: JiraConfig, keys: string[]): Promise<JiraIssueSummary[]> {
+	const found = new Map<string, string>()
+	await Promise.all(
+		keys.map(async (key) => {
+			try {
+				const res = (await jiraFetch(config, `/rest/api/3/issue/${encodeURIComponent(key)}?fields=summary`, {
+					method: 'GET',
+				})) as { fields?: { summary?: string } }
+				found.set(key, res.fields?.summary ?? key)
+			} catch {
+				// Skip unreachable keys.
+			}
+		}),
+	)
+	return keys.filter((k) => found.has(k)).map((k) => ({ key: k, summary: found.get(k)! }))
+}
