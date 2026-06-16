@@ -35,6 +35,8 @@ interface JiraIssueType {
 interface JiraIssueSummary {
 	key: string
 	summary: string
+	status: string
+	done: boolean
 }
 type PublishResult = { ok: true; key: string; url: string } | { ok: false; error: string }
 
@@ -212,7 +214,15 @@ function PublishDialog({
 		}
 	}, [typeList, typesEmpty, issueType, defaults.issueType])
 
-	const summaryOf = (key: string) => issues.data?.issues?.find((i) => i.key === key)?.summary
+	const issueOf = (key: string) => issues.data?.issues?.find((i) => i.key === key)
+
+	/** Dropdown label: "✓ KEY — summary · Status" (✓ when completed). */
+	const ticketLabel = (key: string) => {
+		const i = issueOf(key)
+		if (!i) return key
+		const tail = [i.summary, i.status].filter(Boolean).join(' · ')
+		return `${i.done ? '✓ ' : ''}${key}${tail ? ` — ${tail}` : ''}`
+	}
 
 	const result = publish.data
 	const submitting = publish.state !== 'idle'
@@ -374,16 +384,19 @@ function PublishDialog({
 									onChange={(e) => setIssueKey(e.target.value)}
 									className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
 								>
-									{linkedTickets.map((key) => {
-										const s = summaryOf(key)
-										return (
-											<option key={key} value={key}>
-												{s ? `${key} — ${s}` : key}
-											</option>
-										)
-									})}
+									{linkedTickets.map((key) => (
+										<option key={key} value={key}>
+											{ticketLabel(key)}
+										</option>
+									))}
 								</select>
 							</label>
+
+							{issueOf(issueKey)?.done && (
+								<p className="text-xs text-amber-700 dark:text-amber-500">
+									This ticket is completed ({issueOf(issueKey)?.status}) — updating it may be unexpected.
+								</p>
+							)}
 
 							<fieldset className="space-y-1.5">
 								<legend className="mb-1 text-xs font-medium text-muted-foreground">What to update</legend>

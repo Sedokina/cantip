@@ -228,30 +228,43 @@ export async function addComment(config: JiraConfig, key: string, body: AdfDoc):
 	return { key, url: browseUrl(config, key) }
 }
 
-/** An issue's key + current summary, for the "update existing" picker. */
+/** An issue's key, summary and status, for the "update existing" picker. */
 export interface JiraIssueSummary {
 	key: string
 	summary: string
+	/** The status name as shown in Jira, e.g. "To Do", "In Progress", "Done". */
+	status: string
+	/**
+	 * Whether the issue is in the "done" status CATEGORY — Jira's canonical
+	 * completion flag, independent of the (often customised) status name.
+	 */
+	done: boolean
 }
 
 /**
- * Fetch summaries for a set of issue keys (the page's linked tickets). Keys that
- * don't resolve — deleted, typo'd, or not visible to the account — are silently
- * dropped rather than failing the whole list. Input order is preserved.
+ * Fetch summary + status for a set of issue keys (the page's linked tickets).
+ * Keys that don't resolve — deleted, typo'd, or not visible to the account —
+ * are silently dropped rather than failing the whole list. Order is preserved.
  */
 export async function getIssueSummaries(config: JiraConfig, keys: string[]): Promise<JiraIssueSummary[]> {
-	const found = new Map<string, string>()
+	const found = new Map<string, JiraIssueSummary>()
 	await Promise.all(
 		keys.map(async (key) => {
 			try {
-				const res = (await jiraFetch(config, `/rest/api/3/issue/${encodeURIComponent(key)}?fields=summary`, {
+				const res = (await jiraFetch(config, `/rest/api/3/issue/${encodeURIComponent(key)}?fields=summary,status`, {
 					method: 'GET',
-				})) as { fields?: { summary?: string } }
-				found.set(key, res.fields?.summary ?? key)
+				})) as { fields?: { summary?: string; status?: { name?: string; statusCategory?: { key?: string } } } }
+				const status = res.fields?.status
+				found.set(key, {
+					key,
+					summary: res.fields?.summary ?? key,
+					status: status?.name ?? '',
+					done: status?.statusCategory?.key === 'done',
+				})
 			} catch {
 				// Skip unreachable keys.
 			}
 		}),
 	)
-	return keys.filter((k) => found.has(k)).map((k) => ({ key: k, summary: found.get(k)! }))
+	return keys.filter((k) => found.has(k)).map((k) => found.get(k)!)
 }
