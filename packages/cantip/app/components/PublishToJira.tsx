@@ -5,18 +5,18 @@ import { X } from 'lucide-react'
 /**
  * "Publish to Jira" button + dialog shown on a doc page.
  *
- * SLICE 3: from the whole page, either
- *   • Create a NEW issue — editable summary (default page title) + live project
- *     and issue-type pickers (defaults from the server env config), or
+ * SLICE 4: publish from the WHOLE PAGE or just the CURRENT SELECTION, and either
+ *   • Create a NEW issue — editable summary + live project/issue-type pickers
+ *     (defaults from the server env config), or
  *   • Update an EXISTING linked ticket — pick one of the page's `jira:`
- *     frontmatter tickets and either replace its description or add a comment.
- * The page content becomes the description/comment, converted to rich ADF
- * server-side (see adf.server.ts).
+ *     frontmatter tickets and replace its description or add a comment.
+ * The chosen content becomes the issue body, converted to rich ADF server-side
+ * (see adf.server.ts). When the reader has text selected in the article, the
+ * dialog offers that selection as the source (and seeds the summary from it).
  *
  * Self-contained: on mount it GETs `/api/jira` to learn whether publishing is
  * configured, and renders NOTHING when it isn't. All Jira calls go through the
- * `/api/jira` route so credentials never reach the browser. Selection-based
- * publishing arrives in a later slice.
+ * `/api/jira` route so credentials never reach the browser.
  */
 
 interface JiraClientConfig {
@@ -38,6 +38,36 @@ interface JiraIssueSummary {
 }
 type PublishResult = { ok: true; key: string; url: string } | { ok: false; error: string }
 
+/** A captured text selection from the article body. */
+interface Selection {
+	html: string
+	text: string
+}
+
+/**
+ * Read the current text selection if it lies within the article body, returning
+ * its HTML (for conversion) and plain text (for the char count + summary seed).
+ * Called on the button's mousedown — BEFORE the click can collapse the range.
+ */
+function captureSelection(): Selection | null {
+	const sel = window.getSelection()
+	if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null
+	const range = sel.getRangeAt(0)
+	const body = document.querySelector('article.content .body')
+	if (!body || !body.contains(range.commonAncestorContainer)) return null
+	const holder = document.createElement('div')
+	holder.appendChild(range.cloneContents())
+	const html = holder.innerHTML.trim()
+	const text = sel.toString().trim()
+	return html && text ? { html, text } : null
+}
+
+/** First non-empty line of a selection, for seeding the create summary. */
+function firstLine(text: string): string {
+	const line = text.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? text
+	return line.slice(0, 120)
+}
+
 export default function PublishToJira({
 	pageId,
 	title,
@@ -49,6 +79,7 @@ export default function PublishToJira({
 }) {
 	const config = useFetcher<JiraClientConfig>()
 	const [open, setOpen] = useState(false)
+	const [selection, setSelection] = useState<Selection | null>(null)
 
 	// Load enablement config once; the condition is false again once data is set.
 	useEffect(() => {
@@ -61,6 +92,9 @@ export default function PublishToJira({
 		<div className="my-4">
 			<button
 				type="button"
+				// Capture on mousedown: the click that opens the dialog would otherwise
+				// collapse the selection before we can read it.
+				onMouseDown={() => setSelection(captureSelection())}
 				onClick={() => setOpen(true)}
 				className="inline-flex items-center gap-2 rounded-md border bg-background px-3 py-1.5 text-sm font-medium hover:bg-muted"
 			>
@@ -71,6 +105,7 @@ export default function PublishToJira({
 					pageId={pageId}
 					title={title}
 					linkedTickets={linkedTickets}
+					selection={selection}
 					defaults={{ project: config.data.defaultProject, issueType: config.data.defaultIssueType }}
 					onClose={() => setOpen(false)}
 				/>
@@ -83,12 +118,14 @@ function PublishDialog({
 	pageId,
 	title,
 	linkedTickets,
+	selection,
 	defaults,
 	onClose,
 }: {
 	pageId: string
 	title: string
 	linkedTickets: string[]
+	selection: Selection | null
 	defaults: { project: string | null; issueType: string }
 	onClose: () => void
 }) {
@@ -99,9 +136,14 @@ function PublishDialog({
 
 	const hasLinks = linkedTickets.length > 0
 	const [intent, setIntent] = useState<'create' | 'update'>('create')
+	// Default to the selection when there is one — that's the deliberate act.
+	const [source, setSource] = useState<'page' | 'selection'>(selection ? 'selection' : 'page')
 
 	// create fields
-	const [summary, setSummary] = useState(title)
+	const defaultSummary = (src: 'page' | 'selection') =>
+		src === 'selection' && selection ? firstLine(selection.text) : title
+	const [summary, setSummary] = useState(() => defaultSummary(selection ? 'selection' : 'page'))
+	const [summaryEdited, setSummaryEdited] = useState(false)
 	const [project, setProject] = useState('')
 	const [issueType, setIssueType] = useState('')
 
@@ -129,6 +171,11 @@ function PublishDialog({
 			issues.load(`/api/jira?resource=issues&keys=${encodeURIComponent(linkedTickets.join(','))}`)
 		}
 	}, [issues.state, issues.data, hasLinks])
+
+	// Re-seed the summary from the source unless the user has edited it.
+	useEffect(() => {
+		if (!summaryEdited) setSummary(defaultSummary(source))
+	}, [source])
 
 	// Once projects arrive, preselect the configured default (or the first).
 	const projectList = projects.data?.projects ?? []
@@ -167,6 +214,7 @@ function PublishDialog({
 			intent === 'create'
 				? { intent: 'create', pageId, summary, projectKey: project, issueType }
 				: { intent: 'update', pageId, issueKey, mode: updateMode }
+		if (source === 'selection' && selection) payload.selectionHtml = selection.html
 		publish.submit(payload, { method: 'POST', action: '/api/jira', encType: 'application/json' })
 	}
 
@@ -195,21 +243,46 @@ function PublishDialog({
 				</div>
 
 				<div className="space-y-3 px-4 py-3">
+					{/* Source toggle — only when the reader had text selected. */}
+					{selection && (
+						<div>
+							<span className="mb-1 block text-xs font-medium text-muted-foreground">Content</span>
+							<div className="inline-flex rounded-md border p-0.5 text-sm">
+								{(
+									[
+										['page', 'Whole page'],
+										['selection', `Selection (${selection.text.length} chars)`],
+									] as const
+								).map(([value, label]) => (
+									<button
+										key={value}
+										type="button"
+										onClick={() => setSource(value)}
+										className={'rounded px-3 py-1 ' + (source === value ? 'bg-muted font-medium' : 'text-muted-foreground')}
+									>
+										{label}
+									</button>
+								))}
+							</div>
+						</div>
+					)}
+
 					{/* Create / Update mode toggle — only when the page has linked tickets. */}
 					{hasLinks && (
-						<div className="inline-flex rounded-md border p-0.5 text-sm">
-							{(['create', 'update'] as const).map((m) => (
-								<button
-									key={m}
-									type="button"
-									onClick={() => setIntent(m)}
-									className={
-										'rounded px-3 py-1 ' + (intent === m ? 'bg-muted font-medium' : 'text-muted-foreground')
-									}
-								>
-									{m === 'create' ? 'Create new' : 'Update existing'}
-								</button>
-							))}
+						<div>
+							<span className="mb-1 block text-xs font-medium text-muted-foreground">Action</span>
+							<div className="inline-flex rounded-md border p-0.5 text-sm">
+								{(['create', 'update'] as const).map((m) => (
+									<button
+										key={m}
+										type="button"
+										onClick={() => setIntent(m)}
+										className={'rounded px-3 py-1 ' + (intent === m ? 'bg-muted font-medium' : 'text-muted-foreground')}
+									>
+										{m === 'create' ? 'Create new' : 'Update existing'}
+									</button>
+								))}
+							</div>
 						</div>
 					)}
 
@@ -220,7 +293,10 @@ function PublishDialog({
 								<input
 									type="text"
 									value={summary}
-									onChange={(e) => setSummary(e.target.value)}
+									onChange={(e) => {
+										setSummary(e.target.value)
+										setSummaryEdited(true)
+									}}
 									maxLength={255}
 									className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
 								/>

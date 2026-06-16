@@ -79,7 +79,16 @@ interface PublishRequest {
 	issueKey?: string
 	/** update: replace the description, or add the content as a new comment. */
 	mode?: 'replace' | 'comment'
+	/**
+	 * When present, the issue body comes from this HTML fragment (a user's text
+	 * selection) instead of the whole page. Parsed into ADF server-side, so only
+	 * known block/inline nodes survive — arbitrary markup can't pass through.
+	 */
+	selectionHtml?: string
 }
+
+/** Guard against a pathological selection payload (well above any real selection). */
+const MAX_SELECTION_CHARS = 200_000
 
 /** Uniform error envelope so the client can surface a message inline. */
 function fail(message: string, status: number) {
@@ -103,13 +112,16 @@ export async function action({ request }: ActionFunctionArgs) {
 		return fail(`Unsupported intent: ${body.intent ?? '(none)'}`, 400)
 	}
 
-	// Both intents seed the issue from the page's content (Slice 3); selection-
-	// based sourcing arrives in a later slice.
+	// Both intents seed the issue body from the page — either the whole page or,
+	// when the client sends a `selectionHtml` fragment, just the selected text.
 	const pageId = body.pageId?.trim()
 	if (!pageId) return fail('Missing pageId', 400)
 	const doc = await getDoc(pageId)
 	if (!doc) return fail(`No such page: ${pageId}`, 404)
-	const description = htmlToAdf(doc.html)
+
+	const selection = body.selectionHtml?.trim()
+	if (selection && selection.length > MAX_SELECTION_CHARS) return fail('Selection is too large', 413)
+	const description = htmlToAdf(selection || doc.html)
 
 	try {
 		if (body.intent === 'create') {
