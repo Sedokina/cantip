@@ -7,7 +7,7 @@ import { getPriority } from '~/lib/utils'
 import { useT } from '~/lib/site-context'
 import { pageTitleFromMatches } from '~/lib/meta'
 import { useComponent, useOverride } from '~/lib/components'
-import { parseLinkedTickets } from '~/lib/jira-links'
+import { collectLinkedTickets } from '~/lib/jira-links'
 import PageFloatingMenu from '~/components/PageFloatingMenu'
 import PublishToJira from '~/components/PublishToJira'
 import CanvasMount from '~/components/CanvasMount'
@@ -124,7 +124,7 @@ function EngineDocPage() {
 						{priority && <PriorityBadge priority={priority} />}
 					</h1>
 					<FrontmatterTable frontmatter={doc.frontmatter} />
-					<PublishToJira pageId={doc.id} title={title} linkedTickets={parseLinkedTickets(doc.frontmatter)} />
+					<PublishToJira pageId={doc.id} title={title} linkedTickets={collectLinkedTickets(doc.frontmatter, doc.html)} />
 					<div className="body" dangerouslySetInnerHTML={{ __html: doc.html }} />
 				</article>
 			</main>
