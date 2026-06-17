@@ -179,7 +179,7 @@ function PageActions({ onPublish }: { onPublish: () => void }) {
 				onClick={onPublish}
 				aria-label={t('publishToJira')}
 				title={t('publishToJira')}
-				className="hidden size-8 items-center justify-center rounded-md border bg-background hover:bg-muted md:inline-flex"
+				className="hidden size-8 items-center justify-center rounded-md border bg-background text-muted-foreground hover:bg-muted hover:text-foreground md:inline-flex"
 			>
 				<JiraIcon className="size-4" />
 			</button>

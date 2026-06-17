@@ -16,6 +16,12 @@ export default defineConfig({
 		// Drives sort order + search tokenisation. e.g. 'en', 'ru', 'de'.
 		lang: 'en',
 		defaultTheme: 'dark', // 'dark' | 'light'
+		// "Edit this page" button → opens the doc's source in your repo's web editor.
+		// `{path}` is the file path relative to a source dir (here ./docs), so the
+		// repo path is examples/starter/docs/{path}. Swap in your own repo; per-project
+		// `editUrl` (and `general.editUrl`) override this site-wide default.
+		//   Bitbucket: 'https://bitbucket.org/WORKSPACE/REPO/src/main/{path}?mode=edit'
+		editUrl: 'https://github.com/Sedokina/cantip/edit/main/examples/starter/docs/{path}',
 	},
 
 	// The no-project bucket: loose markdown in ./docs, served at the root

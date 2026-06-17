@@ -99,6 +99,34 @@ export default defineConfig({
 - **Branding** — title, description, logos, favicon, language, default theme.
 - **Theme** — `theme.colors` OKLCH tokens, no CSS edits.
 
+## Edit this page
+
+Add an **"Edit this page"** button (in the doc's title row) that opens the source
+file in your repo's web editor. Set an `editUrl` template; `{path}` is replaced
+with the file's path relative to its source dir, including the extension:
+
+```ts
+export default defineConfig({
+  // Site-wide default (handy for a single repo):
+  site: { editUrl: 'https://bitbucket.org/WORKSPACE/REPO/src/main/{path}?mode=edit' },
+  // Per-project override (each project = one repo):
+  projects: [
+    { id: 'guide', name: 'Guide', source: './content/guide',
+      editUrl: 'https://github.com/ORG/REPO/edit/main/docs/{path}' },
+  ],
+  // general: { enabled: true, source: './docs', editUrl: '…/{path}…' },
+})
+```
+
+- **Provider-agnostic** — it's just a URL template, so it works with any host:
+  - Bitbucket Cloud: `https://bitbucket.org/WS/REPO/src/main/{path}?mode=edit` (`?mode=edit` opens straight in edit mode)
+  - GitHub: `https://github.com/ORG/REPO/edit/main/{path}`
+  - GitLab / Bitbucket Server: build the same `{path}` link your host uses.
+- **Repo subdirectory** — if `source` points at a subfolder of the repo (e.g.
+  the repo's `docs/`), bake that prefix into the template before `{path}`.
+- A project (or the `general` bucket) with no `editUrl` and no `site.editUrl`
+  shows no button. Path segments are URL-encoded, so spaces/non-ASCII names work.
+
 ## Order the sidebar
 
 By default a folder's children sort alphabetically. Drop a `_meta.yaml` (or

@@ -46,6 +46,15 @@ export const projectSchema = z.object({
 	copyFrontmatter: z.boolean().default(false),
 	/** Globs (relative to `source`) to skip, e.g. `['CLAUDE.md']`. */
 	ignore: z.array(z.string()).default([]),
+	/**
+	 * "Edit this page" URL template for this project's repo. `{path}` is replaced
+	 * with the doc's source file path relative to `source` (incl. extension),
+	 * e.g. `https://bitbucket.org/acme/docs/src/main/{path}?mode=edit` (Bitbucket
+	 * Cloud opens straight in edit mode) or `https://github.com/acme/docs/edit/main/{path}`.
+	 * Bake any repo subdirectory into the template before `{path}`. Overrides
+	 * `site.editUrl`; unset on both means no button.
+	 */
+	editUrl: z.string().optional(),
 })
 
 /** The "no project" bucket: docs not under any named project, served at root. */
@@ -61,6 +70,8 @@ export const generalSchema = z.object({
 	/** Keep authored frontmatter (incl. `title`) instead of titling by filename. */
 	copyFrontmatter: z.boolean().default(false),
 	ignore: z.array(z.string()).default([]),
+	/** "Edit this page" URL template for the general bucket's repo (see `projectSchema.editUrl`). */
+	editUrl: z.string().optional(),
 })
 
 export const siteSchema = z.object({
@@ -77,6 +88,12 @@ export const siteSchema = z.object({
 		})
 		.prefault({}),
 	defaultTheme: z.enum(['dark', 'light']).default('dark'),
+	/**
+	 * Site-wide default "Edit this page" URL template, used by any project (and the
+	 * general bucket) that doesn't set its own `editUrl`. Handy for a single-repo
+	 * docs site. See `projectSchema.editUrl` for the `{path}` placeholder semantics.
+	 */
+	editUrl: z.string().optional(),
 })
 
 export const themeSchema = z.object({

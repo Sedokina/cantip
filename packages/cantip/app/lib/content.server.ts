@@ -36,6 +36,8 @@ export interface Doc {
 	frontmatter: Record<string, unknown>
 	headings: import('cantip/source').Heading[]
 	html: string
+	/** Source-relative file path (incl. extension) for "edit this page" links; may be absent. */
+	sourcePath?: string
 }
 
 // Build the loader once per process (reading content.json on first use). Project
@@ -82,7 +84,13 @@ export async function getDoc(id: string): Promise<Doc | null> {
 	if (!safe) return null
 	const page = L().getPage(safe)
 	if (!page) return null
-	return { id: page.id, frontmatter: page.data.frontmatter, headings: page.data.headings, html: page.data.html }
+	return {
+		id: page.id,
+		frontmatter: page.data.frontmatter,
+		headings: page.data.headings,
+		html: page.data.html,
+		sourcePath: page.data.sourcePath,
+	}
 }
 
 /**

@@ -7,6 +7,27 @@ import { json, redirect } from '@remix-run/node'
 import type { LoaderFunctionArgs } from '@remix-run/node'
 
 import { getDoc, resolvePermalink, getPermalinkForId } from '~/lib/content.server'
+import { getSiteData, getProjectIdForDoc } from '~/lib/site.server'
+import { GENERAL_PROJECT_ID } from '~/lib/projects-core'
+
+/**
+ * Build the "edit this page" URL for a doc from its project's `editUrl` template
+ * (`site.json`), or null when no template is configured / the source path is
+ * unknown. `{path}` is filled with the source-relative file path, each segment
+ * percent-encoded so spaces/Cyrillic produce a valid URL (the repo decodes them).
+ */
+function editUrlFor(docId: string, sourcePath: string | undefined): string | null {
+	if (!sourcePath) return null
+	const projectId = getProjectIdForDoc(docId)
+	const site = getSiteData()
+	const template =
+		projectId === GENERAL_PROJECT_ID
+			? site.general.editUrl
+			: site.projects.find((p) => p.id === projectId)?.editUrl
+	if (!template) return null
+	const encoded = sourcePath.split('/').map(encodeURIComponent).join('/')
+	return template.replace('{path}', encoded)
+}
 
 export const loader = async ({ params }: LoaderFunctionArgs) => {
 	// The splat param holds the full doc path, e.g. "krista/глоссарий/коллекция".
@@ -33,5 +54,5 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 		(doc.frontmatter.title as string | undefined) ??
 		slug.split('/').pop()?.replace(/-/g, ' ') ??
 		slug
-	return json({ doc, title })
+	return json({ doc, title, editUrl: editUrlFor(docId, doc.sourcePath) })
 }

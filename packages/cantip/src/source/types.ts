@@ -30,6 +30,12 @@ export interface PageData {
 	html: string
 	/** True when the page is a rendered Obsidian canvas (no prose to index). */
 	isCanvas: boolean
+	/**
+	 * Source file path relative to the project's `source` dir, incl. extension
+	 * (e.g. `глоссарий/Коллекция.md`). Used to build "edit this page" links against
+	 * a project's `editUrl` template. Optional — Sources from other backends may omit it.
+	 */
+	sourcePath?: string
 }
 
 /** A single page in a Source. */

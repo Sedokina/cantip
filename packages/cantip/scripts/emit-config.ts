@@ -66,6 +66,9 @@ export async function emitGeneratedConfig({ config, manifestDir, index, logger }
 			logo: p.logo ?? `/projects/${p.id}.svg`,
 			landing,
 			description: p.description,
+			// Per-project template wins; fall back to the site-wide default. Undefined
+			// (neither set) is omitted from the JSON, so no "Edit this page" button.
+			...(p.editUrl ?? config.site.editUrl ? { editUrl: p.editUrl ?? config.site.editUrl } : {}),
 		}
 	})
 
@@ -90,6 +93,9 @@ export async function emitGeneratedConfig({ config, manifestDir, index, logger }
 			// Land on the bucket's first doc (same default rule as named projects);
 			// `/` when it somehow has none, so the card is never a dead end.
 			landing: firstGeneral ? `/${firstGeneral}/` : '/',
+			...(config.general.editUrl ?? config.site.editUrl
+				? { editUrl: config.general.editUrl ?? config.site.editUrl }
+				: {}),
 		},
 		// Theme tokens (defaults already merged with the user's overrides). Travels
 		// in site.json and is rendered into an inline :root/.dark <style> at runtime

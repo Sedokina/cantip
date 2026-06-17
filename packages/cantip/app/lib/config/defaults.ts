@@ -148,6 +148,7 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		scShiftEnter: 'Файл — открыть в новой вкладке; папку — развернуть рекурсивно',
 		// Misc chrome (Toc, mobile menus, code-wrap, find-on-page, tabs)
 		noToc: 'Нет содержания',
+		editThisPage: 'Редактировать страницу',
 		theme: 'Тема оформления',
 		wrapLines: 'Переносить строки',
 		noWrapLines: 'Не переносить строки',
@@ -263,6 +264,7 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		scCloseTab: 'Close current tab',
 		scShiftEnter: 'File — open in a new tab; folder — expand recursively',
 		noToc: 'No table of contents',
+		editThisPage: 'Edit this page',
 		theme: 'Theme',
 		wrapLines: 'Wrap lines',
 		noWrapLines: 'Don’t wrap lines',

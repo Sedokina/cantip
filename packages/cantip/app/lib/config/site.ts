@@ -23,6 +23,8 @@ export interface SiteProject {
 	/** Landing URL; resolved to the project's first doc at generate time when unset. */
 	landing: string
 	description: string
+	/** "Edit this page" URL template (`{path}` → source-relative file path), or omitted. */
+	editUrl?: string
 }
 
 /** Resolved theme color token maps (CSS custom-property name → value). */
@@ -50,6 +52,8 @@ export interface GeneratedSite {
 		description: string
 		/** Where the general card / switcher navigates — its first doc, else `/`. */
 		landing: string
+		/** "Edit this page" URL template (`{path}` → source-relative file path), or omitted. */
+		editUrl?: string
 	}
 	/** Theme color tokens, rendered into an inline `:root`/`.dark` style at runtime. */
 	theme: ThemeColors

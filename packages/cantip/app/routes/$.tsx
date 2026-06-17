@@ -10,6 +10,7 @@ import { useComponent, useOverride } from '~/lib/components'
 import { collectLinkedTickets } from '~/lib/jira-links'
 import PageFloatingMenu from '~/components/PageFloatingMenu'
 import PublishToJira from '~/components/PublishToJira'
+import EditSource from '~/components/EditSource'
 import CanvasMount from '~/components/CanvasMount'
 import { CodeWrapToggle } from '~/components/CodeWrapToggle'
 
@@ -71,7 +72,7 @@ export default function DocPageRoute() {
 
 function EngineDocPage() {
 	const Toc = useComponent('Toc')
-	const { doc, title } = useLoaderData<typeof loader>()
+	const { doc, title, editUrl } = useLoaderData<typeof loader>()
 	const showToc = doc.frontmatter.tableOfContents !== false
 	const isCanvas = doc.html.includes('canvas-container')
 	const priority = getPriority(doc.frontmatter.tags)
@@ -124,11 +125,14 @@ function EngineDocPage() {
 							{title}
 							{priority && <PriorityBadge priority={priority} />}
 						</h1>
-						<PublishToJira
-							pageId={doc.id}
-							title={title}
-							linkedTickets={collectLinkedTickets(doc.frontmatter, doc.html)}
-						/>
+						<div className="flex shrink-0 items-center gap-2">
+							<EditSource url={editUrl} />
+							<PublishToJira
+								pageId={doc.id}
+								title={title}
+								linkedTickets={collectLinkedTickets(doc.frontmatter, doc.html)}
+							/>
+						</div>
 					</div>
 					<FrontmatterTable frontmatter={doc.frontmatter} />
 					<div className="body" dangerouslySetInnerHTML={{ __html: doc.html }} />

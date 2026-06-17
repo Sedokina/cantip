@@ -254,20 +254,34 @@ async function main() {
 	// Build the VirtualFile[] (pages sorted for stable order, metas appended) +
 	// serialize to a module. Page order here is just a stable default; `loader()`
 	// applies the real (meta-aware) ordering when it builds the sidebar.
+	// Named-project ids — used to decide whether a doc's `sourcePath` carries a
+	// project prefix. A project's docs live at `content/<id>/…`, so its first path
+	// segment is the project dir; the general bucket (output '.') has no prefix.
+	const projectIds = new Set(config.projects.map((p) => p.id))
 	const pageFiles = docs
 		.slice()
 		.sort((a, b) => a.id.localeCompare(b.id, config.site.lang))
-		.map((d) => ({
-			type: 'page' as const,
-			path: d.id,
-			data: {
-				title: (d.frontmatter.title as string | undefined) ?? d.id.split('/').pop()?.replace(/-/g, ' ') ?? d.id,
-				frontmatter: d.frontmatter,
-				headings: d.headings,
-				html: d.html,
-				isCanvas: d.html.includes('data-canvas-mount'),
-			},
-		}))
+		.map((d) => {
+			// Source-relative path = the un-slugified content path minus the project
+			// segment (general-bucket docs have no prefix, so keep it whole). This is
+			// what a project's `editUrl` template's `{path}` is filled with.
+			const project = d.id.split('/')[0] ?? ''
+			const sourcePath = projectIds.has(project)
+				? d.sourcePath.split('/').slice(1).join('/')
+				: d.sourcePath
+			return {
+				type: 'page' as const,
+				path: d.id,
+				data: {
+					title: (d.frontmatter.title as string | undefined) ?? d.id.split('/').pop()?.replace(/-/g, ' ') ?? d.id,
+					frontmatter: d.frontmatter,
+					headings: d.headings,
+					html: d.html,
+					isCanvas: d.html.includes('data-canvas-mount'),
+					sourcePath,
+				},
+			}
+		})
 	const files = [...pageFiles, ...metas]
 
 	// Emit content as DATA (content.json), not an importable TS module. The app

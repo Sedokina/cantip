@@ -26,6 +26,15 @@ export interface Heading {
 export interface CompiledDoc {
 	/** Route id, e.g. "krista/глоссарий/коллекция" (no leading slash, no extension). */
 	id: string
+	/**
+	 * The page's content-relative file path, UN-slugified and WITH extension, e.g.
+	 * "krista/глоссарий/Коллекция.md". It mirrors the source file byte-for-byte
+	 * (casing, Cyrillic, spaces preserved) because the Obsidian pass writes content
+	 * under the original name — so it reconstructs the repo path for "edit" links,
+	 * which the lossy slugified `id` can't. Source-relative path = this with the
+	 * project's first segment stripped (see generate-content.ts).
+	 */
+	sourcePath: string
 	frontmatter: Record<string, unknown>
 	headings: Heading[]
 	html: string
@@ -239,7 +248,7 @@ function buildProcessor(hook?: MarkdownPipelineHook) {
 export async function compileMarkdown(
 	markdown: string,
 	processor = buildProcessor(),
-): Promise<Omit<CompiledDoc, 'id'>> {
+): Promise<Omit<CompiledDoc, 'id' | 'sourcePath'>> {
 	const mdast = processor.parse(markdown) as MdastRoot
 	const frontmatter = extractFrontmatter(mdast)
 	const file = await processor.process(markdown)
@@ -274,11 +283,13 @@ export async function compileDir(
 				} else if (entry.isFile() && entry.name.endsWith('.md')) {
 					const raw = await fs.readFile(full, 'utf8')
 					const compiled = await compileMarkdown(raw, processor)
-					const rel = path.relative(contentRoot, full).replace(/\\/g, '/').replace(/\.md$/, '')
+					// Original (un-slugified) content-relative path, e.g. "krista/глоссарий/Коллекция.md".
+					const sourcePath = path.relative(contentRoot, full).replace(/\\/g, '/')
+					const rel = sourcePath.replace(/\.md$/, '')
 					// Slugify the id with the same logic used to generate internal link
 					// hrefs (lowercase, slugified per segment) so routes match wikilinks.
 					const id = slugifyObsidianPath(rel)
-					docs.push({ id, ...compiled })
+					docs.push({ id, sourcePath, ...compiled })
 				}
 			}),
 		)
