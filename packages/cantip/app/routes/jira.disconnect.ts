@@ -11,16 +11,16 @@
 import { redirect } from '@remix-run/node'
 import type { ActionFunctionArgs } from '@remix-run/node'
 
-import { destroySession, getOAuthConfig } from '~/lib/jira-auth.server'
+import { destroySession } from '~/lib/jira-auth.server'
 
 function safePath(value: FormDataEntryValue | null): string {
 	return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : '/'
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-	const oauth = getOAuthConfig()
 	const form = await request.formData()
 	const redirectTo = safePath(form.get('redirectTo'))
-	const headers = oauth ? { 'Set-Cookie': await destroySession(oauth.sessionSecret) } : undefined
-	return redirect(redirectTo, headers ? { headers } : undefined)
+	const headers = new Headers()
+	for (const cookie of destroySession()) headers.append('Set-Cookie', cookie)
+	return redirect(redirectTo, { headers })
 }

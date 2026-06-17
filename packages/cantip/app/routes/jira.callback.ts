@@ -55,16 +55,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 	try {
 		const session = await sessionFromCode(oauth, code, `${url.origin}/jira/callback`)
-		const sessionCookie = await commitSession(session, oauth.sessionSecret)
-		if (sessionCookie.length > 4096) {
-			console.warn(
-				`[jira] Session cookie is ${sessionCookie.length} bytes (>4096). Browsers may DROP it, ` +
-					`leaving you "not connected". The Atlassian access token is unusually large.`,
-			)
-		}
 		const headers = new Headers()
 		headers.append('Set-Cookie', clear)
-		headers.append('Set-Cookie', sessionCookie)
+		// The session spans several sub-4KB cookies (Atlassian tokens are large).
+		for (const cookie of commitSession(session, oauth.sessionSecret)) headers.append('Set-Cookie', cookie)
 		return redirect(redirectTo, { headers })
 	} catch (err) {
 		console.error('[jira] OAuth token exchange / site resolution failed:', err)

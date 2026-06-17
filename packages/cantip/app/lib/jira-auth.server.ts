@@ -95,17 +95,44 @@ function decrypt(token: string, secret: string): string | null {
 
 const secure = process.env.NODE_ENV === 'production'
 
-/** The long-lived session cookie (encrypted JSON). sameSite=lax so it survives
- *  the top-level redirect back from Atlassian. */
-function sessionCookie(secret: string) {
-	return createCookie('cantip_jira', {
-		httpOnly: true,
-		secure,
-		sameSite: 'lax',
-		path: '/',
-		maxAge: 60 * 60 * 24 * 90, // 90 days (refresh-token lifetime)
-		secrets: [secret],
-	})
+// The encrypted session is too big for one cookie — Atlassian access tokens are
+// large JWTs, so the payload runs ~6–9 KB while browsers drop any single cookie
+// over ~4 KB. So we SPLIT it across numbered cookies (cantip_jira_0, _1, …) and
+// reassemble on read. We manage these by hand (not createCookie) to avoid its
+// JSON+base64 re-expansion — the encrypted value is already URL-safe base64url.
+const SESSION_PREFIX = 'cantip_jira_'
+const CHUNK_SIZE = 3500 // value bytes per cookie, leaving room for name + attrs
+const MAX_CHUNKS = 12 // hard cap (~42 KB) so a bad payload can't spray cookies
+const SESSION_MAX_AGE = 60 * 60 * 24 * 90 // 90 days (refresh-token lifetime)
+
+function cookieAttrs(maxAge: number): string {
+	const parts = [`Path=/`, 'HttpOnly', 'SameSite=Lax', `Max-Age=${maxAge}`]
+	if (secure) parts.push('Secure')
+	return parts.join('; ')
+}
+
+/** Parse a Cookie request header into a name→value map. */
+function parseCookies(header: string | null): Record<string, string> {
+	const jar: Record<string, string> = {}
+	if (!header) return jar
+	for (const part of header.split(';')) {
+		const eq = part.indexOf('=')
+		if (eq === -1) continue
+		const name = part.slice(0, eq).trim()
+		if (name) jar[name] = part.slice(eq + 1).trim()
+	}
+	return jar
+}
+
+/** Set-Cookie strings for an encrypted payload: the needed chunks, plus expiry
+ *  for any leftover chunks from a previously larger session. */
+function sessionCookies(encrypted: string): string[] {
+	const chunks: string[] = []
+	for (let i = 0; i < encrypted.length; i += CHUNK_SIZE) chunks.push(encrypted.slice(i, i + CHUNK_SIZE))
+	if (chunks.length > MAX_CHUNKS) throw new Error('Jira session payload too large to store in cookies')
+	const out = chunks.map((c, i) => `${SESSION_PREFIX}${i}=${c}; ${cookieAttrs(SESSION_MAX_AGE)}`)
+	for (let i = chunks.length; i < MAX_CHUNKS; i++) out.push(`${SESSION_PREFIX}${i}=; ${cookieAttrs(0)}`)
+	return out
 }
 
 /** A short-lived cookie carrying the CSRF `state` + post-connect redirect. */
@@ -120,10 +147,16 @@ function stateCookie(secret: string) {
 	})
 }
 
-export async function readSession(request: Request, secret: string): Promise<JiraSession | null> {
-	const raw = (await sessionCookie(secret).parse(request.headers.get('Cookie'))) as unknown
-	if (typeof raw !== 'string') return null
-	const json = decrypt(raw, secret)
+export function readSession(request: Request, secret: string): JiraSession | null {
+	const jar = parseCookies(request.headers.get('Cookie'))
+	let encrypted = ''
+	for (let i = 0; i < MAX_CHUNKS; i++) {
+		const chunk = jar[`${SESSION_PREFIX}${i}`]
+		if (chunk == null || chunk === '') break
+		encrypted += chunk
+	}
+	if (!encrypted) return null
+	const json = decrypt(encrypted, secret)
 	if (!json) return null
 	try {
 		return JSON.parse(json) as JiraSession
@@ -132,12 +165,16 @@ export async function readSession(request: Request, secret: string): Promise<Jir
 	}
 }
 
-export function commitSession(session: JiraSession, secret: string): Promise<string> {
-	return sessionCookie(secret).serialize(encrypt(JSON.stringify(session), secret))
+/** Set-Cookie list (multiple) that stores the session. */
+export function commitSession(session: JiraSession, secret: string): string[] {
+	return sessionCookies(encrypt(JSON.stringify(session), secret))
 }
 
-export function destroySession(secret: string): Promise<string> {
-	return sessionCookie(secret).serialize('', { maxAge: 0 })
+/** Set-Cookie list (multiple) that expires every session chunk. */
+export function destroySession(): string[] {
+	const out: string[] = []
+	for (let i = 0; i < MAX_CHUNKS; i++) out.push(`${SESSION_PREFIX}${i}=; ${cookieAttrs(0)}`)
+	return out
 }
 
 export function commitState(state: string, redirectTo: string, secret: string): Promise<string> {
@@ -278,7 +315,8 @@ export interface JiraAuth {
 	connection: JiraConnection | null
 	mode: 'oauth' | 'shared' | null
 	user: string | null
-	commit?: string
+	/** Set-Cookie values to attach when the session was refreshed or cleared. */
+	commit?: string[]
 }
 
 /**
@@ -289,7 +327,7 @@ export interface JiraAuth {
 export async function getJiraAuth(request: Request): Promise<JiraAuth> {
 	const oauth = getOAuthConfig()
 	if (oauth) {
-		const session = await readSession(request, oauth.sessionSecret)
+		const session = readSession(request, oauth.sessionSecret)
 		if (session) {
 			if (Date.now() < session.expiresAt - 60_000) {
 				return { connection: connectionFromSession(session), mode: 'oauth', user: session.user || null }
@@ -301,13 +339,12 @@ export async function getJiraAuth(request: Request): Promise<JiraAuth> {
 					connection: connectionFromSession(refreshed),
 					mode: 'oauth',
 					user: refreshed.user || null,
-					commit: await commitSession(refreshed, oauth.sessionSecret),
+					commit: commitSession(refreshed, oauth.sessionSecret),
 				}
 			} catch {
 				// Refresh failed (revoked/expired) — drop the session, fall through.
-				const cleared = await destroySession(oauth.sessionSecret)
 				const fallback = envAuth()
-				return { ...fallback, commit: cleared }
+				return { ...fallback, commit: destroySession() }
 			}
 		}
 	}
@@ -329,7 +366,7 @@ export interface JiraStatus {
 	mode: 'oauth' | 'shared' | null
 	user: string | null
 	oauthAvailable: boolean
-	commit?: string
+	commit?: string[]
 }
 
 export async function getJiraStatus(request: Request): Promise<JiraStatus> {

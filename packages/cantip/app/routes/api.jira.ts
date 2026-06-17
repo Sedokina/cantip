@@ -31,9 +31,13 @@ import {
 	updateIssueDescription,
 } from '~/lib/jira.server'
 
-/** Set-Cookie header init for a refreshed/cleared session, if any. */
-function cookieInit(commit?: string): ResponseInit {
-	return commit ? { headers: { 'Set-Cookie': commit } } : {}
+/** Set-Cookie header init for a refreshed/cleared session, if any. The session
+ *  spans several cookies, so we may emit multiple Set-Cookie headers. */
+function cookieInit(commit?: string[]): ResponseInit {
+	if (!commit || commit.length === 0) return {}
+	const headers = new Headers()
+	for (const c of commit) headers.append('Set-Cookie', c)
+	return { headers }
 }
 
 /**
