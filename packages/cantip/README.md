@@ -163,6 +163,60 @@ It's your Remix app — go as deep as you like:
   apply (remark steps before `remark-rehype`, rehype steps after); cantip trusts
   your hook to keep it valid.
 
+## Publish to Jira
+
+An optional, env-gated feature: a **Publish to Jira** action on every doc page
+that creates a Jira issue from the page (title → summary, content → description,
+converted to rich ADF) or updates a linked ticket. Selecting text in the body
+pops a floating action to publish just that selection. When unconfigured, none
+of it renders.
+
+**Mount the routes** by re-exporting them from your `app/`:
+
+```ts
+// app/routes/api.jira.ts        — publish endpoint (status + create/update)
+export { loader, action } from 'cantip/routes/api.jira'
+
+// app/routes/jira.connect.ts    — start OAuth      (only used in per-user mode)
+export { loader } from 'cantip/routes/jira.connect'
+// app/routes/jira.callback.ts   — OAuth callback
+export { loader } from 'cantip/routes/jira.callback'
+// app/routes/jira.disconnect.ts — clear the session
+export { action } from 'cantip/routes/jira.disconnect'
+```
+
+**Two auth modes** (you can run either or both — per-user wins when a browser is
+connected, the shared account is the fallback):
+
+| Mode | When to use | Env |
+| --- | --- | --- |
+| **Per-user OAuth (3LO)** | Several people publish, each as themselves; Jira enforces their own permissions. | `JIRA_OAUTH_CLIENT_ID`, `JIRA_OAUTH_CLIENT_SECRET`, `SESSION_SECRET` |
+| **Shared service account** | One identity for everyone (or cron/automation). | `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` |
+
+Optional for both: `JIRA_DEFAULT_PROJECT`, `JIRA_DEFAULT_ISSUE_TYPE` (default
+`Task`) seed the dialog's pickers.
+
+**Per-user OAuth setup** — register an [OAuth 2.0 (3LO) app](https://developer.atlassian.com/console/myapps/):
+
+1. Add the **Jira** permission with scopes `read:jira-work`, `write:jira-work`,
+   `read:jira-user`, `offline_access`.
+2. Set the **callback URL** to your origin + `/jira/callback` (e.g.
+   `http://localhost:5173/jira/callback` in dev — add your prod URL too; it must
+   match exactly).
+3. Copy the **Client ID** + **Secret** into the env vars above. `SESSION_SECRET`
+   is any random string (e.g. `openssl rand -hex 32`); it encrypts the session
+   cookie that holds each user's tokens — no database, and it works across
+   replicas. Tokens refresh automatically.
+
+> Env vars are read by the **server** at runtime, so set them where the server
+> runs. `remix vite:dev` does **not** load `.env` into `process.env` — export
+> them in that shell.
+
+**Linked tickets** for the *update* flow are detected two ways: a `jira:`
+frontmatter field (a key or URL, or a list), **and** any in-body markdown link to
+a `…/browse/KEY` URL. The dialog lists them with their live status (and marks
+completed ones).
+
 ## Exports
 
 | Import | What |
@@ -173,6 +227,8 @@ It's your Remix app — go as deep as you like:
 | `cantip/root`, `cantip/root.server` | Root layout + `CantipProvider` + the loader. |
 | `cantip/routes/doc`, `cantip/routes/doc.server` | Doc page + loader. |
 | `cantip/routes/home` | Home page. |
+| `cantip/routes/api.jira` | Publish-to-Jira endpoint (status + create/update). |
+| `cantip/routes/jira.connect`, `jira.callback`, `jira.disconnect` | Per-user OAuth flow. |
 | `cantip/components` | The React components (Sidebar, TopBar, Toc, Search, …). |
 | `cantip/core` | Higher-level data helpers (getDoc, buildSidebar, projects). |
 | `cantip/styles.css` | The Tailwind stylesheet entry. |
