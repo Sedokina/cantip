@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { useFetcher, useLocation } from '@remix-run/react'
 import { X } from 'lucide-react'
 
+import { useT } from '~/lib/site-context'
+
 /**
  * "Publish to Jira" button + dialog shown on a doc page.
  *
@@ -155,6 +157,7 @@ export default function PublishToJira({
  * more page commands can be added later.
  */
 function PageActions({ onPublish }: { onPublish: () => void }) {
+	const t = useT()
 	const [menuOpen, setMenuOpen] = useState(false)
 	const ref = useRef<HTMLDivElement>(null)
 
@@ -174,8 +177,8 @@ function PageActions({ onPublish }: { onPublish: () => void }) {
 			<button
 				type="button"
 				onClick={onPublish}
-				aria-label="Publish to Jira"
-				title="Publish to Jira"
+				aria-label={t('publishToJira')}
+				title={t('publishToJira')}
 				className="hidden size-8 items-center justify-center rounded-md border bg-background hover:bg-muted md:inline-flex"
 			>
 				<JiraIcon className="size-4" />
@@ -185,7 +188,7 @@ function PageActions({ onPublish }: { onPublish: () => void }) {
 			<div ref={ref} className="relative md:hidden">
 				<button
 					type="button"
-					aria-label="Page actions"
+					aria-label={t('pageActions')}
 					aria-expanded={menuOpen}
 					onClick={() => setMenuOpen((o) => !o)}
 					className="inline-flex size-8 items-center justify-center rounded-md border bg-background text-lg leading-none hover:bg-muted"
@@ -203,7 +206,7 @@ function PageActions({ onPublish }: { onPublish: () => void }) {
 							className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-sm hover:bg-muted"
 						>
 							<JiraIcon className="size-3.5" />
-							Publish to Jira
+							{t('publishToJira')}
 						</button>
 					</div>
 				)}
@@ -220,6 +223,7 @@ function PageActions({ onPublish }: { onPublish: () => void }) {
  * positioning isn't trapped by a transformed ancestor.
  */
 function SelectionToolbar({ active, onPublish }: { active: boolean; onPublish: (sel: Selection) => void }) {
+	const t = useT()
 	const ref = useRef<HTMLDivElement>(null)
 	const captured = useRef<Selection | null>(null)
 	const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
@@ -279,8 +283,8 @@ function SelectionToolbar({ active, onPublish }: { active: boolean; onPublish: (
 		>
 			<button
 				type="button"
-				aria-label="Publish to Jira"
-				title="Publish to Jira"
+				aria-label={t('publishToJira')}
+				title={t('publishToJira')}
 				onClick={() => {
 					const sel = captured.current
 					setPos(null)
@@ -301,16 +305,17 @@ function SelectionToolbar({ active, onPublish }: { active: boolean; onPublish: (
  * OAuth, or a shared-account note (with an optional connect link) on fallback.
  */
 function AuthBar({ status, connectUrl, here }: { status: JiraStatus; connectUrl: string; here: string }) {
+	const t = useT()
 	if (!status.connected) {
 		return (
 			<div className="space-y-2">
-				<p className="text-sm text-muted-foreground">Connect your Jira account to publish as yourself.</p>
+				<p className="text-sm text-muted-foreground">{t('jiraConnectPrompt')}</p>
 				<a
 					href={connectUrl}
 					className="inline-flex items-center gap-2 rounded-md border bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90"
 				>
 					<JiraIcon className="size-4" />
-					Connect Jira
+					{t('connectJira')}
 				</a>
 			</div>
 		)
@@ -318,11 +323,13 @@ function AuthBar({ status, connectUrl, here }: { status: JiraStatus; connectUrl:
 	if (status.mode === 'oauth') {
 		return (
 			<div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-				<span>Connected as {status.user || 'your Jira account'}</span>
+				<span>
+					{t('connectedAs')} {status.user || t('yourJiraAccount')}
+				</span>
 				<form method="post" action="/jira/disconnect">
 					<input type="hidden" name="redirectTo" value={here} />
 					<button type="submit" className="underline hover:text-foreground">
-						Disconnect
+						{t('disconnect')}
 					</button>
 				</form>
 			</div>
@@ -331,10 +338,10 @@ function AuthBar({ status, connectUrl, here }: { status: JiraStatus; connectUrl:
 	// Shared account fallback.
 	return (
 		<div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-			<span>Publishing via the shared account</span>
+			<span>{t('viaSharedAccount')}</span>
 			{status.oauthAvailable && (
 				<a href={connectUrl} className="underline hover:text-foreground">
-					Connect your Jira
+					{t('connectYourJira')}
 				</a>
 			)}
 		</div>
@@ -362,6 +369,7 @@ function PublishDialog({
 	defaults: { project: string | null; issueType: string }
 	onClose: () => void
 }) {
+	const t = useT()
 	const projects = useFetcher<{ projects?: JiraProject[]; error?: string }>()
 	const types = useFetcher<{ issueTypes?: JiraIssueType[]; error?: string }>()
 	const issues = useFetcher<{ issues?: JiraIssueSummary[]; error?: string }>()
@@ -479,16 +487,16 @@ function PublishDialog({
 			<div
 				role="dialog"
 				aria-modal="true"
-				aria-label="Publish to Jira"
+				aria-label={t('publishToJira')}
 				className="w-[min(34rem,calc(100vw-2rem))] overflow-hidden rounded-lg border bg-popover shadow-xl"
 				onClick={(e) => e.stopPropagation()}
 			>
 				<div className="flex items-center justify-between border-b px-4 py-3">
-					<h2 className="text-sm font-semibold">Publish to Jira</h2>
+					<h2 className="text-sm font-semibold">{t('publishToJira')}</h2>
 					<button
 						type="button"
 						onClick={onClose}
-						aria-label="Close"
+						aria-label={t('close')}
 						className="text-muted-foreground hover:text-foreground"
 					>
 						<X className="size-4" />
@@ -502,12 +510,12 @@ function PublishDialog({
 					{/* Source toggle — only when the reader had text selected. */}
 					{selection && (
 						<div>
-							<span className="mb-1 block text-xs font-medium text-muted-foreground">Content</span>
+							<span className="mb-1 block text-xs font-medium text-muted-foreground">{t('content')}</span>
 							<div className="inline-flex rounded-md border p-0.5 text-sm">
 								{(
 									[
-										['page', 'Whole page'],
-										['selection', `Selection (${selection.text.length} chars)`],
+										['page', t('wholePage')],
+										['selection', `${t('selection')} (${selection.text.length} ${t('charsAbbr')})`],
 									] as const
 								).map(([value, label]) => (
 									<button
@@ -526,7 +534,7 @@ function PublishDialog({
 					{/* Create / Update mode toggle — only when the page has linked tickets. */}
 					{hasLinks && (
 						<div>
-							<span className="mb-1 block text-xs font-medium text-muted-foreground">Action</span>
+							<span className="mb-1 block text-xs font-medium text-muted-foreground">{t('action')}</span>
 							<div className="inline-flex rounded-md border p-0.5 text-sm">
 								{(['create', 'update'] as const).map((m) => (
 									<button
@@ -535,7 +543,7 @@ function PublishDialog({
 										onClick={() => setIntent(m)}
 										className={'rounded px-3 py-1 ' + (intent === m ? 'bg-muted font-medium' : 'text-muted-foreground')}
 									>
-										{m === 'create' ? 'Create new' : 'Update existing'}
+										{m === 'create' ? t('createNew') : t('updateExisting')}
 									</button>
 								))}
 							</div>
@@ -545,7 +553,7 @@ function PublishDialog({
 					{intent === 'create' ? (
 						<>
 							<label className="block">
-								<span className="mb-1 block text-xs font-medium text-muted-foreground">Summary</span>
+								<span className="mb-1 block text-xs font-medium text-muted-foreground">{t('summary')}</span>
 								<input
 									type="text"
 									value={summary}
@@ -560,14 +568,14 @@ function PublishDialog({
 
 							<div className="grid grid-cols-2 gap-3">
 								<label className="block">
-									<span className="mb-1 block text-xs font-medium text-muted-foreground">Project</span>
+									<span className="mb-1 block text-xs font-medium text-muted-foreground">{t('project')}</span>
 									<select
 										value={project}
 										onChange={(e) => setProject(e.target.value)}
 										disabled={projects.state !== 'idle' && projectList.length === 0}
 										className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
 									>
-										{projectList.length === 0 && <option value="">Loading…</option>}
+										{projectList.length === 0 && <option value="">{t('loading')}</option>}
 										{projectList.map((p) => (
 											<option key={p.key} value={p.key}>
 												{p.key} — {p.name}
@@ -577,18 +585,18 @@ function PublishDialog({
 								</label>
 
 								<label className="block">
-									<span className="mb-1 block text-xs font-medium text-muted-foreground">Issue type</span>
+									<span className="mb-1 block text-xs font-medium text-muted-foreground">{t('issueType')}</span>
 									{typesEmpty ? (
 										<>
 											<input
 												type="text"
 												value={issueType}
 												onChange={(e) => setIssueType(e.target.value)}
-												placeholder={`e.g. ${defaults.issueType}`}
+												placeholder={`${t('eg')} ${defaults.issueType}`}
 												className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
 											/>
 											<span className="mt-1 block text-xs text-muted-foreground">
-												Jira returned no types for this project — type one.
+												{t('noTypesForProject')}
 											</span>
 										</>
 									) : (
@@ -598,7 +606,7 @@ function PublishDialog({
 											disabled={typeList.length === 0}
 											className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
 										>
-											{typeList.length === 0 && <option value="">{typesPending ? 'Loading…' : '—'}</option>}
+											{typeList.length === 0 && <option value="">{typesPending ? t('loading') : '—'}</option>}
 											{typeList.map((t) => (
 												<option key={t.id} value={t.name}>
 													{t.name}
@@ -612,7 +620,7 @@ function PublishDialog({
 					) : (
 						<>
 							<label className="block">
-								<span className="mb-1 block text-xs font-medium text-muted-foreground">Linked ticket</span>
+								<span className="mb-1 block text-xs font-medium text-muted-foreground">{t('linkedTicket')}</span>
 								<select
 									value={issueKey}
 									onChange={(e) => setIssueKey(e.target.value)}
@@ -628,16 +636,16 @@ function PublishDialog({
 
 							{issueOf(issueKey)?.done && (
 								<p className="text-xs text-amber-700 dark:text-amber-500">
-									This ticket is completed ({issueOf(issueKey)?.status}) — updating it may be unexpected.
+									{t('ticketCompletedWarning')} ({issueOf(issueKey)?.status})
 								</p>
 							)}
 
 							<fieldset className="space-y-1.5">
-								<legend className="mb-1 text-xs font-medium text-muted-foreground">What to update</legend>
+								<legend className="mb-1 text-xs font-medium text-muted-foreground">{t('whatToUpdate')}</legend>
 								{(
 									[
-										['comment', 'Add the content as a comment'],
-										['replace', 'Replace the description'],
+										['comment', t('addAsComment')],
+										['replace', t('replaceDescription')],
 									] as const
 								).map(([value, label]) => (
 									<label key={value} className="flex items-center gap-2 text-sm">
@@ -663,7 +671,7 @@ function PublishDialog({
 
 					{result?.ok && (
 						<p className="text-sm text-green-700 dark:text-green-400">
-							{intent === 'create' ? 'Created' : 'Updated'}{' '}
+							{intent === 'create' ? t('created') : t('updated')}{' '}
 							<a href={result.url} target="_blank" rel="noreferrer" className="font-semibold underline">
 								{result.key}
 							</a>
@@ -677,7 +685,7 @@ function PublishDialog({
 				{status.connected && (
 					<div className="flex justify-end gap-2 border-t px-4 py-3">
 						<button type="button" onClick={onClose} className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">
-							{result?.ok ? 'Close' : 'Cancel'}
+							{result?.ok ? t('close') : t('cancel')}
 						</button>
 						<button
 							type="button"
@@ -685,7 +693,7 @@ function PublishDialog({
 							disabled={!canSubmit}
 							className="rounded-md border bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
 						>
-							{submitting ? 'Publishing…' : intent === 'create' ? 'Create issue' : 'Update ticket'}
+							{submitting ? t('publishing') : intent === 'create' ? t('createIssue') : t('updateTicket')}
 						</button>
 					</div>
 				)}
