@@ -216,6 +216,29 @@ interface TokenResponse {
 	access_token: string
 	refresh_token?: string
 	expires_in: number
+	scope?: string
+	token_type?: string
+}
+
+/** Opt-in verbose logging (set JIRA_OAUTH_DEBUG=1). Never log in normal runs —
+ *  these payloads are sensitive. */
+function debugEnabled(): boolean {
+	const v = process.env.JIRA_OAUTH_DEBUG
+	return v === '1' || v === 'true'
+}
+
+/** Decode a JWT's header + payload (NOT verifying the signature) for inspection. */
+function decodeJwt(token: string): { header: unknown; payload: unknown } | null {
+	const parts = token.split('.')
+	if (parts.length < 2) return null
+	try {
+		return {
+			header: JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')),
+			payload: JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')),
+		}
+	} catch {
+		return null
+	}
 }
 
 async function tokenRequest(body: Record<string, string>): Promise<TokenResponse> {
@@ -224,8 +247,31 @@ async function tokenRequest(body: Record<string, string>): Promise<TokenResponse
 		headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 		body: JSON.stringify(body),
 	})
-	if (!res.ok) throw new Error(`Atlassian token endpoint failed (HTTP ${res.status})`)
-	return (await res.json()) as TokenResponse
+	const text = await res.text()
+	if (!res.ok) {
+		if (debugEnabled()) console.error(`[jira][debug] token endpoint ${res.status}:`, text)
+		throw new Error(`Atlassian token endpoint failed (HTTP ${res.status})`)
+	}
+	const json = JSON.parse(text) as TokenResponse
+	if (debugEnabled()) {
+		// Show the non-secret response fields + token sizes (the raw token strings
+		// are the credential, so we print lengths, not values)…
+		console.log('[jira][debug] token endpoint response:', {
+			token_type: json.token_type,
+			expires_in: json.expires_in,
+			scope: json.scope,
+			access_token_bytes: json.access_token?.length,
+			refresh_token_bytes: json.refresh_token?.length,
+		})
+		// …and the DECODED access-token JWT, so you can see exactly what it carries
+		// (the `scope` claim is what drives the size).
+		const decoded = decodeJwt(json.access_token)
+		console.log(
+			'[jira][debug] access token decoded:',
+			decoded ? JSON.stringify(decoded, null, 2) : '(not a decodable JWT — opaque token)',
+		)
+	}
+	return json
 }
 
 /** Exchange an authorization code for tokens, then resolve the site + user into
@@ -275,6 +321,7 @@ async function resolveSite(accessToken: string): Promise<{ cloudId: string; site
 	})
 	if (!res.ok) throw new Error(`Could not list accessible Jira sites (HTTP ${res.status})`)
 	const sites = (await res.json()) as Array<{ id: string; url: string }>
+	if (debugEnabled()) console.log('[jira][debug] accessible-resources:', JSON.stringify(sites, null, 2))
 	if (sites.length === 0) throw new Error('This Atlassian account has no accessible Jira sites')
 	const preferred = process.env.JIRA_BASE_URL?.trim().replace(/\/+$/, '')
 	const chosen = (preferred && sites.find((s) => s.url.replace(/\/+$/, '') === preferred)) || sites[0]
