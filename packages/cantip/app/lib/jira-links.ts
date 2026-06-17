@@ -30,10 +30,10 @@ export function parseLinkedTickets(frontmatter: Record<string, unknown>): string
 const BROWSE_HREF = /href="[^"]*\/browse\/([A-Z][A-Z0-9]+-\d+)/g
 
 /**
- * Extract issue keys from links in the rendered page body — the a consumer style,
- * where tickets are markdown links like `[PROJ-42: …](…/browse/PROJ-42)`. Only
- * anchor hrefs that point at a `/browse/KEY` URL are matched, so prose like
- * "UTF-8" or "COVID-19" can't masquerade as a ticket.
+ * Extract issue keys from links in the rendered page body, where tickets are
+ * markdown links like `[PROJ-42: …](…/browse/PROJ-42)`. Only anchor hrefs that
+ * point at a `/browse/KEY` URL are matched, so prose like "UTF-8" or "COVID-19"
+ * can't masquerade as a ticket.
  */
 export function parseBodyTickets(html: string): string[] {
 	const keys = new Set<string>()

@@ -82,12 +82,11 @@ mounted `/docs` volume.
 
 ## Updating consumers
 
-Content-only deploys (e.g. `~/dev/projects/a consumer`) pin the engine via the
-image tag in their `docker-compose.yml`
-(`ghcr.io/sedokina/cantip-host:<version>`). After a release, bump that tag, then
-on the server `docker compose pull && docker compose up -d`. Feature env (e.g.
-`JIRA_*`) is supplied via a gitignored `.env` next to the compose file
-(`env_file: .env`, optional), never committed.
+A content-only deploy pins the engine via the image tag in its
+`docker-compose.yml` (`ghcr.io/sedokina/cantip-host:<version>`). After a release,
+bump that tag, then on the server `docker compose pull && docker compose up -d`.
+Feature env (e.g. `JIRA_*`) is supplied via a gitignored `.env` next to the
+compose file (`env_file: .env`, optional), never committed.
 
 ## Notes
 
