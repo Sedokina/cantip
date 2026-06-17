@@ -53,13 +53,13 @@ export async function buildSearchIndex(
 	let indexed = 0
 	let skipped = 0
 	for (const doc of docs) {
-		// Drafts are not routable; canvas pages have no prose (their "HTML" is a
-		// JSON blob in a <script> mount) — nothing useful to search.
+		// Drafts are not routable; canvas pages have no prose (their body is a single
+		// <canvas-mount> element carrying JSON) — nothing useful to search.
 		if (doc.frontmatter.draft === true) {
 			skipped++
 			continue
 		}
-		if (doc.html.includes('data-canvas-mount')) {
+		if (doc.html.includes('<canvas-mount')) {
 			skipped++
 			continue
 		}

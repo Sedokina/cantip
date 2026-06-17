@@ -4,6 +4,9 @@ import { toJsxRuntime } from 'hast-util-to-jsx-runtime'
 import { jsx, jsxs } from 'react/jsx-runtime'
 import type { Root as HastRoot } from 'hast'
 
+import CodeBlock from '~/components/CodeBlock'
+import CanvasView from '~/components/CanvasView'
+
 /**
  * Render a compiled doc body (a hast tree) to a real React element tree.
  *
@@ -36,22 +39,13 @@ function Anchor({ href, children, ...rest }: { href?: string; children?: React.R
 	)
 }
 
-/**
- * Canvas pages embed their data as `<script type="application/json">{…}</script>`,
- * read later by CanvasMount. React would HTML-escape a string child, and since
- * `<script>` content is not entity-decoded by the browser, that would corrupt the
- * JSON — so inject the raw text via dangerouslySetInnerHTML instead.
- */
-function ScriptTag({ children, ...rest }: { children?: React.ReactNode }) {
-	if (typeof children === 'string') {
-		return <script {...rest} dangerouslySetInnerHTML={{ __html: children }} />
-	}
-	return <script {...rest}>{children}</script>
-}
-
 const components = {
 	a: Anchor,
-	script: ScriptTag,
+	// Fenced code blocks → a component with a per-block "wrap lines" toggle.
+	pre: CodeBlock,
+	// The canvas generator emits `<canvas-mount canvas="…">`; render it as the
+	// interactive viewer (the `canvas` attribute becomes the component's prop).
+	'canvas-mount': CanvasView,
 }
 
 export default function HastRenderer({ tree }: { tree: HastRoot }) {

@@ -11,8 +11,6 @@ import { useComponent, useOverride } from '~/lib/components'
 import PageFloatingMenu from '~/components/PageFloatingMenu'
 import PublishToJira from '~/components/PublishToJira'
 import EditSource from '~/components/EditSource'
-import CanvasMount from '~/components/CanvasMount'
-import { CodeWrapToggle } from '~/components/CodeWrapToggle'
 import HastRenderer from '~/components/HastRenderer'
 
 /** A colored MoSCoW priority pill, rendered inline next to the page title. */
@@ -110,8 +108,6 @@ function EngineDocPage() {
 						</div>
 					</article>
 				</main>
-				<CanvasMount deps={doc.id} />
-				<CodeWrapToggle deps={doc.id} />
 			</>
 		)
 	}
@@ -145,8 +141,6 @@ function EngineDocPage() {
 			</main>
 			{showToc && <Toc headings={doc.headings} />}
 			{showToc && <PageFloatingMenu headings={doc.headings} />}
-			<CanvasMount deps={doc.id} />
-			<CodeWrapToggle deps={doc.id} />
 		</>
 	)
 }

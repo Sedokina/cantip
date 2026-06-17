@@ -296,7 +296,7 @@ async function main() {
 					headings: d.headings,
 					hast: d.hast,
 					html: d.html,
-					isCanvas: d.html.includes('data-canvas-mount'),
+					isCanvas: d.html.includes('<canvas-mount'),
 					sourcePath,
 				},
 			}
