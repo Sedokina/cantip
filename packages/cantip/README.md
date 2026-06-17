@@ -171,13 +171,20 @@ converted to rich ADF) or updates a linked ticket. Selecting text in the body
 pops a floating action to publish just that selection. When unconfigured, none
 of it renders.
 
-**Mount the routes** by re-exporting them from your `app/`:
+### Step 1 — Mount the routes (both modes)
+
+Re-export the routes from your `app/`:
 
 ```ts
 // app/routes/api.jira.ts        — publish endpoint (status + create/update)
 export { loader, action } from 'cantip/routes/api.jira'
+```
 
-// app/routes/jira.connect.ts    — start OAuth      (only used in per-user mode)
+The three routes below are **only needed for per-user mode** (Mode A) — skip them
+if you only use the shared account:
+
+```ts
+// app/routes/jira.connect.ts    — start OAuth
 export { loader } from 'cantip/routes/jira.connect'
 // app/routes/jira.callback.ts   — OAuth callback
 export { loader } from 'cantip/routes/jira.callback'
@@ -185,37 +192,86 @@ export { loader } from 'cantip/routes/jira.callback'
 export { action } from 'cantip/routes/jira.disconnect'
 ```
 
-**Two auth modes** (you can run either or both — per-user wins when a browser is
-connected, the shared account is the fallback):
+> **All env vars below are read by the _server_ at runtime** — set them where the
+> server process runs. `remix vite:dev` does **not** load `.env` into
+> `process.env`, so `export` them in that same shell (or set them in your
+> container/host). `.env` files won't reach the server.
 
-| Mode | When to use | Env |
-| --- | --- | --- |
-| **Per-user OAuth (3LO)** | Several people publish, each as themselves; Jira enforces their own permissions. | `JIRA_OAUTH_CLIENT_ID`, `JIRA_OAUTH_CLIENT_SECRET`, `SESSION_SECRET` |
-| **Shared service account** | One identity for everyone (or cron/automation). | `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` |
+Pick **one** of the two modes (or run both — see "Combining" at the end).
 
-Optional for both: `JIRA_DEFAULT_PROJECT`, `JIRA_DEFAULT_ISSUE_TYPE` (default
-`Task`) seed the dialog's pickers.
+### Mode A — Per-user (each person publishes as themselves)
 
-**Per-user OAuth setup** — register an [OAuth 2.0 (3LO) app](https://developer.atlassian.com/console/myapps/):
+Everyone connects their own Jira account; Jira enforces each person's own
+permissions. The OAuth credentials below identify the **app**, not a user — every
+user authorizes through the one app and gets their own tokens (like "Sign in with
+Google"). There is **no** shared account in this mode.
 
-1. Add the **Jira** permission with scopes `read:jira-work`, `write:jira-work`,
-   `read:jira-user`, `offline_access`.
-2. Set the **callback URL** to your origin + `/jira/callback` (e.g.
-   `http://localhost:5173/jira/callback` in dev — add your prod URL too; it must
-   match exactly).
-3. Copy the **Client ID** + **Secret** into the env vars above. `SESSION_SECRET`
-   is any random string (e.g. `openssl rand -hex 32`); it encrypts the session
-   cookie that holds each user's tokens — no database, and it works across
-   replicas. Tokens refresh automatically.
+1. **Register an OAuth 2.0 (3LO) app** at
+   <https://developer.atlassian.com/console/myapps/> → *Create* → *OAuth 2.0
+   integration*.
+2. **Add the Jira API** to the app and set its **scopes**:
+   `read:jira-work`, `write:jira-work`, `read:jira-user`, `offline_access`.
+3. **Set the callback URL** (Authorization → Callback URL) to your origin +
+   `/jira/callback`. It must match **exactly**. Add one per origin you use, e.g.:
+   - dev: `http://localhost:5173/jira/callback`
+   - prod: `https://docs.example.com/jira/callback`
+4. **Copy the Client ID and Secret** from the app's *Settings*.
+5. **Set these env vars** (and leave the Mode B vars unset):
 
-> Env vars are read by the **server** at runtime, so set them where the server
-> runs. `remix vite:dev` does **not** load `.env` into `process.env` — export
-> them in that shell.
+   ```bash
+   export JIRA_OAUTH_CLIENT_ID=<client id>
+   export JIRA_OAUTH_CLIENT_SECRET=<client secret>
+   export SESSION_SECRET=$(openssl rand -hex 32)   # encrypts each user's cookie
+   # optional: pre-fill the dialog's pickers
+   export JIRA_DEFAULT_PROJECT=PROJ
+   export JIRA_DEFAULT_ISSUE_TYPE=Task
+   ```
 
-**Linked tickets** for the *update* flow are detected two ways: a `jira:`
-frontmatter field (a key or URL, or a list), **and** any in-body markdown link to
-a `…/browse/KEY` URL. The dialog lists them with their live status (and marks
-completed ones).
+6. **Start the server, open a doc page → Publish to Jira → Connect Jira.** After
+   consenting on Atlassian you're publishing as yourself. Each browser repeats
+   this once; tokens are stored in an encrypted cookie (no database, replica-safe)
+   and refresh automatically.
+
+`SESSION_SECRET` is any random string; keep it stable (changing it logs everyone
+out). If a user's Jira spans multiple sites, set `JIRA_BASE_URL` to pick which
+one — otherwise the first accessible site is used.
+
+### Mode B — Shared account (one identity for everyone)
+
+Everyone publishes as a single Jira account — simplest, also right for
+cron/automation. No OAuth app, no per-user connecting.
+
+1. **Create an API token** for the account at
+   <https://id.atlassian.com/manage-profile/security/api-tokens> → *Create API
+   token*.
+2. **Set these env vars** (you do **not** need the route stubs from Step 1's
+   second block):
+
+   ```bash
+   export JIRA_BASE_URL=https://your-org.atlassian.net
+   export JIRA_EMAIL=service-account@your-org.com
+   export JIRA_API_TOKEN=<the API token>
+   # optional: pre-fill the dialog's pickers
+   export JIRA_DEFAULT_PROJECT=PROJ
+   export JIRA_DEFAULT_ISSUE_TYPE=Task
+   ```
+
+3. **Start the server, open a doc page → Publish to Jira.** Every publish acts as
+   that one account.
+
+### Combining the two
+
+If you set **both** modes' env vars, per-user wins: a connected browser publishes
+as itself, and any browser that hasn't connected falls back to the shared
+account. The dialog shows which identity is in use and offers *Connect Jira* /
+*Disconnect*. For pure per-user with no shared fallback, use **Mode A only**.
+
+### Linked tickets (the update flow)
+
+Tickets offered in *Update existing* are detected two ways: a `jira:` frontmatter
+field (a key or browse URL, or a list of them), **and** any in-body markdown link
+to a `…/browse/KEY` URL. The dialog lists them with their live status and marks
+completed ones.
 
 ## Exports
 
