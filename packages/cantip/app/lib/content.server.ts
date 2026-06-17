@@ -35,6 +35,15 @@ export interface Doc {
 	id: string
 	frontmatter: Record<string, unknown>
 	headings: import('cantip/source').Heading[]
+	/** Render form: a hast tree the client renders via HastRenderer. */
+	hast: import('hast').Root
+	/** Whether this page is a rendered Obsidian canvas (widens the layout). */
+	isCanvas: boolean
+	/**
+	 * HTML string derived from `hast`. SERVER-SIDE ONLY — used by the Jira ADF
+	 * converter and body ticket scan. The doc route loader strips it before sending
+	 * the doc to the client (which renders `hast`).
+	 */
 	html: string
 	/** Source-relative file path (incl. extension) for "edit this page" links; may be absent. */
 	sourcePath?: string
@@ -88,6 +97,8 @@ export async function getDoc(id: string): Promise<Doc | null> {
 		id: page.id,
 		frontmatter: page.data.frontmatter,
 		headings: page.data.headings,
+		hast: page.data.hast,
+		isCanvas: page.data.isCanvas,
 		html: page.data.html,
 		sourcePath: page.data.sourcePath,
 	}

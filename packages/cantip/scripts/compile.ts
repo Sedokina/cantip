@@ -7,8 +7,10 @@ import remarkBreaks from 'remark-breaks'
 import remarkMath from 'remark-math'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkRehype from 'remark-rehype'
+import rehypeRaw from 'rehype-raw'
 import rehypeKatex from 'rehype-katex'
-import rehypeStringify from 'rehype-stringify'
+import { toHtml } from 'hast-util-to-html'
+import { VFile } from 'vfile'
 import { visit } from 'unist-util-visit'
 import { slug as slugify } from 'github-slugger'
 import yaml from 'yaml'
@@ -37,6 +39,21 @@ export interface CompiledDoc {
 	sourcePath: string
 	frontmatter: Record<string, unknown>
 	headings: Heading[]
+	/**
+	 * The page body as a serialized hast (HTML AST) tree — the canonical render
+	 * form. The app renders it to a real React element tree (see HastRenderer), so
+	 * elements can be mapped to components and there is no `dangerouslySetInnerHTML`.
+	 * `rehype-raw` runs in the pipeline so the obsidian pass's raw-HTML nodes
+	 * (callouts, <img>, canvas, <mark>) are resolved into real hast — the renderer
+	 * can't render `raw` nodes.
+	 */
+	hast: HastRoot
+	/**
+	 * The same body serialized to an HTML string, DERIVED from `hast`. Kept for the
+	 * string-oriented consumers that don't render React: the Pagefind search index
+	 * (`addHTMLFile`), the Jira ADF converter, and body ticket-link scanning. Not
+	 * shipped to the client (the route loader strips it) — the client renders `hast`.
+	 */
 	html: string
 }
 
@@ -212,14 +229,22 @@ function defaultSteps(): MarkdownStep[] {
 		{ name: 'cantip:blank-line-gaps', plugin: remarkBlankLineGaps },
 		{ name: 'remark-math', plugin: remarkMath, options: { singleDollarTextMath: true } },
 		// allowDangerousHtml: the generated markdown contains raw HTML (callouts,
-		// <img>, canvas containers) produced by the obsidian remark pipeline.
+		// <img>, canvas containers) produced by the obsidian remark pipeline. These
+		// arrive in hast as `raw` nodes...
 		{ name: 'remark-rehype', plugin: remarkRehype, options: { allowDangerousHtml: true } },
+		// ...which rehype-raw reparses into real hast elements. Required because the
+		// render form is now a hast tree (not an HTML string): hast-util-to-jsx-runtime
+		// can't render `raw` nodes, and component-mapping needs real elements. Must run
+		// right after remark-rehype, before plugins that key off those elements.
+		{ name: 'rehype-raw', plugin: rehypeRaw },
 		{ name: 'rehype-katex', plugin: rehypeKatex },
 		// remarkBlankLineGaps puts the gap marker on the inner <code>; move it up to
 		// the <pre> so the inter-block gap actually applies (see plugin doc above).
 		{ name: 'cantip:hoist-blank-before-to-pre', plugin: rehypeHoistBlankBeforeToPre },
 		{ name: 'cantip:headings', plugin: rehypeHeadings },
-		{ name: 'rehype-stringify', plugin: rehypeStringify, options: { allowDangerousHtml: true } },
+		// No compiler step: the pipeline terminates at the hast tree. `compileMarkdown`
+		// runs it via parse()+run() and keeps the tree; the HTML string is derived from
+		// that tree with `hast-util-to-html` only where a string is still needed.
 	]
 }
 
@@ -240,7 +265,14 @@ function buildProcessor(hook?: MarkdownPipelineHook) {
 }
 
 /**
- * Compile a single markdown string to HTML + headings + frontmatter.
+ * Compile a single markdown string to a hast tree (+ derived HTML) + headings +
+ * frontmatter.
+ *
+ * The pipeline has no compiler (it ends at the hast tree), so we drive it with
+ * parse() then run() — run() executes the transformers and returns the hast,
+ * while the rehypeHeadings transformer fills `file.data.headings`. A VFile is
+ * passed so that data round-trips back to us. The HTML string is derived from the
+ * resulting tree for the string-only consumers.
  *
  * Pass a built processor (from `buildProcessor`) to reuse one across a dir; with
  * none, builds the default pipeline per call (back-compat for standalone callers).
@@ -249,13 +281,20 @@ export async function compileMarkdown(
 	markdown: string,
 	processor = buildProcessor(),
 ): Promise<Omit<CompiledDoc, 'id' | 'sourcePath'>> {
-	const mdast = processor.parse(markdown) as MdastRoot
+	const file = new VFile(markdown)
+	const mdast = processor.parse(file) as MdastRoot
 	const frontmatter = extractFrontmatter(mdast)
-	const file = await processor.process(markdown)
+	const hast = (await processor.run(mdast, file)) as HastRoot
+	// Position data from rehype-raw's reparse roughly doubles content.json; it's
+	// only useful for source mapping, which we don't need at render time.
+	visit(hast, (node) => {
+		delete (node as { position?: unknown }).position
+	})
 	return {
 		frontmatter,
 		headings: (file.data.headings as Heading[]) ?? [],
-		html: String(file),
+		hast,
+		html: toHtml(hast),
 	}
 }
 

@@ -1,5 +1,8 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { toHtml } from 'hast-util-to-html'
+import { visit } from 'unist-util-visit'
+import type { Element } from 'hast'
 import { generateObsidian } from './obsidian/generate.ts'
 import { generateCanvas } from './canvas-to-md.ts'
 import { compileDir, type CompiledDoc } from './compile.ts'
@@ -71,27 +74,42 @@ function buildWorkLists(config: DocsConfig) {
  * URLs without a trailing slash, e.g. `/krista/%D0%B3.../%D0%BA...`. We decode
  * each href, match it against a doc id, and if that doc's canonical URL differs
  * from its file-path URL (i.e. it has a permalink) we swap the href in place.
- * Any anchor (#heading) is preserved. Mutates `docs[].html`; returns the count.
+ * Any anchor (#heading) is preserved.
+ *
+ * The rewrite is applied to the hast tree (the render form) and the derived
+ * `html` string is regenerated from it, so both representations stay in sync.
+ * Mutates `docs[].hast` and `docs[].html`; returns the count.
  */
 function rewriteContentLinks(docs: CompiledDoc[], canonicalUrl: Map<string, string>): number {
 	let count = 0
 	for (const d of docs) {
-		d.html = d.html.replace(/href="(\/[^"#]+)(#[^"]*)?"/g, (whole, rawPath: string, anchor?: string) => {
+		let changed = false
+		visit(d.hast, 'element', (node: Element) => {
+			if (node.tagName !== 'a') return
+			const href = node.properties?.href
+			if (typeof href !== 'string' || !href.startsWith('/')) return
+			const hashAt = href.indexOf('#')
+			const rawPath = hashAt === -1 ? href : href.slice(0, hashAt)
+			const anchor = hashAt === -1 ? '' : href.slice(hashAt)
 			// Decode and normalize to an id (no leading/trailing slash) for lookup.
 			let decoded: string
 			try {
 				decoded = decodeURIComponent(rawPath)
 			} catch {
-				return whole // malformed escape — leave untouched
+				return // malformed escape — leave untouched
 			}
 			const id = decoded.replace(/^\/+|\/+$/g, '')
 			const canonical = canonicalUrl.get(id)
 			// Only rewrite when the target is a known doc WITH a permalink (its
 			// canonical URL differs from the default file-path form).
-			if (!canonical || canonical === `/${id}/`) return whole
+			if (!canonical || canonical === `/${id}/`) return
+			node.properties!.href = `${canonical}${anchor}`
 			count++
-			return `href="${canonical}${anchor ?? ''}"`
+			changed = true
 		})
+		// Re-derive the HTML string from the rewritten tree so the search index /
+		// ADF / ticket scan see canonical links too.
+		if (changed) d.html = toHtml(d.hast)
 	}
 	return count
 }
@@ -276,6 +294,7 @@ async function main() {
 					title: (d.frontmatter.title as string | undefined) ?? d.id.split('/').pop()?.replace(/-/g, ' ') ?? d.id,
 					frontmatter: d.frontmatter,
 					headings: d.headings,
+					hast: d.hast,
 					html: d.html,
 					isCanvas: d.html.includes('data-canvas-mount'),
 					sourcePath,

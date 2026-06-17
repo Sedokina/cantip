@@ -8,12 +8,12 @@ import { useT } from '~/lib/site-context'
 import { Button } from '~/components/ui/button'
 import { pageTitleFromMatches } from '~/lib/meta'
 import { useComponent, useOverride } from '~/lib/components'
-import { collectLinkedTickets } from '~/lib/jira-links'
 import PageFloatingMenu from '~/components/PageFloatingMenu'
 import PublishToJira from '~/components/PublishToJira'
 import EditSource from '~/components/EditSource'
 import CanvasMount from '~/components/CanvasMount'
 import { CodeWrapToggle } from '~/components/CodeWrapToggle'
+import HastRenderer from '~/components/HastRenderer'
 
 /** A colored MoSCoW priority pill, rendered inline next to the page title. */
 function PriorityBadge({ priority }: { priority: string }) {
@@ -73,9 +73,9 @@ export default function DocPageRoute() {
 
 function EngineDocPage() {
 	const Toc = useComponent('Toc')
-	const { doc, title, editUrl } = useLoaderData<typeof loader>()
+	const { doc, title, editUrl, linkedTickets } = useLoaderData<typeof loader>()
 	const showToc = doc.frontmatter.tableOfContents !== false
-	const isCanvas = doc.html.includes('canvas-container')
+	const isCanvas = doc.isCanvas
 	const priority = getPriority(doc.frontmatter.tags)
 
 	// Scroll to the #hash heading after the doc renders. Remix's ScrollRestoration
@@ -105,7 +105,9 @@ function EngineDocPage() {
 							{title}
 							{priority && <PriorityBadge priority={priority} />}
 						</h1>
-						<div className="body" dangerouslySetInnerHTML={{ __html: doc.html }} />
+						<div className="body">
+							<HastRenderer tree={doc.hast} />
+						</div>
 					</article>
 				</main>
 				<CanvasMount deps={doc.id} />
@@ -131,12 +133,14 @@ function EngineDocPage() {
 							<PublishToJira
 								pageId={doc.id}
 								title={title}
-								linkedTickets={collectLinkedTickets(doc.frontmatter, doc.html)}
+								linkedTickets={linkedTickets}
 							/>
 						</div>
 					</div>
 					<FrontmatterTable frontmatter={doc.frontmatter} />
-					<div className="body" dangerouslySetInnerHTML={{ __html: doc.html }} />
+					<div className="body">
+						<HastRenderer tree={doc.hast} />
+					</div>
 				</article>
 			</main>
 			{showToc && <Toc headings={doc.headings} />}
