@@ -1,7 +1,7 @@
 {
   "name": "create-cantip",
   "type": "module",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "description": "Scaffold a new cantip documentation site (`npm create cantip my-docs`).",
   "keywords": [
     "cantip",
