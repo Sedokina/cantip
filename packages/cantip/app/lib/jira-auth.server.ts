@@ -44,6 +44,20 @@ export function getOAuthConfig(): OAuthConfig | null {
 	return { clientId, clientSecret, sessionSecret }
 }
 
+/**
+ * The OAuth callback URL — must EXACTLY match what's registered on the Atlassian
+ * app. Behind a TLS-terminating reverse proxy the Node server sees plain http, so
+ * the request's own origin is wrong (http://… instead of https://…). Set
+ * `JIRA_OAUTH_REDIRECT_URI` to the public callback (e.g.
+ * `https://docs.example.com/jira/callback`); only the localhost dev case falls
+ * back to deriving it from the request.
+ */
+export function oauthRedirectUri(request: Request): string {
+	const explicit = process.env.JIRA_OAUTH_REDIRECT_URI?.trim()
+	if (explicit) return explicit
+	return `${new URL(request.url).origin}/jira/callback`
+}
+
 /** A connected user's Jira tokens + site, stored (encrypted) in the cookie. */
 export interface JiraSession {
 	accessToken: string

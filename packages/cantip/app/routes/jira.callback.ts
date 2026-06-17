@@ -12,7 +12,14 @@
 import { redirect } from '@remix-run/node'
 import type { LoaderFunctionArgs } from '@remix-run/node'
 
-import { clearState, commitSession, getOAuthConfig, readState, sessionFromCode } from '~/lib/jira-auth.server'
+import {
+	clearState,
+	commitSession,
+	getOAuthConfig,
+	oauthRedirectUri,
+	readState,
+	sessionFromCode,
+} from '~/lib/jira-auth.server'
 
 function safePath(value: string | undefined): string {
 	return value && value.startsWith('/') && !value.startsWith('//') ? value : '/'
@@ -54,7 +61,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	}
 
 	try {
-		const session = await sessionFromCode(oauth, code, `${url.origin}/jira/callback`)
+		const session = await sessionFromCode(oauth, code, oauthRedirectUri(request))
 		const headers = new Headers()
 		headers.append('Set-Cookie', clear)
 		// The session spans several sub-4KB cookies (Atlassian tokens are large).

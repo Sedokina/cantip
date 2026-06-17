@@ -12,7 +12,7 @@
 import { redirect } from '@remix-run/node'
 import type { LoaderFunctionArgs } from '@remix-run/node'
 
-import { authorizeUrl, commitState, getOAuthConfig, newState } from '~/lib/jira-auth.server'
+import { authorizeUrl, commitState, getOAuthConfig, newState, oauthRedirectUri } from '~/lib/jira-auth.server'
 
 /** Only allow returning to an in-app path (no open redirects). */
 function safePath(value: string | null): string {
@@ -25,7 +25,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 	const url = new URL(request.url)
 	const redirectTo = safePath(url.searchParams.get('redirectTo'))
-	const redirectUri = `${url.origin}/jira/callback`
+	const redirectUri = oauthRedirectUri(request)
 	const state = newState()
 
 	return redirect(authorizeUrl(oauth, redirectUri, state), {

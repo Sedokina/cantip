@@ -222,6 +222,8 @@ Google"). There is **no** shared account in this mode.
    export JIRA_OAUTH_CLIENT_ID=<client id>
    export JIRA_OAUTH_CLIENT_SECRET=<client secret>
    export SESSION_SECRET=$(openssl rand -hex 32)   # encrypts each user's cookie
+   # behind a reverse proxy: set the exact public callback (see note below)
+   export JIRA_OAUTH_REDIRECT_URI=https://docs.example.com/jira/callback
    # optional: pre-fill the dialog's pickers
    export JIRA_DEFAULT_PROJECT=PROJ
    export JIRA_DEFAULT_ISSUE_TYPE=Task
@@ -235,6 +237,13 @@ Google"). There is **no** shared account in this mode.
 `SESSION_SECRET` is any random string; keep it stable (changing it logs everyone
 out). If a user's Jira spans multiple sites, set `JIRA_BASE_URL` to pick which
 one — otherwise the first accessible site is used.
+
+> **Behind a reverse proxy, set `JIRA_OAUTH_REDIRECT_URI`** to the exact public
+> callback (e.g. `https://docs.example.com/jira/callback`). The app otherwise
+> derives the callback from the request, and a TLS-terminating proxy makes it see
+> `http://…`, so the `redirect_uri` won't match what you registered (Atlassian
+> rejects it: *"redirect_uri is not registered"*). In local dev (no proxy) you can
+> omit it. It must match the registered callback exactly.
 
 ### Mode B — Shared account (one identity for everyone)
 
