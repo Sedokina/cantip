@@ -95,15 +95,17 @@ function decrypt(token: string, secret: string): string | null {
 
 const secure = process.env.NODE_ENV === 'production'
 
-// The encrypted session is too big for one cookie — Atlassian access tokens are
-// large JWTs, so the payload runs ~6–9 KB while browsers drop any single cookie
-// over ~4 KB. So we SPLIT it across numbered cookies (cantip_jira_0, _1, …) and
-// reassemble on read. We manage these by hand (not createCookie) to avoid its
-// JSON+base64 re-expansion — the encrypted value is already URL-safe base64url.
-const SESSION_PREFIX = 'cantip_jira_'
-const CHUNK_SIZE = 3500 // value bytes per cookie, leaving room for name + attrs
-const MAX_CHUNKS = 12 // hard cap (~42 KB) so a bad payload can't spray cookies
+// The whole session is too big for one cookie — combined, the Atlassian access
+// token (~2.4 KB) + refresh token (~1.7 KB) blow past the ~4 KB per-cookie
+// limit. So we split it across TWO cookies by meaning: the access token (+ small
+// fields) in one, the refresh token in the other. Each lands well under 4 KB,
+// and keeping the refresh token means sessions survive (no hourly reconnect).
+// Managed by hand (not createCookie) to avoid its JSON+base64 re-expansion — the
+// encrypted value is already URL-safe base64url.
+const ACCESS_COOKIE = 'cantip_jira_at'
+const REFRESH_COOKIE = 'cantip_jira_rt'
 const SESSION_MAX_AGE = 60 * 60 * 24 * 90 // 90 days (refresh-token lifetime)
+const COOKIE_SOFT_LIMIT = 3900 // warn if an encrypted value nears the ~4 KB cap
 
 function cookieAttrs(maxAge: number): string {
 	const parts = [`Path=/`, 'HttpOnly', 'SameSite=Lax', `Max-Age=${maxAge}`]
@@ -124,15 +126,15 @@ function parseCookies(header: string | null): Record<string, string> {
 	return jar
 }
 
-/** Set-Cookie strings for an encrypted payload: the needed chunks, plus expiry
- *  for any leftover chunks from a previously larger session. */
-function sessionCookies(encrypted: string): string[] {
-	const chunks: string[] = []
-	for (let i = 0; i < encrypted.length; i += CHUNK_SIZE) chunks.push(encrypted.slice(i, i + CHUNK_SIZE))
-	if (chunks.length > MAX_CHUNKS) throw new Error('Jira session payload too large to store in cookies')
-	const out = chunks.map((c, i) => `${SESSION_PREFIX}${i}=${c}; ${cookieAttrs(SESSION_MAX_AGE)}`)
-	for (let i = chunks.length; i < MAX_CHUNKS; i++) out.push(`${SESSION_PREFIX}${i}=; ${cookieAttrs(0)}`)
-	return out
+/** One Set-Cookie line for a named cookie holding an encrypted value. */
+function setCookie(name: string, encrypted: string, maxAge: number): string {
+	if (encrypted.length > COOKIE_SOFT_LIMIT) {
+		console.warn(
+			`[jira] ${name} cookie is ${encrypted.length} bytes (near the ~4 KB browser cap); ` +
+				`it may be dropped. This Atlassian token is unusually large.`,
+		)
+	}
+	return `${name}=${encrypted}; ${cookieAttrs(maxAge)}`
 }
 
 /** A short-lived cookie carrying the CSRF `state` + post-connect redirect. */
@@ -149,32 +151,32 @@ function stateCookie(secret: string) {
 
 export function readSession(request: Request, secret: string): JiraSession | null {
 	const jar = parseCookies(request.headers.get('Cookie'))
-	let encrypted = ''
-	for (let i = 0; i < MAX_CHUNKS; i++) {
-		const chunk = jar[`${SESSION_PREFIX}${i}`]
-		if (chunk == null || chunk === '') break
-		encrypted += chunk
-	}
-	if (!encrypted) return null
-	const json = decrypt(encrypted, secret)
-	if (!json) return null
+	// The access cookie is required; the refresh cookie is optional (its absence
+	// just means we can't renew — the access token works until it expires).
+	const accessJson = jar[ACCESS_COOKIE] ? decrypt(jar[ACCESS_COOKIE], secret) : null
+	if (!accessJson) return null
+	const refreshJson = jar[REFRESH_COOKIE] ? decrypt(jar[REFRESH_COOKIE], secret) : null
 	try {
-		return JSON.parse(json) as JiraSession
+		const access = JSON.parse(accessJson) as Omit<JiraSession, 'refreshToken'>
+		const refreshToken = refreshJson ? ((JSON.parse(refreshJson) as { refreshToken?: string }).refreshToken ?? '') : ''
+		return { ...access, refreshToken }
 	} catch {
 		return null
 	}
 }
 
-/** Set-Cookie list (multiple) that stores the session. */
+/** Two Set-Cookie lines: the access part and the refresh part. */
 export function commitSession(session: JiraSession, secret: string): string[] {
-	return sessionCookies(encrypt(JSON.stringify(session), secret))
+	const { refreshToken, ...access } = session
+	return [
+		setCookie(ACCESS_COOKIE, encrypt(JSON.stringify(access), secret), SESSION_MAX_AGE),
+		setCookie(REFRESH_COOKIE, encrypt(JSON.stringify({ refreshToken }), secret), SESSION_MAX_AGE),
+	]
 }
 
-/** Set-Cookie list (multiple) that expires every session chunk. */
+/** Two Set-Cookie lines that expire both session cookies. */
 export function destroySession(): string[] {
-	const out: string[] = []
-	for (let i = 0; i < MAX_CHUNKS; i++) out.push(`${SESSION_PREFIX}${i}=; ${cookieAttrs(0)}`)
-	return out
+	return [`${ACCESS_COOKIE}=; ${cookieAttrs(0)}`, `${REFRESH_COOKIE}=; ${cookieAttrs(0)}`]
 }
 
 export function commitState(state: string, redirectTo: string, secret: string): Promise<string> {
