@@ -222,54 +222,14 @@ interface TokenResponse {
 	token_type?: string
 }
 
-/** Opt-in verbose logging (set JIRA_OAUTH_DEBUG=1). Never log in normal runs —
- *  these payloads are sensitive. */
-function debugEnabled(): boolean {
-	const v = process.env.JIRA_OAUTH_DEBUG
-	return v === '1' || v === 'true'
-}
-
-/** Decode a JWT's header + payload (NOT verifying the signature) for inspection. */
-function decodeJwt(token: string): { header: unknown; payload: unknown } | null {
-	const parts = token.split('.')
-	if (parts.length < 2) return null
-	try {
-		return {
-			header: JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')),
-			payload: JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')),
-		}
-	} catch {
-		return null
-	}
-}
-
 async function tokenRequest(body: Record<string, string>): Promise<TokenResponse> {
 	const res = await fetch(`${AUTH_BASE}/oauth/token`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 		body: JSON.stringify(body),
 	})
-	const text = await res.text()
-	if (!res.ok) {
-		if (debugEnabled()) console.error(`[jira][debug] token endpoint ${res.status}:`, text)
-		throw new Error(`Atlassian token endpoint failed (HTTP ${res.status})`)
-	}
-	if (debugEnabled()) {
-		// The exact, unmodified response body from Atlassian (includes the real
-		// access_token / refresh_token values).
-		console.log('[jira][debug] token endpoint raw response:\n' + text)
-	}
-	const json = JSON.parse(text) as TokenResponse
-	if (debugEnabled()) {
-		// The decoded access-token JWT (header + payload, signature not verified) —
-		// the `scope` claim here is what drives the token's size.
-		const decoded = decodeJwt(json.access_token)
-		console.log(
-			'[jira][debug] access token decoded (header + payload):\n' +
-				(decoded ? JSON.stringify(decoded, null, 2) : '(not a decodable JWT — opaque token)'),
-		)
-	}
-	return json
+	if (!res.ok) throw new Error(`Atlassian token endpoint failed (HTTP ${res.status})`)
+	return (await res.json()) as TokenResponse
 }
 
 /** Exchange an authorization code for tokens, then resolve the site + user into
@@ -317,10 +277,8 @@ async function resolveSite(accessToken: string): Promise<{ cloudId: string; site
 	const res = await fetch(`${API_GATEWAY}/oauth/token/accessible-resources`, {
 		headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
 	})
-	const text = await res.text()
 	if (!res.ok) throw new Error(`Could not list accessible Jira sites (HTTP ${res.status})`)
-	if (debugEnabled()) console.log('[jira][debug] accessible-resources raw response:\n' + text)
-	const sites = JSON.parse(text) as Array<{ id: string; url: string }>
+	const sites = (await res.json()) as Array<{ id: string; url: string }>
 	if (sites.length === 0) throw new Error('This Atlassian account has no accessible Jira sites')
 	const preferred = process.env.JIRA_BASE_URL?.trim().replace(/\/+$/, '')
 	const chosen = (preferred && sites.find((s) => s.url.replace(/\/+$/, '') === preferred)) || sites[0]
