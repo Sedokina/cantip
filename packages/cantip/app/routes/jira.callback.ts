@@ -41,16 +41,33 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	const failBack = (reason: string) =>
 		redirect(withFlag(redirectTo, 'jira_connect', reason), { headers: { 'Set-Cookie': clear } })
 
-	if (oauthError) return failBack('denied')
-	if (!code || !state || !saved || state !== saved.state) return failBack('failed')
+	if (oauthError) {
+		console.warn(`[jira] OAuth callback returned error: ${oauthError}`)
+		return failBack('denied')
+	}
+	if (!code || !state || !saved || state !== saved.state) {
+		console.warn(
+			`[jira] OAuth callback state check failed (code=${!!code} state=${!!state} saved=${!!saved} match=${state === saved?.state}). ` +
+				`If state/saved are missing, the state cookie didn't come back — check cookie settings (e.g. HTTPS/secure).`,
+		)
+		return failBack('failed')
+	}
 
 	try {
 		const session = await sessionFromCode(oauth, code, `${url.origin}/jira/callback`)
+		const sessionCookie = await commitSession(session, oauth.sessionSecret)
+		if (sessionCookie.length > 4096) {
+			console.warn(
+				`[jira] Session cookie is ${sessionCookie.length} bytes (>4096). Browsers may DROP it, ` +
+					`leaving you "not connected". The Atlassian access token is unusually large.`,
+			)
+		}
 		const headers = new Headers()
 		headers.append('Set-Cookie', clear)
-		headers.append('Set-Cookie', await commitSession(session, oauth.sessionSecret))
+		headers.append('Set-Cookie', sessionCookie)
 		return redirect(redirectTo, { headers })
-	} catch {
+	} catch (err) {
+		console.error('[jira] OAuth token exchange / site resolution failed:', err)
 		return failBack('failed')
 	}
 }
