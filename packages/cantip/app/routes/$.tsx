@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
-import { useLoaderData, useLocation } from '@remix-run/react'
+import { Link, isRouteErrorResponse, useLoaderData, useLocation, useRouteError } from '@remix-run/react'
 import type { MetaFunction } from '@remix-run/node'
 
 import type { loader } from './doc.server'
 import { getPriority } from '~/lib/utils'
 import { useT } from '~/lib/site-context'
+import { Button } from '~/components/ui/button'
 import { pageTitleFromMatches } from '~/lib/meta'
 import { useComponent, useOverride } from '~/lib/components'
 import { collectLinkedTickets } from '~/lib/jira-links'
@@ -143,5 +144,44 @@ function EngineDocPage() {
 			<CanvasMount deps={doc.id} />
 			<CodeWrapToggle deps={doc.id} />
 		</>
+	)
+}
+
+export const ErrorBoundary = StatusPage
+
+/**
+ * Route-level error boundary. A doc loader that can't find a page throws a 404
+ * `Response` (see `doc.server`), which Remix routes here — so this renders in the
+ * content column, inside the engine's chrome (sidebar/top bar stay put). A 404
+ * gets the dedicated not-found design; any other thrown error gets the generic
+ * variant. Both read their copy from the localized `ui` dictionary via `useT`.
+ */
+function StatusPage() {
+	const error = useRouteError()
+	const t = useT()
+	const isNotFound = isRouteErrorResponse(error) && error.status === 404
+
+	const code = isRouteErrorResponse(error) ? error.status : 500
+	const title = isNotFound ? t('notFoundTitle') : t('errorTitle')
+	const message = isNotFound ? t('notFoundMessage') : t('errorMessage')
+
+	return (
+		<main className="mx-auto flex w-full min-w-0 max-w-[calc(720px+5rem)] flex-col items-center px-10 pb-16 pt-[max(8vh,4rem)] text-center max-md:px-4 max-md:pb-20">
+			{/* The status code as a big, soft watermark — uses the brand color at low
+			    opacity so it reads as decoration, not as body text. */}
+			<p
+				aria-hidden
+				className="select-none bg-gradient-to-b from-primary to-primary/40 bg-clip-text text-[clamp(6rem,22vw,11rem)] font-extrabold leading-none tracking-tight text-transparent"
+			>
+				{code}
+			</p>
+			<h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+				{title}
+			</h1>
+			<p className="mt-3 max-w-md text-balance text-base text-muted-foreground">{message}</p>
+			<Button asChild size="lg" className="mt-8">
+				<Link to="/">{t('backHome')}</Link>
+			</Button>
+		</main>
 	)
 }

@@ -198,6 +198,13 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		createIssue: 'Создать задачу',
 		updateTicket: 'Обновить задачу',
 		publishing: 'Публикация…',
+		// Not-found / error page
+		notFoundTitle: 'Страница не найдена',
+		notFoundMessage:
+			'Похоже, такой страницы здесь нет. Возможно, её переместили, переименовали или она ещё не написана.',
+		errorTitle: 'Что-то пошло не так',
+		errorMessage: 'При загрузке страницы произошла непредвиденная ошибка. Попробуйте ещё раз.',
+		backHome: 'На главную',
 	},
 	en: {
 		projects: 'Projects',
@@ -314,6 +321,13 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		createIssue: 'Create issue',
 		updateTicket: 'Update ticket',
 		publishing: 'Publishing…',
+		// Not-found / error page
+		notFoundTitle: 'Page not found',
+		notFoundMessage:
+			'We couldn’t find the page you’re looking for. It may have been moved, renamed, or never written.',
+		errorTitle: 'Something went wrong',
+		errorMessage: 'An unexpected error occurred while loading this page. Please try again.',
+		backHome: 'Back home',
 	},
 }
 

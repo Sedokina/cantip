@@ -3,4 +3,4 @@
 // cantip's `.server` entry (kept server-only); the component + meta from the
 // client-safe entry.
 export { loader } from 'cantip/routes/doc.server'
-export { default, meta } from 'cantip/routes/doc'
+export { default, meta, ErrorBoundary } from 'cantip/routes/doc'
