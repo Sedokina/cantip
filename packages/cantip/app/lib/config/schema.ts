@@ -140,6 +140,12 @@ export const docsConfigSchema = z.object({
 	 * Ordering rules still apply: remark steps must precede `remark-rehype`, rehype
 	 * steps must follow it; cantip does not enforce this (full control = your call).
 	 *
+	 * The pipeline TERMINATES AT A HAST TREE — there is no stringify/compiler step.
+	 * The generator runs the chain via `parse()` + `run()` and stores the resulting
+	 * hast (the app renders it as a React tree, and derives an HTML string only when
+	 * a string is needed). So every step must be a remark/rehype TRANSFORM; do not
+	 * add a compiler such as `rehype-stringify` (it would simply never run).
+	 *
 	 * Validated loosely (functions can't be deeply schema-checked); the generator
 	 * applies it. Not part of the serialized runtime config — it never leaves the
 	 * build process.
