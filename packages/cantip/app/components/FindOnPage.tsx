@@ -13,10 +13,10 @@ import { cn } from '~/lib/utils'
  *
  * Highlighting uses the CSS Custom Highlight API (`CSS.highlights` + the
  * `::highlight()` pseudo, styled in app.css). That paints over Range objects
- * WITHOUT mutating the DOM — essential here because the article HTML is injected
- * via dangerouslySetInnerHTML and React owns nothing inside it; wrapping matches
- * in <mark> would fight React and risk corrupting the content. Ranges are also
- * cheap to discard, so clearing on close is a one-liner.
+ * WITHOUT mutating the DOM — the right approach even though the body is now a
+ * React tree (HastRenderer): wrapping matches in <mark> would fight React's
+ * reconciliation. Ranges are also cheap to discard, so clearing on close is a
+ * one-liner.
  *
  * Rendered (mobile-only) by the doc route; opened from the page floating menu.
  */

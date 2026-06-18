@@ -15,6 +15,7 @@
  */
 import { json } from '@remix-run/node'
 import type { ActionFunctionArgs, LoaderFunctionArgs } from '@remix-run/node'
+import { toHtml } from 'hast-util-to-html'
 
 import { getDoc } from '~/lib/content.server'
 import { getJiraAuth, getJiraStatus } from '~/lib/jira-auth.server'
@@ -132,8 +133,11 @@ export async function action({ request }: ActionFunctionArgs) {
 	const selection = body.selectionHtml?.trim()
 	if (selection && selection.length > MAX_SELECTION_CHARS) return fail('Selection is too large', 413)
 	// Whole-page: drop the leading `# Title` (it's already the summary). A
-	// selection is published verbatim.
-	const description = selection ? htmlToAdf(selection) : dropLeadingTitle(htmlToAdf(doc.html))
+	// selection is published verbatim. The body only exists as a hast tree, so
+	// serialize it to HTML on demand for the ADF converter (rare — only on publish).
+	const description = selection
+		? htmlToAdf(selection)
+		: dropLeadingTitle(htmlToAdf(toHtml(doc.hast)))
 
 	try {
 		if (body.intent === 'create') {

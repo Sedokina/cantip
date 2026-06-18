@@ -9,6 +9,7 @@ import type { LoaderFunctionArgs } from '@remix-run/node'
 import { getDoc, resolvePermalink, getPermalinkForId } from '~/lib/content.server'
 import { getSiteData, getProjectIdForDoc } from '~/lib/site.server'
 import { GENERAL_PROJECT_ID } from '~/lib/projects-core'
+import { collectLinkedTickets } from '~/lib/jira-links'
 
 /**
  * Build the "edit this page" URL for a doc from its project's `editUrl` template
@@ -54,5 +55,8 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 		(doc.frontmatter.title as string | undefined) ??
 		slug.split('/').pop()?.replace(/-/g, ' ') ??
 		slug
-	return json({ doc, title, editUrl: editUrlFor(docId, doc.sourcePath) })
+	// Scan the body's hast for linked Jira tickets server-side, so the result ships
+	// to the client without the body needing to exist as an HTML string anywhere.
+	const linkedTickets = collectLinkedTickets(doc.frontmatter, doc.hast)
+	return json({ doc, title, editUrl: editUrlFor(docId, doc.sourcePath), linkedTickets })
 }

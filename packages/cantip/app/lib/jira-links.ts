@@ -26,18 +26,32 @@ export function parseLinkedTickets(frontmatter: Record<string, unknown>): string
 	return [...keys]
 }
 
-/** A link whose href points at a Jira browse URL, e.g. `…/browse/PROJ-42`. */
-const BROWSE_HREF = /href="[^"]*\/browse\/([A-Z][A-Z0-9]+-\d+)/g
+/** A Jira browse URL, e.g. `…/browse/PROJ-42`, captured to its issue key. */
+const BROWSE_HREF = /\/browse\/([A-Z][A-Z0-9]+-\d+)/
+
+/** Collect every anchor `href` in a hast tree (the rendered doc body). */
+function anchorHrefs(node: { tagName?: string; properties?: Record<string, unknown>; children?: unknown[] }, out: string[]): void {
+	if (node.tagName === 'a' && typeof node.properties?.href === 'string') out.push(node.properties.href)
+	if (Array.isArray(node.children)) {
+		for (const child of node.children) anchorHrefs(child as typeof node, out)
+	}
+}
 
 /**
  * Extract issue keys from links in the rendered page body, where tickets are
  * markdown links like `[PROJ-42: …](…/browse/PROJ-42)`. Only anchor hrefs that
  * point at a `/browse/KEY` URL are matched, so prose like "UTF-8" or "COVID-19"
- * can't masquerade as a ticket.
+ * can't masquerade as a ticket. Walks the body's hast tree (the render form), so
+ * no HTML string needs to exist at runtime.
  */
-export function parseBodyTickets(html: string): string[] {
+export function parseBodyTickets(hast: import('hast').Root): string[] {
 	const keys = new Set<string>()
-	for (const m of html.matchAll(BROWSE_HREF)) keys.add(m[1])
+	const hrefs: string[] = []
+	anchorHrefs(hast, hrefs)
+	for (const href of hrefs) {
+		const m = BROWSE_HREF.exec(href)
+		if (m) keys.add(m[1])
+	}
 	return [...keys]
 }
 
@@ -48,12 +62,12 @@ export function parseBodyTickets(html: string): string[] {
  */
 export function collectLinkedTickets(
 	frontmatter: Record<string, unknown>,
-	html: string,
+	hast: import('hast').Root,
 	limit = 50,
 ): string[] {
 	const seen = new Set<string>()
 	const out: string[] = []
-	for (const key of [...parseLinkedTickets(frontmatter), ...parseBodyTickets(html)]) {
+	for (const key of [...parseLinkedTickets(frontmatter), ...parseBodyTickets(hast)]) {
 		if (!seen.has(key)) {
 			seen.add(key)
 			out.push(key)

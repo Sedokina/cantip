@@ -380,7 +380,7 @@ img {
 	overflow-wrap: anywhere;
 	overflow-x: visible;
 }
-/* Wrapper added client-side around each <pre> (see CodeWrapToggle). It is the
+/* Wrapper the CodeBlock component renders around each <pre>. It is the
    positioning context for the toggle, so the button pins to the block's
    top-right corner and does NOT scroll with the <pre>'s horizontal overflow. */
 .content .body .pre-wrap-shell {

@@ -35,7 +35,10 @@ export interface Doc {
 	id: string
 	frontmatter: Record<string, unknown>
 	headings: import('cantip/source').Heading[]
-	html: string
+	/** Render form: a hast tree the client renders via HastRenderer. */
+	hast: import('hast').Root
+	/** Whether this page is a rendered Obsidian canvas (widens the layout). */
+	isCanvas: boolean
 	/** Source-relative file path (incl. extension) for "edit this page" links; may be absent. */
 	sourcePath?: string
 }
@@ -88,7 +91,8 @@ export async function getDoc(id: string): Promise<Doc | null> {
 		id: page.id,
 		frontmatter: page.data.frontmatter,
 		headings: page.data.headings,
-		html: page.data.html,
+		hast: page.data.hast,
+		isCanvas: page.data.isCanvas,
 		sourcePath: page.data.sourcePath,
 	}
 }

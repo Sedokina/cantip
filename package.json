@@ -18,5 +18,11 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "comments": {
+    "overrides": "Force a single @types/hast@3 across the tree. The Remix dev-only MDX toolchain (@mdx-js/mdx) pulls v2-era hast type packages; without this they collide with the v3 types cantip's hast pipeline uses. Run `npm dedupe` after install so the root copy is v3 too."
+  },
+  "overrides": {
+    "@types/hast": "^3.0.4"
   }
 }

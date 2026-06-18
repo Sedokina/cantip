@@ -11,6 +11,8 @@
  * supply any object with this shape from `app/source.ts`.
  */
 
+import type { Root as HastRoot } from 'hast'
+
 /** A heading collected from a compiled page, for the table of contents. */
 export interface Heading {
 	depth: number
@@ -26,8 +28,14 @@ export interface PageData {
 	frontmatter: Record<string, unknown>
 	/** Collected headings for the on-page TOC. */
 	headings: Heading[]
-	/** Pre-rendered HTML string (injected via dangerouslySetInnerHTML). */
-	html: string
+	/**
+	 * The page body as a serialized hast (HTML AST) tree — the single source of
+	 * truth for the body. The doc route renders it to a real React element tree via
+	 * HastRenderer (component mapping, client-side links, no dangerouslySetInnerHTML).
+	 * Server-side consumers that need an HTML string (Jira ADF) derive it on demand
+	 * with `hast-util-to-html`; the Pagefind index derives it at build time.
+	 */
+	hast: HastRoot
 	/** True when the page is a rendered Obsidian canvas (no prose to index). */
 	isCanvas: boolean
 	/**

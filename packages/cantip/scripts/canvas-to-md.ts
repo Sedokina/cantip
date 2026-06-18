@@ -38,7 +38,14 @@ async function generateCanvasFile(
 	}
 
 	const title = path.basename(relPath, '.canvas');
-	const safeJson = JSON.stringify(canvasObj).replace(/</g, '\\u003c');
+	// Carry the canvas data on a `<canvas-mount>` custom element so the app can map
+	// it to the CanvasView component (which parses `canvas` and renders the viewer).
+	// HTML-attribute-escaped so it survives the markdown → rehype-raw round-trip.
+	const canvasAttr = JSON.stringify(canvasObj)
+		.replace(/&/g, '&amp;')
+		.replace(/"/g, '&quot;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;');
 
 	const md = [
 		'---',
@@ -46,7 +53,7 @@ async function generateCanvasFile(
 		'tableOfContents: false',
 		'---',
 		'',
-		`<div class="canvas-container not-content" data-canvas-mount><script type="application/json">${safeJson}</script></div>`,
+		`<canvas-mount canvas="${canvasAttr}"></canvas-mount>`,
 		'',
 	].join('\n');
 
