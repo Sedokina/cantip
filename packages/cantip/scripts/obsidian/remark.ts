@@ -66,6 +66,9 @@ export function remarkObsidian() {
     // 86%-of-files drift this caused). The markers it inserts survive stringify
     // and are the sole source of truth for `.has-blank-before` at compile time.
     markBlankGaps(tree)
+    // Also while positions are pristine: promote single-line `$$…$$` to display
+    // math before remark-stringify can collapse it to inline `$…$`.
+    promoteDisplayMath(tree, file)
 
     handleReplacements(tree, file)
     await handleMermaid(tree, file)
@@ -283,6 +286,42 @@ function handleReplacements(tree: Root, file: VFile) {
       },
     ],
   ])
+}
+
+/**
+ * Obsidian renders `$$…$$` as a centered display block even on a single line, but
+ * micromark only treats `$$` as block math when the closing `$$` is on its own
+ * line — a single-line `$$x$$` parses as INLINE math, and remark-stringify then
+ * collapses it to `$x$`, losing the display intent before compile ever sees it.
+ *
+ * So, while source positions are still pristine, promote any paragraph that is
+ * just one `$$…$$` inline-math node to a display `math` node; remark-stringify
+ * writes that back as a fenced `$$ … $$` block, which the compile pipeline renders
+ * with `katex-display`. The `$$` delimiter is confirmed from the source, so a real
+ * inline `$x$` is never promoted; mixed inline `$$…$$` within prose is left as-is.
+ */
+function promoteDisplayMath(tree: Root, file: VFile) {
+  const src = String(file)
+  visit(tree, 'paragraph', (para, index, parent) => {
+    if (index == null || !parent) return
+    const meaningful = para.children.filter(
+      (c) => !(c.type === 'text' && !c.value.trim()),
+    )
+    if (meaningful.length !== 1 || meaningful[0].type !== ('inlineMath' as string)) return
+    const math = meaningful[0] as unknown as {
+      value: string
+      position?: { start?: { offset?: number }; end?: { offset?: number } }
+    }
+    const start = math.position?.start?.offset
+    const end = math.position?.end?.offset
+    if (start == null || end == null) return
+    if (!/^\$\$[\s\S]*\$\$$/.test(src.slice(start, end))) return
+    parent.children[index] = {
+      type: 'math',
+      value: math.value,
+      position: para.position,
+    } as unknown as RootContent
+  })
 }
 
 function handleMath({ file }: VisitorContext) {
