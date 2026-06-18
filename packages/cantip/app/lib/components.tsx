@@ -12,6 +12,12 @@
  *
  * Call sites read a resolved component via `useComponent('TopBar')` (override or
  * engine default).
+ *
+ * The same provider also carries `htmlComponents` — element→component overrides
+ * for the rendered doc body (see below), the markdown equivalent of an MDX
+ * components map:
+ *
+ *   <CantipProvider components={{ htmlComponents: { table: MyTable, img: Zoomable } }}>
  */
 import { createContext, useContext, type ComponentType, type ReactNode } from 'react'
 
@@ -28,6 +34,14 @@ export interface ComponentOverrides {
 	Home?: ComponentType<any>
 	/** Doc page body. */
 	DocPage?: ComponentType<any>
+	/**
+	 * Element → component overrides for the rendered doc body, keyed by HTML tag
+	 * name (`table`, `img`, `h2`, …) or a custom element the markdown pipeline
+	 * emits. Merged OVER the engine defaults (`a`→Link, `pre`→CodeBlock,
+	 * `canvas-mount`→CanvasView), so a consumer can add new mappings or replace
+	 * the built-in ones. This is the markdown counterpart of an MDX components map.
+	 */
+	htmlComponents?: Record<string, ComponentType<any>>
 }
 
 const DEFAULTS = {
@@ -65,3 +79,15 @@ export function useOverride(slot: 'Home' | 'DocPage'): ComponentType<any> | null
 	const overrides = useContext(ComponentsContext)
 	return overrides[slot] ?? null
 }
+
+/**
+ * The consumer's element→component overrides for the doc body (or an empty map).
+ * HastRenderer merges these over its engine defaults.
+ */
+export function useHtmlComponents(): Record<string, ComponentType<any>> {
+	return useContext(ComponentsContext).htmlComponents ?? EMPTY_HTML_COMPONENTS
+}
+
+// Stable empty default so the merge in HastRenderer doesn't see a new object each
+// render when no overrides are provided.
+const EMPTY_HTML_COMPONENTS: Record<string, ComponentType<any>> = {}

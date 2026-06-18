@@ -6,6 +6,7 @@ import type { Root as HastRoot } from 'hast'
 
 import CodeBlock from '~/components/CodeBlock'
 import CanvasView from '~/components/CanvasView'
+import { useHtmlComponents } from '~/lib/components'
 
 /**
  * Render a compiled doc body (a hast tree) to a real React element tree.
@@ -39,7 +40,8 @@ function Anchor({ href, children, ...rest }: { href?: string; children?: React.R
 	)
 }
 
-const components = {
+/** Engine defaults. Consumer `htmlComponents` are merged over these. */
+const engineComponents = {
 	a: Anchor,
 	// Fenced code blocks → a component with a per-block "wrap lines" toggle.
 	pre: CodeBlock,
@@ -49,5 +51,7 @@ const components = {
 }
 
 export default function HastRenderer({ tree }: { tree: HastRoot }) {
+	const overrides = useHtmlComponents()
+	const components = { ...engineComponents, ...overrides }
 	return toJsxRuntime(tree, { Fragment, jsx, jsxs, components })
 }
