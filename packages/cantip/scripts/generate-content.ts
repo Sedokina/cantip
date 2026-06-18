@@ -295,7 +295,6 @@ async function main() {
 					frontmatter: d.frontmatter,
 					headings: d.headings,
 					hast: d.hast,
-					html: d.html,
 					isCanvas: d.html.includes('<canvas-mount'),
 					sourcePath,
 				},

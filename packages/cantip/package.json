@@ -126,6 +126,7 @@
   "dependencies": {
     "@headless-tree/core": "^1.7.0",
     "hast-util-from-html": "^2.0.3",
+    "hast-util-to-html": "^9.0.5",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "@headless-tree/react": "^1.7.0",
     "@radix-ui/react-slot": "^1.2.4",
@@ -151,7 +152,6 @@
     "@types/react-dom": "^18.3.1",
     "decode-uri-component": "^0.4.1",
     "github-slugger": "^2.0.0",
-    "hast-util-to-html": "^9.0.5",
     "is-absolute-url": "^5.0.0",
     "mdast-util-find-and-replace": "^3.0.2",
     "mdast-util-from-markdown": "^2.0.3",

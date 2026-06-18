@@ -29,17 +29,13 @@ export interface PageData {
 	/** Collected headings for the on-page TOC. */
 	headings: Heading[]
 	/**
-	 * The page body as a serialized hast (HTML AST) tree — the canonical render
-	 * form. The doc route renders it to a real React element tree via HastRenderer
-	 * (component mapping, client-side links, no dangerouslySetInnerHTML).
+	 * The page body as a serialized hast (HTML AST) tree — the single source of
+	 * truth for the body. The doc route renders it to a real React element tree via
+	 * HastRenderer (component mapping, client-side links, no dangerouslySetInnerHTML).
+	 * Server-side consumers that need an HTML string (Jira ADF) derive it on demand
+	 * with `hast-util-to-html`; the Pagefind index derives it at build time.
 	 */
 	hast: HastRoot
-	/**
-	 * The body as an HTML string, derived from `hast`. Server/build-side only
-	 * (Pagefind index, Jira ADF, ticket-link scan); the route loader strips it from
-	 * the client payload, where `hast` is rendered instead.
-	 */
-	html: string
 	/** True when the page is a rendered Obsidian canvas (no prose to index). */
 	isCanvas: boolean
 	/**

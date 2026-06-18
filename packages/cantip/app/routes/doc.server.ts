@@ -55,10 +55,8 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 		(doc.frontmatter.title as string | undefined) ??
 		slug.split('/').pop()?.replace(/-/g, ' ') ??
 		slug
-	// Scan the body for linked Jira tickets server-side (needs the HTML string),
-	// then drop `html` from the client payload — the client renders `hast`, so
-	// shipping the HTML string too would just bloat the page data.
-	const linkedTickets = collectLinkedTickets(doc.frontmatter, doc.html)
-	const { html: _html, ...clientDoc } = doc
-	return json({ doc: clientDoc, title, editUrl: editUrlFor(docId, doc.sourcePath), linkedTickets })
+	// Scan the body's hast for linked Jira tickets server-side, so the result ships
+	// to the client without the body needing to exist as an HTML string anywhere.
+	const linkedTickets = collectLinkedTickets(doc.frontmatter, doc.hast)
+	return json({ doc, title, editUrl: editUrlFor(docId, doc.sourcePath), linkedTickets })
 }
