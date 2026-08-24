@@ -19,6 +19,7 @@ import { toHtml } from 'hast-util-to-html'
 
 import { getDoc } from '~/lib/content.server'
 import { getJiraAuth, getJiraStatus } from '~/lib/jira-auth.server'
+import { publicOrigin } from '~/lib/site.server'
 import {
 	addComment,
 	createIssue,
@@ -135,9 +136,11 @@ export async function action({ request }: ActionFunctionArgs) {
 	// Whole-page: drop the leading `# Title` (it's already the summary). A
 	// selection is published verbatim. The body only exists as a hast tree, so
 	// serialize it to HTML on demand for the ADF converter (rare — only on publish).
+	// Links are absolutized here because the ADF is read on Jira's domain.
+	const origin = publicOrigin(request)
 	const description = selection
-		? htmlToAdf(selection)
-		: dropLeadingTitle(htmlToAdf(toHtml(doc.hast)))
+		? htmlToAdf(selection, origin)
+		: dropLeadingTitle(htmlToAdf(toHtml(doc.hast), origin))
 
 	try {
 		if (body.intent === 'create') {

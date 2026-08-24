@@ -303,6 +303,27 @@ as itself, and any browser that hasn't connected falls back to the shared
 account. The dialog shows which identity is in use and offers *Connect Jira* /
 *Disconnect*. For pure per-user with no shared fallback, use **Mode A only**.
 
+### Links in the published page
+
+A published page keeps its links, and cantip rewrites the internal ones to
+absolute URLs so they still work when read on the Jira side. Internal links are
+root-relative on the docs site (`/project/page`), which on `*.atlassian.net`
+would resolve against Jira's own domain.
+
+The origin comes from `CANTIP_PUBLIC_URL`:
+
+```bash
+export CANTIP_PUBLIC_URL=https://docs.example.com
+```
+
+Unset, it falls back to the request's own origin, which is right in local dev and
+wrong behind a TLS-terminating reverse proxy (the Node server sees `http://…`).
+Set it for any deployment that isn't localhost. External links, `mailto:`, and
+in-page anchors are published as authored.
+
+This applies to what cantip publishes. A reader who selects text in the browser
+and copies it gets absolute URLs from the browser itself.
+
 ### Linked tickets (the update flow)
 
 Tickets offered in *Update existing* are detected two ways: a `jira:` frontmatter

@@ -17,4 +17,8 @@ services:
       - "3000:3000"
     volumes:
       - "${DOCS:-./examples/starter}:/docs:ro"
+    # The public origin this site is served from. Publish-to-Jira rewrites the
+    # page's internal links against it
+    environment:
+      CANTIP_PUBLIC_URL: "${CANTIP_PUBLIC_URL:-}"
     restart: unless-stopped

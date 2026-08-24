@@ -81,6 +81,11 @@ now, not bundled — so nothing needs a full rebuild or image rebuild.
   the generate dominates) — **no `remix vite:build`**, which already ran at
   image-build time. The bundle is client-agnostic, so the same image serves any
   client.
+- **`CANTIP_PUBLIC_URL`** is the site's public origin (e.g.
+  `https://docs.example.com`). Publish-to-Jira rewrites the page's internal links
+  against it, since they're root-relative and would otherwise resolve against
+  Jira's domain. Unset, it falls back to the request origin, which a
+  TLS-terminating proxy makes wrong (`http://…`) — set it for any real deployment.
 - **Image size** is dominated by Chromium — use `WITH_MERMAID=false` to shrink it.
 - **Multiple projects** in one `docs.config.ts` are served by a single container.
 - The image installs the optional peers `pagefind` (search) + `rehype-mermaid`

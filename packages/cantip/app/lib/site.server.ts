@@ -66,3 +66,19 @@ export function resetSite(): void {
 	_site = null
 	_projects = null
 }
+
+/**
+ * The site's public origin (no trailing slash). Content that leaves the site
+ * carries root-relative hrefs (`/project/page`), which resolve against whatever
+ * host displays them — so the Jira publish path rewrites them against this.
+ *
+ * Behind a TLS-terminating reverse proxy the Node server sees plain http, so the
+ * request's own origin is wrong (http://… instead of https://…). Set
+ * `CANTIP_PUBLIC_URL` to the public base (e.g. `https://docs.example.com`); only
+ * the localhost dev case falls back to deriving it from the request.
+ */
+export function publicOrigin(request: Request): string {
+	const explicit = process.env.CANTIP_PUBLIC_URL?.trim().replace(/\/+$/, '')
+	if (explicit) return explicit
+	return new URL(request.url).origin
+}

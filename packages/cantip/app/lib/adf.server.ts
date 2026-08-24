@@ -251,9 +251,35 @@ function blockNodes(nodes: HNode[]): AdfNode[] {
 	return blocks
 }
 
-/** Convert rendered page HTML into a Jira-ready ADF document. */
-export function htmlToAdf(html: string): AdfDoc {
+/**
+ * Rewrite root-relative `href`/`src` values against the site's public origin.
+ * Jira stores the ADF on its own domain, so `/project/page` would resolve
+ * against `*.atlassian.net` and 404. Absolute URLs, protocol-relative `//host`,
+ * `mailto:`, and in-page `#anchor` values are left as authored. The generator
+ * emits every internal link root-relative (`getFileUrl` in the Obsidian
+ * pipeline), so a prefix is all that's needed — no per-page base to resolve.
+ */
+function absolutize(node: HNode, origin: string): void {
+	const props = node.properties
+	if (props) {
+		for (const key of ['href', 'src'] as const) {
+			const value = props[key]
+			if (typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')) {
+				props[key] = origin + value
+			}
+		}
+	}
+	for (const child of node.children ?? []) absolutize(child, origin)
+}
+
+/**
+ * Convert rendered page HTML into a Jira-ready ADF document. `origin` is the
+ * site's public origin (see `publicOrigin`); omitting it leaves links relative,
+ * which is only correct when the ADF never leaves this site.
+ */
+export function htmlToAdf(html: string, origin?: string): AdfDoc {
 	const root = fromHtml(html, { fragment: true }) as unknown as HNode
+	if (origin) absolutize(root, origin)
 	const content = blockNodes(root.children ?? [])
 	// ADF rejects an empty doc; guarantee at least one (empty) paragraph.
 	if (content.length === 0) content.push({ type: 'paragraph', content: [] })
