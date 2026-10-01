@@ -6,6 +6,8 @@ import type { Root as HastRoot } from 'hast'
 
 import CodeBlock from '~/components/CodeBlock'
 import CanvasView from '~/components/CanvasView'
+import FileEmbed from '~/components/FileEmbed'
+import { isFileHref } from '~/lib/files'
 import { useHtmlComponents } from '~/lib/components'
 
 /**
@@ -23,12 +25,18 @@ import { useHtmlComponents } from '~/lib/components'
 
 /**
  * Internal links (`/...`) become Remix `<Link>` for client-side navigation;
- * external links, bare anchors and links to static files stay plain `<a>`.
+ * external links and bare anchors stay plain `<a>`. Links to files open in a new
+ * tab, where the browser shows the file or downloads it.
  */
 function Anchor({ href, children, ...rest }: { href?: string; children?: React.ReactNode }) {
-	// Doc ids are slugified and never contain a dot, so a path ending in an
-	// extension is a file under public/. Remix routing would 404 on it.
-	if (typeof href === 'string' && href.startsWith('/') && !/\.\w+$/.test(href.split(/[?#]/)[0])) {
+	if (typeof href === 'string' && isFileHref(href)) {
+		return (
+			<a href={href} target="_blank" rel="noopener" {...rest}>
+				{children}
+			</a>
+		)
+	}
+	if (typeof href === 'string' && href.startsWith('/')) {
 		return (
 			<Link to={href} {...rest}>
 				{children}
@@ -50,6 +58,8 @@ const engineComponents = {
 	// The canvas generator emits `<canvas-mount canvas="…">`; render it as the
 	// interactive viewer (the `canvas` attribute becomes the component's prop).
 	'canvas-mount': CanvasView,
+	// `![[file]]` of a file the browser can't preview inline; see getCustomFileNode.
+	'file-embed': FileEmbed,
 }
 
 export default function HastRenderer({ tree }: { tree: HastRoot }) {

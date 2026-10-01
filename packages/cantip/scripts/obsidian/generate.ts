@@ -2,7 +2,7 @@ import { obsidianConfigSchema, type ObsidianUserConfig } from './types.ts'
 import { getObsidianPaths, getVault } from './obsidian.ts'
 import { addObsidianFiles, type OutputRoots } from './files.ts'
 import type { Logger } from './logger.ts'
-import type { VirtualImage } from '../../src/source/types.ts'
+import type { VirtualAttachment, VirtualImage } from '../../src/source/types.ts'
 
 /**
  * Plain-Node replacement for the Astro `obsidian()` integration. Reads an
@@ -14,7 +14,7 @@ import type { VirtualImage } from '../../src/source/types.ts'
  *  via `updateConfig`; here the full markdown -> HTML compilation happens later
  *  in generate-content.ts, so this step only emits the transformed markdown.)
  */
-export async function generateObsidian(userConfig: ObsidianUserConfig, logger: Logger, roots?: OutputRoots): Promise<VirtualImage[]> {
+export async function generateObsidian(userConfig: ObsidianUserConfig, logger: Logger, roots?: OutputRoots): Promise<(VirtualImage | VirtualAttachment)[]> {
 	const parsed = obsidianConfigSchema.safeParse(userConfig)
 	if (!parsed.success) {
 		throw new Error(`Invalid obsidian configuration:\n\n${JSON.stringify(parsed.error.format(), null, 2)}`)

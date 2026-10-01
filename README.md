@@ -53,6 +53,9 @@ Everything lives in `docs.config.ts` (typed via `cantip/config`):
 - **Sidebar order** — drop a `_meta.yaml` into any source folder to order its
   children (pages and subfolders) and rename subfolders; unlisted items append
   alphabetically. No `_meta` = alphabetical, as before.
+- **Files** — images, PDFs, spreadsheets, documents and any other file in a
+  source folder appear in the sidebar; images get their own page, other files
+  open in a new tab or download.
 - **draw.io diagrams** — a `.drawio.svg` / `.drawio.png` opens in the
   interactive draw.io viewer, served from your own site. `drawio.viewer: false`
   turns it off.

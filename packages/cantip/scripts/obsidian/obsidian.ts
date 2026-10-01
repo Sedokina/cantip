@@ -43,6 +43,11 @@ const otherFileFormats = new Set(['.pdf'])
 
 const fileFormats = new Set([...imageFileFormats, ...audioFileFormats, ...videoFileFormats, ...otherFileFormats])
 
+// Extensions of the other non-markdown files found in the vaults (spreadsheets,
+// documents, archives, ...). They get the same handling as `fileFormats`: kept
+// under their own name, copied as-is, and resolved by wikilinks.
+const vaultFileFormats = new Set<string>()
+
 export async function getVault(config: ObsidianConfig): Promise<Vault> {
   const vaultPath = path.resolve(config.vault)
 
@@ -65,15 +70,21 @@ export async function getVault(config: ObsidianConfig): Promise<Vault> {
 }
 
 export function getObsidianPaths(vault: Vault, ignore: ObsidianConfig['ignore'] = []) {
-  return glob(['**/*.md', ...[...fileFormats].map((fileFormat) => `**/*${fileFormat}`)], {
+  // Canvases get their own pass; `_meta` files only order the sidebar. Files
+  // without an extension would be read as notes, so the glob requires one.
+  return glob(['**/*.*'], {
     absolute: true,
     cwd: vault.path,
-    ignore,
+    ignore: [...ignore, '**/*.canvas', '**/_meta.yaml', '**/_meta.yml', '**/_meta.json'],
   })
 }
 
 export function getObsidianVaultFiles(vault: Vault, obsidianPaths: string[]): VaultFile[] {
   const allFileNames = obsidianPaths.map((obsidianPath) => path.basename(obsidianPath))
+  for (const fileName of allFileNames) {
+    const extension = getExtension(fileName)
+    if (extension !== '.md') vaultFileFormats.add(extension)
+  }
 
   return obsidianPaths.map((obsidianPath, index) => {
     const baseFileName = allFileNames[index] as string
@@ -122,10 +133,10 @@ export function slugifyObsidianPath(obsidianPath: string) {
     .join('/')
 }
 
-// The image file is served under its own name (e.g. `/architecture.drawio.svg`),
-// so the view keeps the extension as a slug word (`/architecture-drawio-svg`) to
-// get a different URL.
-export function getImageViewId(output: string, vault: Vault, vaultFile: VaultFile) {
+// The id of an image's view page or of a file's sidebar entry. The file itself
+// is served under its own name (e.g. `/architecture.drawio.svg`), so the id keeps
+// the extension as a slug word (`/architecture-drawio-svg`) to differ from it.
+export function getFileEntryId(output: string, vault: Vault, vaultFile: VaultFile) {
   const segments = [...output.split('/'), ...getObsidianRelativePath(vault, vaultFile.fsPath).split('/')].filter(
     (segment) => segment !== '' && segment !== '.',
   )
@@ -153,16 +164,18 @@ export function isObsidianBlockAnchor(anchor: string) {
 }
 
 export function isObsidianFile(filePath: string, type?: 'image' | 'audio' | 'video' | 'other') {
+  if (type === undefined) {
+    return fileFormats.has(getExtension(filePath)) || vaultFileFormats.has(getExtension(filePath))
+  }
+
   const formats: Set<string> =
-    type === undefined
-      ? fileFormats
-      : type === 'image'
-        ? imageFileFormats
-        : type === 'audio'
-          ? audioFileFormats
-          : type === 'video'
-            ? videoFileFormats
-            : otherFileFormats
+    type === 'image'
+      ? imageFileFormats
+      : type === 'audio'
+        ? audioFileFormats
+        : type === 'video'
+          ? videoFileFormats
+          : otherFileFormats
 
   return formats.has(getExtension(filePath))
 }

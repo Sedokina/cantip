@@ -27,7 +27,7 @@ import type { ObsidianConfig } from './types.ts'
 import { transformHtmlToString } from './html.ts'
 import { transformMarkdownToAST } from './markdown.ts'
 import {
-  getImageViewId,
+  getFileEntryId,
   getObsidianRelativePath,
   isObsidianFile,
   isObsidianBlockAnchor,
@@ -576,7 +576,7 @@ function getImageViewUrl(file: VFile, vaultFile: VaultFile | undefined) {
   if (!vaultFile || !isObsidianFile(vaultFile.fsPath, 'image')) {
     return undefined
   }
-  return `/${getImageViewId(file.data.output, file.data.vault, vaultFile)}`
+  return `/${getFileEntryId(file.data.output, file.data.vault, vaultFile)}`
 }
 
 function getRelativeFilePath(file: VFile, relativePath: string) {
@@ -641,12 +641,24 @@ function getCustomFileNode(filePath: string): RootContent {
       type: 'html',
       value: `<video class="obs-embed-video" controls src="${filePath}"></video>`,
     }
+  } else if (isObsidianFile(filePath, 'other')) {
+    return {
+      type: 'html',
+      value: `<iframe class="obs-embed-pdf" src="${filePath}"></iframe>`,
+    }
   }
 
+  // The browser can't preview other files inline; the app renders this element
+  // as a link card (see FileEmbed).
+  const href = filePath.split('/').map(encodeURIComponent).join('/')
   return {
     type: 'html',
-    value: `<iframe class="obs-embed-pdf" src="${filePath}"></iframe>`,
+    value: `<file-embed href="${escapeAttribute(href)}" name="${escapeAttribute(path.posix.basename(filePath))}"></file-embed>`,
   }
+}
+
+function escapeAttribute(value: string) {
+  return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }
 
 async function getMarkdownFileNode(file: VFile, fileUrl: string): Promise<RootContent> {

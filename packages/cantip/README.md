@@ -152,7 +152,7 @@ label:                 # rename subfolders (pages take their title from frontmat
   `_meta` stays fully alphabetical, exactly as before.
 - `_meta` files are read from your source vault and never rendered as pages.
 
-## Images and draw.io diagrams
+## Images, files and draw.io diagrams
 
 Every image in a source folder (`.avif .bmp .gif .jpeg .jpg .png .svg .webp`)
 appears in the sidebar under its file name. Opening it, or following a wikilink
@@ -160,6 +160,14 @@ like `[[Login Screen.png]]`, shows the image on its own page, e.g.
 `/screenshots/login-screen-png/`. `![[Login Screen.png]]` still embeds it inline.
 The file itself is served under its original name, e.g.
 `/screenshots/Login%20Screen.png`.
+
+Every other file in a source folder (spreadsheets, documents, PDFs, archives,
+...) also appears in the sidebar under its file name, with an icon for its type.
+Clicking it, or a wikilink like `[[Budget 2026.xlsx]]`, opens the file itself in
+a new tab: the browser shows what it can (PDF, text, audio, video) and downloads
+the rest. `![[Budget 2026.xlsx]]` embeds a link card; PDFs, audio and video
+embed with the browser's player. Hidden files, `.canvas` files, `_meta` files and
+files without an extension are skipped; exclude others with `ignore`.
 
 A draw.io diagram saved as `.drawio.svg` or `.drawio.png` opens in the
 interactive [draw.io viewer](https://www.drawio.com/) on its own page. The

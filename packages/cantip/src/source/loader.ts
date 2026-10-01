@@ -7,9 +7,9 @@
  * `sidebar.server.ts` (per-project tree), but now backend-agnostic — any Source
  * works, not just the Obsidian generator.
  */
-import type { PageData, Source, VirtualFile, VirtualImage, VirtualMeta, VirtualPage } from './types'
+import type { PageData, Source, VirtualAttachment, VirtualFile, VirtualImage, VirtualMeta, VirtualPage } from './types'
 
-export type SidebarNodeType = 'directory' | 'file' | 'canvas' | 'image'
+export type SidebarNodeType = 'directory' | 'file' | 'canvas' | 'image' | 'attachment'
 
 export interface SidebarNode {
 	label: string
@@ -96,9 +96,11 @@ export function loader(options: LoaderOptions): LoaderOutput {
 	const projectOf = options.projectOf ?? ((id: string) => id.split('/')[0] ?? '')
 
 	// Index every page by id, dropping drafts up front. Index images by their view
-	// id, and collect folder metas (ordering + labels) keyed by folder id.
+	// id, keep attachments for the sidebar, and collect folder metas (ordering +
+	// labels) keyed by folder id.
 	const pages = new Map<string, LoaderPage>()
 	const images = new Map<string, LoaderImage>()
+	const attachments: VirtualAttachment[] = []
 	const metas = new Map<string, MetaData>()
 	for (const f of source.files) {
 		if (f.type === 'meta') {
@@ -107,6 +109,10 @@ export function loader(options: LoaderOptions): LoaderOutput {
 		}
 		if (f.type === 'image') {
 			images.set(f.path, { id: f.path, data: f.data })
+			continue
+		}
+		if (f.type === 'attachment') {
+			attachments.push(f)
 			continue
 		}
 		if (!isPage(f)) continue
@@ -148,6 +154,12 @@ export function loader(options: LoaderOptions): LoaderOutput {
 				href: `/${image.id}/`,
 				title: image.data.title,
 				nodeType: 'image' as const,
+			})),
+			...attachments.map((attachment) => ({
+				id: attachment.path,
+				href: attachment.data.src,
+				title: attachment.data.title,
+				nodeType: 'attachment' as const,
 			})),
 		]
 		for (const entry of entries) {

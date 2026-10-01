@@ -18,4 +18,13 @@ export type {
 	FlatSidebarItem,
 	FlatSidebarMap,
 } from './loader'
-export type { Source, VirtualFile, VirtualPage, VirtualImage, VirtualMeta, PageData, Heading } from './types'
+export type {
+	Source,
+	VirtualFile,
+	VirtualPage,
+	VirtualImage,
+	VirtualAttachment,
+	VirtualMeta,
+	PageData,
+	Heading,
+} from './types'

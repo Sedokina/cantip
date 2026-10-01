@@ -76,6 +76,23 @@ export interface VirtualImage {
 }
 
 /**
+ * Any other file in a Source (spreadsheet, document, PDF, archive, ...). It is
+ * listed in the sidebar and opens the file itself; the browser shows it or
+ * downloads it.
+ */
+export interface VirtualAttachment {
+	type: 'attachment'
+	/** The sidebar entry's id, e.g. `guide/reports/budget-2026-xlsx`. Not a route. */
+	path: string
+	data: {
+		/** Display title: the file name including its extension. */
+		title: string
+		/** URL of the file itself. */
+		src: string
+	}
+}
+
+/**
  * Optional folder metadata (ordering, custom labels). Not required — when absent,
  * `loader()` orders a folder's children alphabetically and labels subfolders from
  * their slug. Sourced from per-folder `_meta.{yaml,yml,json}` files (see
@@ -99,7 +116,7 @@ export interface VirtualMeta {
 	}
 }
 
-export type VirtualFile = VirtualPage | VirtualImage | VirtualMeta
+export type VirtualFile = VirtualPage | VirtualImage | VirtualAttachment | VirtualMeta
 
 /** A content backend: just a list of virtual files. */
 export interface Source {

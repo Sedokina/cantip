@@ -13,6 +13,8 @@ public/_drawio/
 # copies of the demo images in docs/
 public/architecture.drawio.svg
 public/screenshots/
+public/reports/
+public/Contract template.docx
 
 # logs
 npm-debug.log*

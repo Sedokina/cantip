@@ -26,6 +26,7 @@ import { useTabs } from '~/lib/tabs'
 import { useT } from '~/lib/site-context'
 import { useKeyboardShortcuts, type Shortcut } from '~/lib/useKeyboardShortcuts'
 import { cn } from '~/lib/utils'
+import { fileIcon, isFileHref, openFileInNewTab } from '~/lib/files'
 
 const WIDTH_STORAGE_KEY = 'sidebar-width'
 const DEFAULT_WIDTH = 280
@@ -66,18 +67,12 @@ function applyLayout(requested: number): number | null {
 	return w
 }
 
-const icons: Record<SidebarNodeType, JSX.Element> = {
-	directory: <Folder className="size-4" />,
-	file: <FileIcon className="size-4" />,
-	canvas: <LayoutDashboard className="size-4" />,
-	image: <ImageIcon className="size-4" />,
-}
-
 const iconColor: Record<SidebarNodeType, string> = {
 	directory: 'text-sidebar-foreground/70',
 	file: 'text-muted-foreground',
 	canvas: 'text-amber-500',
 	image: 'text-emerald-500',
+	attachment: 'text-sky-500',
 }
 
 /** Icon component per node type (for places that need the component, not an element). */
@@ -86,6 +81,17 @@ const iconComponent: Record<SidebarNodeType, typeof FileIcon> = {
 	file: FileIcon,
 	canvas: LayoutDashboard,
 	image: ImageIcon,
+	attachment: FileIcon,
+}
+
+/** An attachment's icon depends on its file type; other nodes have one per type. */
+function nodeIcon(type: SidebarNodeType, name: string): typeof FileIcon {
+	return type === 'attachment' ? fileIcon(name) : (iconComponent[type] ?? FileIcon)
+}
+
+function NodeIcon({ type, name }: { type: SidebarNodeType; name: string }) {
+	const Icon = nodeIcon(type, name)
+	return <Icon className="size-4" />
 }
 
 interface Props {
@@ -135,9 +141,18 @@ function FallbackTree({
 								<span className="size-4 shrink-0" />
 							)}
 							<span className={cn('flex size-4 shrink-0 items-center justify-center', iconColor[item.type])}>
-								{icons[item.type] ?? icons.file}
+								<NodeIcon type={item.type} name={item.name} />
 							</span>
-							{item.href ? (
+							{item.href && isFileHref(item.href) ? (
+								<a
+									href={item.href}
+									target="_blank"
+									rel="noopener"
+									className="flex-1 min-w-0 truncate no-underline text-sidebar-foreground/80"
+								>
+									{item.name}
+								</a>
+							) : item.href ? (
 								<Link
 									to={item.href}
 									className={cn(
@@ -353,7 +368,7 @@ function FileSearchModal({
 					) : (
 						hits.map((hit, i) => {
 							const isActive = i === active
-							const Icon = iconComponent[hit.type]
+							const Icon = nodeIcon(hit.type, hit.name)
 							return (
 								<li key={hit.id}>
 									<button
@@ -768,8 +783,13 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 	//    just navigate in place (no tab bar shown — the original behavior).
 	// Either way the URL changes, and the route renders the doc; the tab list is
 	// a UI layer on top. Returns nothing; callers handle the click guard.
+	// An attachment is not a route: it opens in a new browser tab instead.
 	const openFile = useCallback(
 		(href: string, name: string, isDoubleClick: boolean) => {
+			if (isFileHref(href)) {
+				openFileInNewTab(href)
+				return
+			}
 			if (isDoubleClick || hasTabs) openTab(href, name)
 			navigate(href)
 		},
@@ -795,7 +815,8 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 				if (!item.href && !self.isExpanded()) self.expand()
 				self.setFocused()
 			}
-			if (item.href) navigate(item.href)
+			if (item.href && isFileHref(item.href)) openFileInNewTab(item.href)
+			else if (item.href) navigate(item.href)
 			requestAnimationFrame(() => {
 				treeContainerRef.current
 					?.querySelector(`[data-item-id="${CSS.escape(id)}"]`)
@@ -966,7 +987,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 										<span className="size-4 shrink-0" />
 									)}
 									<span className={cn('flex size-4 shrink-0 items-center justify-center', iconColor[itemData.type])}>
-										{icons[itemData.type] ?? icons.file}
+										<NodeIcon type={itemData.type} name={itemData.name} />
 									</span>
 									{itemData.href ? (
 										<Link

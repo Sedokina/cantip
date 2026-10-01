@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-import type { VirtualImage } from '../../src/source/types.ts'
+import type { VirtualAttachment, VirtualImage } from '../../src/source/types.ts'
 import { isDrawioFile, readDrawioXml } from '../drawio.ts'
 import type { Logger } from './logger.ts'
 
@@ -10,7 +10,7 @@ import type { ObsidianConfig } from './types.ts'
 import { copyFile, ensureDirectory, removeDirectory } from './fs.ts'
 import { transformMarkdownToString } from './markdown.ts'
 import {
-  getImageViewId,
+  getFileEntryId,
   getObsidianVaultFiles,
   isObsidianFile,
   type ObsidianFrontmatter,
@@ -77,7 +77,7 @@ export async function addObsidianFiles(
   obsidianPaths: string[],
   logger: Logger,
   roots: OutputRoots = DEFAULT_OUTPUT_ROOTS,
-): Promise<VirtualImage[]> {
+): Promise<(VirtualImage | VirtualAttachment)[]> {
   const outputPaths = getOutputPaths(config, roots)
 
   // The general/no-project bucket (output '.') writes into the content/public
@@ -115,16 +115,17 @@ export async function addObsidianFiles(
 
   return Promise.all(
     vaultFiles
-      .filter((vaultFile) => isObsidianFile(vaultFile.fsPath, 'image'))
-      .map(async (vaultFile) => ({
-        type: 'image' as const,
-        path: getImageViewId(config.output, vault, vaultFile),
-        data: {
-          title: path.basename(vaultFile.fsPath),
-          src: path.posix.join(path.posix.sep, config.output, vaultFile.slug).split('/').map(encodeURIComponent).join('/'),
-          drawio: config.drawio && isDrawioFile(vaultFile.fsPath) ? await readDrawioXml(vaultFile.fsPath) : undefined,
-        },
-      })),
+      .filter((vaultFile) => vaultFile.type !== 'content')
+      .map(async (vaultFile): Promise<VirtualImage | VirtualAttachment> => {
+        const entryId = getFileEntryId(config.output, vault, vaultFile)
+        const title = path.basename(vaultFile.fsPath)
+        const src = path.posix.join(path.posix.sep, config.output, vaultFile.slug).split('/').map(encodeURIComponent).join('/')
+        if (!isObsidianFile(vaultFile.fsPath, 'image')) {
+          return { type: 'attachment', path: entryId, data: { title, src } }
+        }
+        const drawio = config.drawio && isDrawioFile(vaultFile.fsPath) ? await readDrawioXml(vaultFile.fsPath) : undefined
+        return { type: 'image', path: entryId, data: { title, src, drawio } }
+      }),
   )
 }
 

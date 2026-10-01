@@ -14,7 +14,7 @@ import { loadConfig } from '../app/lib/config/load.ts'
 import type { DocsConfig } from '../app/lib/config/schema.ts'
 import { emitGeneratedConfig } from './emit-config.ts'
 import { ensureDrawioViewer } from './drawio.ts'
-import type { VirtualImage } from '../src/source/types.ts'
+import type { VirtualAttachment, VirtualImage } from '../src/source/types.ts'
 
 const logger: Logger = {
 	info: (m) => console.log(`  ${m}`),
@@ -209,10 +209,11 @@ async function main() {
 	//    Run the general bucket (output '.') first so its root-level write lands
 	//    before project subdirs (it skips per-vault cleanup to avoid wiping them).
 	const orderedVaults = [...vaults].sort((a, b) => (a.output === '.' ? -1 : b.output === '.' ? 1 : 0))
-	const images: VirtualImage[] = []
+	const fileEntries: (VirtualImage | VirtualAttachment)[] = []
 	for (const v of orderedVaults) {
-		images.push(...(await generateObsidian(v, logger, OUTPUT_ROOTS)))
+		fileEntries.push(...(await generateObsidian(v, logger, OUTPUT_ROOTS)))
 	}
+	const images = fileEntries.filter((entry): entry is VirtualImage => entry.type === 'image')
 	if (images.some((image) => image.data.drawio) && !(await ensureDrawioViewer(PUBLIC_ROOT, logger))) {
 		for (const image of images) delete image.data.drawio
 	}
@@ -308,7 +309,7 @@ async function main() {
 				},
 			}
 		})
-	const files = [...pageFiles, ...images, ...metas]
+	const files = [...pageFiles, ...fileEntries, ...metas]
 
 	// Emit content as DATA (content.json), not an importable TS module. The app
 	// reads it via `fs` at runtime (see app/lib/content.server.ts) instead of Vite
