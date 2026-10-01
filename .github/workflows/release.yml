@@ -1,8 +1,9 @@
 name: Release
 
 # Publish both packages to npm when a v* tag is pushed (e.g. `git tag v0.1.1 &&
-# git push --tags`). A verify job builds + serves the example first; publish only
-# runs if that passes. Auth uses npm OIDC trusted publishing — no NPM_TOKEN
+# git push --tags`). A verify job checks the release notes, builds + serves the
+# example first; publish only runs if that passes. A GitHub Release with the
+# version's CHANGELOG.md section is created after the npm publish. Auth uses npm OIDC trusted publishing — no NPM_TOKEN
 # secret. (Configure each package's trusted publisher on npmjs.com once, after the
 # first manual publish; OIDC cannot create a brand-new package.)
 
@@ -22,6 +23,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
+
+      # Fails before anything is built or published when CHANGELOG.md has no
+      # section for this tag.
+      - name: Check release notes
+        run: node .github/scripts/changelog-section.mjs "$GITHUB_REF_NAME" > /dev/null
 
       # Builds the engine dist/ via the workspace postinstall, links the example.
       - run: npm ci
@@ -83,3 +89,33 @@ jobs:
       - name: Publish create-cantip
         working-directory: packages/create-cantip
         run: npm publish
+
+  github-release:
+    name: Create GitHub Release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Full history and tags, to find the previous release tag.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Write release notes
+        run: |
+          node .github/scripts/changelog-section.mjs "$GITHUB_REF_NAME" > notes.md
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 --match 'v*' "$GITHUB_REF_NAME^" 2>/dev/null || true)
+          if [ -n "$PREVIOUS_TAG" ]; then
+            printf '\n**Full changelog:** %s/%s/compare/%s...%s\n' \
+              "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$PREVIOUS_TAG" "$GITHUB_REF_NAME" >> notes.md
+          fi
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag

@@ -6,8 +6,9 @@ by pushing a `v*` tag (`.github/workflows/release.yml`).
 
 **Pushing the tag is the whole release.** It triggers, in order:
 
-1. **Release** (`release.yml`, on the `v*` tag) — verify build → `npm publish`
-   both packages via OIDC.
+1. **Release** (`release.yml`, on the `v*` tag) — check release notes → verify
+   build → `npm publish` both packages via OIDC → create the GitHub Release with
+   the version's notes from `CHANGELOG.md`.
 2. **Docker image** (`docker.yml`, `workflow_run` after Release succeeds) — builds
    and pushes the `cantip-host` image to GHCR. It runs *after* Release (not off the
    tag) so the npm publish has landed first, since the image scaffolds itself from
@@ -43,7 +44,12 @@ After this, the workflow publishes tokenlessly (with provenance).
 
 ## Cutting a release
 
-1. Bump both package versions together (keeps the scaffolder's pinned `cantip`
+1. Write the release notes: add a `## 0.1.1` section at the top of
+   `CHANGELOG.md` (newest first). It becomes the body of the GitHub Release, so
+   write it for people upgrading: what changed, and what they must do for
+   anything breaking.
+
+2. Bump both package versions together (keeps the scaffolder's pinned `cantip`
    dependency matching the engine):
 
    ```sh
@@ -51,16 +57,23 @@ After this, the workflow publishes tokenlessly (with provenance).
    git commit -am "Release v0.1.1"
    ```
 
-2. Tag and push:
+3. Tag and push:
 
    ```sh
    git tag v0.1.1
    git push && git push --tags
    ```
 
-The `release` workflow runs: **verify** (typecheck + build + serve smoke-test) →
-**publish** both packages via OIDC. When it succeeds, the **Docker image**
-workflow fires automatically — no extra action.
+The `release` workflow runs: **verify** (release notes + typecheck + build +
+serve smoke-test) → **publish** both packages via OIDC → **GitHub Release**
+(`.github/scripts/changelog-section.mjs` takes the version's `CHANGELOG.md`
+section, plus a compare link to the previous tag). When it succeeds, the
+**Docker image** workflow fires automatically — no extra action.
+
+A tag without a `CHANGELOG.md` section fails in verify, before anything is
+published: add the section, then move the tag (`git tag -f v0.1.1 && git push -f
+origin v0.1.1`). If only the GitHub Release step fails, re-run that job from the
+Actions tab; the Docker image waits for the Release workflow to succeed.
 
 ## Docker image (`cantip-host`)
 
