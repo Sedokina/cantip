@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { Link, isRouteErrorResponse, useLoaderData, useLocation, useRouteError } from '@remix-run/react'
 import type { MetaFunction } from '@remix-run/node'
 
+import type { SerializeFrom } from '@remix-run/node'
+
 import type { loader } from './doc.server'
 import { getPriority } from '~/lib/utils'
 import { useT } from '~/lib/site-context'
@@ -58,20 +60,34 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
 	return [{ title: pageTitleFromMatches(matches, data?.title) }]
 }
 
+type LoaderData = SerializeFrom<typeof loader>
+type DocData = Extract<LoaderData, { doc: unknown }>
+type ImageData = Extract<LoaderData, { image: unknown }>['image']
+
 /**
- * Route default export: render the user's `DocPage` override when one is
- * configured (it receives the same loader data via `useLoaderData`), else the
- * engine's default doc body below.
+ * Route default export: an image id renders the image view. Otherwise render the
+ * user's `DocPage` override when one is configured (it receives the same loader
+ * data via `useLoaderData`), else the engine's default doc body below.
  */
 export default function DocPageRoute() {
 	const DocPageOverride = useOverride('DocPage')
+	const data = useLoaderData<typeof loader>()
+	if ('image' in data) return <ImageView image={data.image} />
 	if (DocPageOverride) return <DocPageOverride />
-	return <EngineDocPage />
+	return <EngineDocPage {...data} />
 }
 
-function EngineDocPage() {
+/** An image file on its own, at natural size, scaled down to fit the content area. */
+function ImageView({ image }: { image: ImageData }) {
+	return (
+		<main className="min-w-0 px-10 pb-16 pt-8 xl:col-span-2 max-md:px-4 max-md:pb-[calc(var(--mobile-bar-height)+env(safe-area-inset-bottom)+2rem)]">
+			<img src={image.src} alt={image.title} className="mx-auto" />
+		</main>
+	)
+}
+
+function EngineDocPage({ doc, title, editUrl, linkedTickets }: DocData) {
 	const Toc = useComponent('Toc')
-	const { doc, title, editUrl, linkedTickets } = useLoaderData<typeof loader>()
 	const showToc = doc.frontmatter.tableOfContents !== false
 	const isCanvas = doc.isCanvas
 	const priority = getPriority(doc.frontmatter.tags)

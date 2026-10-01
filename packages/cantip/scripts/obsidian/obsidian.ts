@@ -113,15 +113,25 @@ export function slugifyObsidianPath(obsidianPath: string) {
 
       if (!isLastSegment) {
         return slug(decodeUriComponent(segment))
-      } else if (isObsidianFile(segment) && !isAssetFile(segment)) {
+      } else if (isObsidianFile(segment)) {
         return decodeUriComponent(segment)
-      } else if (isAssetFile(segment)) {
-        return `${slug(decodeUriComponent(stripExtension(segment)))}${getExtension(segment)}`
       }
 
       return slug(decodeUriComponent(stripExtension(segment)))
     })
     .join('/')
+}
+
+// The image file is served under its own name (e.g. `/architecture.drawio.svg`),
+// so the view keeps the extension as a slug word (`/architecture-drawio-svg`) to
+// get a different URL.
+export function getImageViewId(output: string, vault: Vault, vaultFile: VaultFile) {
+  const segments = [...output.split('/'), ...getObsidianRelativePath(vault, vaultFile.fsPath).split('/')].filter(
+    (segment) => segment !== '' && segment !== '.',
+  )
+  const fileName = decodeUriComponent(segments.pop() ?? '')
+
+  return [...segments.map((segment) => slug(decodeUriComponent(segment))), slug(fileName.replaceAll('.', '-'))].join('/')
 }
 
 export function slugifyObsidianAnchor(obsidianAnchor: string) {

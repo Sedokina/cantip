@@ -2,6 +2,7 @@ import { obsidianConfigSchema, type ObsidianUserConfig } from './types.ts'
 import { getObsidianPaths, getVault } from './obsidian.ts'
 import { addObsidianFiles, type OutputRoots } from './files.ts'
 import type { Logger } from './logger.ts'
+import type { VirtualImage } from '../../src/source/types.ts'
 
 /**
  * Plain-Node replacement for the Astro `obsidian()` integration. Reads an
@@ -13,7 +14,7 @@ import type { Logger } from './logger.ts'
  *  via `updateConfig`; here the full markdown -> HTML compilation happens later
  *  in generate-content.ts, so this step only emits the transformed markdown.)
  */
-export async function generateObsidian(userConfig: ObsidianUserConfig, logger: Logger, roots?: OutputRoots): Promise<void> {
+export async function generateObsidian(userConfig: ObsidianUserConfig, logger: Logger, roots?: OutputRoots): Promise<VirtualImage[]> {
 	const parsed = obsidianConfigSchema.safeParse(userConfig)
 	if (!parsed.success) {
 		throw new Error(`Invalid obsidian configuration:\n\n${JSON.stringify(parsed.error.format(), null, 2)}`)
@@ -22,7 +23,7 @@ export async function generateObsidian(userConfig: ObsidianUserConfig, logger: L
 
 	if (config.skipGeneration) {
 		logger.warn(`Skipping generation for '${config.output}' (skipGeneration enabled).`)
-		return
+		return []
 	}
 
 	const start = performance.now()
@@ -30,7 +31,8 @@ export async function generateObsidian(userConfig: ObsidianUserConfig, logger: L
 
 	const vault = await getVault(config)
 	const obsidianPaths = await getObsidianPaths(vault, config.ignore)
-	await addObsidianFiles(config, vault, obsidianPaths, logger, roots)
+	const images = await addObsidianFiles(config, vault, obsidianPaths, logger, roots)
 
 	logger.info(`Generated '${config.output}' in ${Math.round(performance.now() - start)}ms.`)
+	return images
 }

@@ -23,10 +23,12 @@ import { useHtmlComponents } from '~/lib/components'
 
 /**
  * Internal links (`/...`) become Remix `<Link>` for client-side navigation;
- * external links and bare anchors stay plain `<a>`.
+ * external links, bare anchors and links to static files stay plain `<a>`.
  */
 function Anchor({ href, children, ...rest }: { href?: string; children?: React.ReactNode }) {
-	if (typeof href === 'string' && href.startsWith('/')) {
+	// Doc ids are slugified and never contain a dot, so a path ending in an
+	// extension is a file under public/. Remix routing would 404 on it.
+	if (typeof href === 'string' && href.startsWith('/') && !/\.\w+$/.test(href.split(/[?#]/)[0])) {
 		return (
 			<Link to={href} {...rest}>
 				{children}

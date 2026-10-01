@@ -14,7 +14,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { loader, type LoaderOutput, type Source } from 'cantip/source'
+import { loader, type LoaderImage, type LoaderOutput, type Source } from 'cantip/source'
 import { getProjectIdForDoc, getSiteData } from './site.server'
 
 export type { Heading, PageData } from 'cantip/source'
@@ -97,17 +97,21 @@ export async function getDoc(id: string): Promise<Doc | null> {
 	}
 }
 
+/** Load an image view by its route id, or null. */
+export async function getImage(id: string): Promise<LoaderImage | null> {
+	return L().getImage(id)
+}
+
 /**
- * Whether the doc at a URL pathname is a rendered canvas. Resolves permalinks the
- * same way the doc route does, then reads the page's `isCanvas` flag. Used by the
- * root layout to widen the tab strip over the (TOC-less) canvas column. Unknown
- * paths → false.
+ * Whether the URL pathname shows a canvas or an image. Those have no on-page TOC,
+ * so the root layout widens the tab strip over the TOC column. Resolves permalinks
+ * the same way the doc route does. Unknown paths → false.
  */
-export async function isCanvasPath(pathname: string): Promise<boolean> {
+export async function spansTocColumn(pathname: string): Promise<boolean> {
 	const slug = decodeURIComponent(pathname).replace(/^\/+|\/+$/g, '')
 	if (!slug) return false
 	const id = L().resolvePermalink(slug) ?? slug
-	return L().getPage(id)?.data.isCanvas ?? false
+	return (L().getPage(id)?.data.isCanvas ?? false) || L().getImage(id) !== null
 }
 
 /** The loaded content API (used by the sidebar builder). */

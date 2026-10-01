@@ -8,14 +8,14 @@
 import type { LoaderFunctionArgs } from '@remix-run/node'
 
 import { buildSidebar, flattenSidebar } from '~/lib/sidebar.server'
-import { isCanvasPath } from '~/lib/content.server'
+import { spansTocColumn } from '~/lib/content.server'
 import { getActiveProjectId, getSiteData, getProjects } from '~/lib/site.server'
 
 // Runs on every navigation; the active project is derived from the request URL
 // and only that project's sidebar tree is built, so the nav persists across
 // client-side navigations and swaps to match the project being viewed.
-// `isCanvas` lets the layout widen the tab strip across the TOC column on canvas
-// pages (which span both content columns and have no on-page TOC).
+// `spansToc` lets the layout widen the tab strip across the TOC column on canvas
+// and image pages (which span both content columns and have no on-page TOC).
 //
 // Site branding/projects/theme are read from disk here (runtime, not bundled) and
 // handed to the client via useLoaderData → SiteProvider — that's what keeps the
@@ -25,12 +25,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
 	const pathname = new URL(request.url).pathname
 	const projectId = getActiveProjectId(pathname)
 	const sidebar = projectId ? flattenSidebar(await buildSidebar(projectId)) : null
-	const isCanvas = await isCanvasPath(pathname)
+	const spansToc = await spansTocColumn(pathname)
 	const data = getSiteData()
 	return {
 		sidebar,
 		projectId,
-		isCanvas,
+		spansToc,
 		site: data.site,
 		projects: getProjects(),
 		general: data.general,

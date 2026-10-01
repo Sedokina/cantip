@@ -6,7 +6,7 @@
 import { json, redirect } from '@remix-run/node'
 import type { LoaderFunctionArgs } from '@remix-run/node'
 
-import { getDoc, resolvePermalink, getPermalinkForId } from '~/lib/content.server'
+import { getDoc, getImage, resolvePermalink, getPermalinkForId } from '~/lib/content.server'
 import { getSiteData, getProjectIdForDoc } from '~/lib/site.server'
 import { GENERAL_PROJECT_ID } from '~/lib/projects-core'
 import { collectLinkedTickets } from '~/lib/jira-links'
@@ -45,6 +45,11 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 		if (canonical && canonical !== slug) {
 			return redirect(`/${canonical}/`, 301)
 		}
+	}
+
+	const image = await getImage(docId)
+	if (image) {
+		return json({ image: image.data, title: image.data.title })
 	}
 
 	const doc = await getDoc(docId)

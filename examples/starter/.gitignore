@@ -9,6 +9,9 @@ build/
 content/
 app/generated/
 public/pagefind/
+# copies of the demo images in docs/
+public/architecture.drawio.svg
+public/screenshots/
 
 # logs
 npm-debug.log*

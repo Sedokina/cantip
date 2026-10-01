@@ -7,7 +7,7 @@
  * `sidebar.server.ts` (per-project tree), but now backend-agnostic — any Source
  * works, not just the Obsidian generator.
  */
-import type { PageData, Source, VirtualFile, VirtualMeta, VirtualPage } from './types'
+import type { PageData, Source, VirtualFile, VirtualImage, VirtualMeta, VirtualPage } from './types'
 
 export type SidebarNodeType = 'directory' | 'file' | 'canvas' | 'image'
 
@@ -33,6 +33,12 @@ export interface LoaderPage {
 	data: PageData
 }
 
+/** An image as the loader exposes it: its view id + file data. */
+export interface LoaderImage {
+	id: string
+	data: VirtualImage['data']
+}
+
 export interface LoaderOptions {
 	source: Source
 	/** Locale tag for stable sorting (defaults to 'en'). */
@@ -50,6 +56,8 @@ export interface LoaderOutput {
 	getPages(): LoaderPage[]
 	/** A page by id, or null. */
 	getPage(id: string): LoaderPage | null
+	/** An image by its view id, or null. */
+	getImage(id: string): LoaderImage | null
 	/** Resolve a permalink to its page id, or null. */
 	resolvePermalink(slug: string): string | null
 	/** The canonical permalink for a page id, or null. */
@@ -87,13 +95,18 @@ export function loader(options: LoaderOptions): LoaderOutput {
 	const { source, lang = 'en' } = options
 	const projectOf = options.projectOf ?? ((id: string) => id.split('/')[0] ?? '')
 
-	// Index every page by id, dropping drafts up front. Collect folder metas
-	// (ordering + labels) keyed by folder id; non-page files are otherwise ignored.
+	// Index every page by id, dropping drafts up front. Index images by their view
+	// id, and collect folder metas (ordering + labels) keyed by folder id.
 	const pages = new Map<string, LoaderPage>()
+	const images = new Map<string, LoaderImage>()
 	const metas = new Map<string, MetaData>()
 	for (const f of source.files) {
 		if (f.type === 'meta') {
 			metas.set(f.path, f.data)
+			continue
+		}
+		if (f.type === 'image') {
+			images.set(f.path, { id: f.path, data: f.data })
 			continue
 		}
 		if (!isPage(f)) continue
@@ -123,13 +136,27 @@ export function loader(options: LoaderOptions): LoaderOutput {
 		// off a real segment nor synthesize a phantom project prefix in the _meta
 		// space. Named projects (every id prefixed) keep their original behavior.
 		let rootServed = false
-		for (const page of pages.values()) {
-			if (projectOf(page.id) !== projectId) continue
-			const hasPrefix = page.id === projectId || page.id.startsWith(prefix)
+		const entries = [
+			...Array.from(pages.values(), (page) => ({
+				id: page.id,
+				href: getCanonicalUrl(page.id),
+				title: page.data.title,
+				nodeType: page.data.isCanvas ? ('canvas' as const) : ('file' as const),
+			})),
+			...Array.from(images.values(), (image) => ({
+				id: image.id,
+				href: `/${image.id}/`,
+				title: image.data.title,
+				nodeType: 'image' as const,
+			})),
+		]
+		for (const entry of entries) {
+			if (projectOf(entry.id) !== projectId) continue
+			const hasPrefix = entry.id === projectId || entry.id.startsWith(prefix)
 			if (!hasPrefix) rootServed = true
 			// Named project: drop the leading project segment. Root-served: keep the
 			// full id — the segments ARE the tree path.
-			const segments = hasPrefix ? page.id.split('/').slice(1) : page.id.split('/')
+			const segments = hasPrefix ? entry.id.split('/').slice(1) : entry.id.split('/')
 			if (segments.length === 0) continue
 			let current = rootMap
 			for (let i = 0; i < segments.length; i++) {
@@ -144,9 +171,9 @@ export function loader(options: LoaderOptions): LoaderOutput {
 				}
 				const node = current.get(seg)!
 				if (isLast) {
-					node.href = getCanonicalUrl(page.id)
-					node.label = page.data.title || prettify(seg)
-					node.nodeType = page.data.isCanvas ? 'canvas' : 'file'
+					node.href = entry.href
+					node.label = entry.title || prettify(seg)
+					node.nodeType = entry.nodeType
 				}
 				current = node.childMap
 			}
@@ -161,6 +188,7 @@ export function loader(options: LoaderOptions): LoaderOutput {
 	return {
 		getPages: () => Array.from(pages.values()),
 		getPage: (id) => pages.get(id) ?? null,
+		getImage: (id) => images.get(id) ?? null,
 		resolvePermalink: (slug) => toId[slug] ?? null,
 		getPermalinkForId,
 		getCanonicalUrl,

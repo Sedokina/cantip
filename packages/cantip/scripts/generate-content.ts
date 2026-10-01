@@ -205,8 +205,9 @@ async function main() {
 	//    Run the general bucket (output '.') first so its root-level write lands
 	//    before project subdirs (it skips per-vault cleanup to avoid wiping them).
 	const orderedVaults = [...vaults].sort((a, b) => (a.output === '.' ? -1 : b.output === '.' ? 1 : 0))
+	const images = []
 	for (const v of orderedVaults) {
-		await generateObsidian(v, logger, OUTPUT_ROOTS)
+		images.push(...(await generateObsidian(v, logger, OUTPUT_ROOTS)))
 	}
 
 	// 3. Convert .canvas files → content/<output>/*.md
@@ -300,7 +301,7 @@ async function main() {
 				},
 			}
 		})
-	const files = [...pageFiles, ...metas]
+	const files = [...pageFiles, ...images, ...metas]
 
 	// Emit content as DATA (content.json), not an importable TS module. The app
 	// reads it via `fs` at runtime (see app/lib/content.server.ts) instead of Vite

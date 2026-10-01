@@ -58,6 +58,22 @@ export interface VirtualPage {
 }
 
 /**
+ * An image file in a Source. It is listed in the sidebar and opens in an image
+ * view that shows only the image.
+ */
+export interface VirtualImage {
+	type: 'image'
+	/** The image view's id / route path, e.g. `guide/diagrams/architecture-drawio-svg`. */
+	path: string
+	data: {
+		/** Display title: the file name including its extension. */
+		title: string
+		/** URL of the image file itself. */
+		src: string
+	}
+}
+
+/**
  * Optional folder metadata (ordering, custom labels). Not required — when absent,
  * `loader()` orders a folder's children alphabetically and labels subfolders from
  * their slug. Sourced from per-folder `_meta.{yaml,yml,json}` files (see
@@ -81,7 +97,7 @@ export interface VirtualMeta {
 	}
 }
 
-export type VirtualFile = VirtualPage | VirtualMeta
+export type VirtualFile = VirtualPage | VirtualImage | VirtualMeta
 
 /** A content backend: just a list of virtual files. */
 export interface Source {

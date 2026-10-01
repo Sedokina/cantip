@@ -60,7 +60,7 @@ export const links: LinksFunction = () => [
  */
 export function Layout() {
 	const TopBar = useComponent('TopBar')
-	const { sidebar, projectId, isCanvas, site, projects, general, theme, ui } =
+	const { sidebar, projectId, spansToc, site, projects, general, theme, ui } =
 		useLoaderData<typeof loader>()
 	const location = useLocation()
 	const [menuOpen, setMenuOpen] = useState(false)
@@ -142,15 +142,15 @@ export function Layout() {
 						    row — so it stays pinned while content scrolls. Making the inner
 						    strip sticky instead would fail, since its parent cell is only as
 						    tall as the strip.
-						    On a canvas page the content <main> spans the content + TOC columns
+						    On a canvas or image page the content <main> spans the content + TOC columns
 						    (xl:col-span-2) and there's no on-page TOC, so the strip spans them
 						    too — otherwise it would stop at the col-2/col-3 boundary, short of
-						    the full-width canvas below it. */}
+						    the full-width content below it. */}
 						<div
 							className={cn(
 								'sticky top-11 z-40 md:row-start-1',
 								sidebar ? 'md:col-start-2' : 'md:col-start-1',
-								isCanvas && 'xl:col-span-2',
+								spansToc && 'xl:col-span-2',
 							)}
 						>
 							<TabBar />

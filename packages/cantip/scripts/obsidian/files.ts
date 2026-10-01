@@ -1,13 +1,21 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
+import type { VirtualImage } from '../../src/source/types.ts'
 import type { Logger } from './logger.ts'
 
 import type { ObsidianConfig } from './types.ts'
 
 import { copyFile, ensureDirectory, removeDirectory } from './fs.ts'
 import { transformMarkdownToString } from './markdown.ts'
-import { getObsidianVaultFiles, isObsidianFile, type ObsidianFrontmatter, type Vault, type VaultFile } from './obsidian.ts'
+import {
+  getImageViewId,
+  getObsidianVaultFiles,
+  isObsidianFile,
+  type ObsidianFrontmatter,
+  type Vault,
+  type VaultFile,
+} from './obsidian.ts'
 import { getExtension, stripLeadingAndTrailingSlashes } from './path.ts'
 
 // Output roots. Assets and non-markdown files are served statically from the
@@ -68,7 +76,7 @@ export async function addObsidianFiles(
   obsidianPaths: string[],
   logger: Logger,
   roots: OutputRoots = DEFAULT_OUTPUT_ROOTS,
-) {
+): Promise<VirtualImage[]> {
   const outputPaths = getOutputPaths(config, roots)
 
   // The general/no-project bucket (output '.') writes into the content/public
@@ -103,6 +111,17 @@ export async function addObsidianFiles(
   if (didFail) {
     throw new Error('Failed to generate some pages. See the error(s) above for more information.')
   }
+
+  return vaultFiles
+    .filter((vaultFile) => isObsidianFile(vaultFile.fsPath, 'image'))
+    .map((vaultFile) => ({
+      type: 'image' as const,
+      path: getImageViewId(config.output, vault, vaultFile),
+      data: {
+        title: path.basename(vaultFile.fsPath),
+        src: path.posix.join(path.posix.sep, config.output, vaultFile.slug).split('/').map(encodeURIComponent).join('/'),
+      },
+    }))
 }
 
 async function addContent(

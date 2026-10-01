@@ -27,6 +27,7 @@ import type { ObsidianConfig } from './types.ts'
 import { transformHtmlToString } from './html.ts'
 import { transformMarkdownToAST } from './markdown.ts'
 import {
+  getImageViewId,
   getObsidianRelativePath,
   isObsidianFile,
   isObsidianBlockAnchor,
@@ -225,6 +226,7 @@ function handleReplacements(tree: Root, file: VFile) {
         ensureTransformContext(file)
 
         let fileUrl: string
+        let linkUrl: string | undefined
         let text = maybeText ?? url
 
         if (isAnchor(url)) {
@@ -235,7 +237,14 @@ function handleReplacements(tree: Root, file: VFile) {
 
           switch (file.data.vault.options.linkFormat) {
             case 'relative': {
-              fileUrl = getFileUrl(file.data.output, getRelativeFilePath(file, urlPath), urlAnchor)
+              const relativePath = getRelativeFilePath(file, urlPath)
+              fileUrl = getFileUrl(file.data.output, relativePath, urlAnchor)
+              linkUrl = getImageViewUrl(
+                file,
+                file.data.files.find(
+                  (vaultFile) => getObsidianRelativePath(file.data.vault, vaultFile.fsPath) === relativePath,
+                ),
+              )
               break
             }
             case 'absolute':
@@ -249,6 +258,7 @@ function handleReplacements(tree: Root, file: VFile) {
                 matchingFile ? getFilePathFromVaultFile(matchingFile, urlPath) : urlPath,
                 urlAnchor,
               )
+              linkUrl = getImageViewUrl(file, matchingFile)
               break
             }
           }
@@ -268,7 +278,7 @@ function handleReplacements(tree: Root, file: VFile) {
         return {
           children: [{ type: 'text', value: text }],
           type: 'link',
-          url: fileUrl,
+          url: linkUrl ?? fileUrl,
         }
       },
     ],
@@ -360,6 +370,8 @@ function handleLinks(node: Link, { file }: VisitorContext) {
       break
     }
   }
+
+  node.url = getImageViewUrl(file, matchingFile) ?? node.url
 
   return SKIP
 }
@@ -556,6 +568,15 @@ function getFrontmatterNodeValue(file: VFile, obsidianFrontmatter?: ObsidianFron
 
 function getFileUrl(output: ObsidianConfig['output'], filePath: string, anchor?: string) {
   return `${path.posix.join(path.posix.sep, output, slugifyObsidianPath(filePath))}${slugifyObsidianAnchor(anchor ?? '')}`
+}
+
+// A link to an image opens its image view; only an embed shows the file inline.
+function getImageViewUrl(file: VFile, vaultFile: VaultFile | undefined) {
+  ensureTransformContext(file)
+  if (!vaultFile || !isObsidianFile(vaultFile.fsPath, 'image')) {
+    return undefined
+  }
+  return `/${getImageViewId(file.data.output, file.data.vault, vaultFile)}`
 }
 
 function getRelativeFilePath(file: VFile, relativePath: string) {

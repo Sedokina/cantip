@@ -12,9 +12,10 @@ export type {
 	LoaderOptions,
 	LoaderOutput,
 	LoaderPage,
+	LoaderImage,
 	SidebarNode,
 	SidebarNodeType,
 	FlatSidebarItem,
 	FlatSidebarMap,
 } from './loader'
-export type { Source, VirtualFile, VirtualPage, VirtualMeta, PageData, Heading } from './types'
+export type { Source, VirtualFile, VirtualPage, VirtualImage, VirtualMeta, PageData, Heading } from './types'
