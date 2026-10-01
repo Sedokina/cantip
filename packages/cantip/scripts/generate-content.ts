@@ -14,6 +14,7 @@ import { loadConfig } from '../app/lib/config/load.ts'
 import type { DocsConfig } from '../app/lib/config/schema.ts'
 import { emitGeneratedConfig } from './emit-config.ts'
 import { ensureDrawioViewer } from './drawio.ts'
+import { loadIgnore, type IsIgnored } from './ignore.ts'
 import type { VirtualAttachment, VirtualImage } from '../src/source/types.ts'
 
 const logger: Logger = {
@@ -47,7 +48,6 @@ function buildWorkLists(config: DocsConfig) {
 	const vaults = config.projects.map((p) => ({
 		vault: p.source,
 		output: p.id,
-		ignore: p.ignore,
 		copyFrontmatter: p.copyFrontmatter,
 		drawio: config.drawio.viewer,
 	}))
@@ -60,7 +60,6 @@ function buildWorkLists(config: DocsConfig) {
 		vaults.push({
 			vault: config.general.source,
 			output: '.',
-			ignore: config.general.ignore,
 			copyFrontmatter: config.general.copyFrontmatter,
 			drawio: config.drawio.viewer,
 		})
@@ -202,6 +201,13 @@ async function main() {
 	console.log('▶ Generating content from Obsidian vaults…')
 	const { vaults, canvas } = buildWorkLists(config)
 
+	// Each source's `.cantipignore` files, read once and shared by every pass.
+	const ignoreBySource = new Map<string, IsIgnored>()
+	for (const source of new Set([...vaults, ...canvas].map((v) => v.vault))) {
+		ignoreBySource.set(source, await loadIgnore(path.resolve(CWD, source)))
+	}
+	const ignoreFor = (source: string) => ignoreBySource.get(source)!
+
 	// 1. Clean previous content output (asset/public cleanup is handled per-vault).
 	await fs.rm(CONTENT_ROOT, { recursive: true, force: true })
 
@@ -211,7 +217,7 @@ async function main() {
 	const orderedVaults = [...vaults].sort((a, b) => (a.output === '.' ? -1 : b.output === '.' ? 1 : 0))
 	const fileEntries: (VirtualImage | VirtualAttachment)[] = []
 	for (const v of orderedVaults) {
-		fileEntries.push(...(await generateObsidian(v, logger, OUTPUT_ROOTS)))
+		fileEntries.push(...(await generateObsidian(v, logger, ignoreFor(v.vault), OUTPUT_ROOTS)))
 	}
 	const images = fileEntries.filter((entry): entry is VirtualImage => entry.type === 'image')
 	if (images.some((image) => image.data.drawio) && !(await ensureDrawioViewer(PUBLIC_ROOT, logger))) {
@@ -220,7 +226,7 @@ async function main() {
 
 	// 3. Convert .canvas files → content/<output>/*.md
 	for (const c of canvas) {
-		await generateCanvas({ ...c, contentRoot: CONTENT_ROOT }, logger)
+		await generateCanvas({ ...c, contentRoot: CONTENT_ROOT, isIgnored: ignoreFor(c.vault) }, logger)
 	}
 
 	// 4. Compile every markdown page → HTML + headings + frontmatter. The user's
@@ -273,7 +279,11 @@ async function main() {
 	// These drive sidebar ordering + folder labels in `loader()`; they are never
 	// rendered as pages. Read from the source vaults (the obsidian pass doesn't
 	// copy them into content/), with ids in the same space as page ids.
-	const metas = await collectMeta(vaults, CWD, logger)
+	const metas = await collectMeta(
+		vaults.map((v) => ({ ...v, isIgnored: ignoreFor(v.vault) })),
+		CWD,
+		logger,
+	)
 	if (metas.length > 0) {
 		logger.info(`Loaded ${metas.length} _meta file(s) for sidebar ordering.`)
 	}

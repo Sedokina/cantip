@@ -167,7 +167,8 @@ Clicking it, or a wikilink like `[[Budget 2026.xlsx]]`, opens the file itself in
 a new tab: the browser shows what it can (PDF, text, audio, video) and downloads
 the rest. `![[Budget 2026.xlsx]]` embeds a link card; PDFs, audio and video
 embed with the browser's player. Hidden files, `.canvas` files, `_meta` files and
-files without an extension are skipped; exclude others with `ignore`.
+files without an extension are skipped; hide others with `.cantipignore` (see
+below).
 
 A draw.io diagram saved as `.drawio.svg` or `.drawio.png` opens in the
 interactive [draw.io viewer](https://www.drawio.com/) on its own page. The
@@ -189,6 +190,38 @@ export default defineConfig({
   drawio: { viewer: false },
 })
 ```
+
+## Hide files
+
+Put a `.cantipignore` file in a source folder to leave files out of the site. It
+uses `.gitignore` syntax, and each project reads the files in its own source:
+
+```gitignore
+# A folder and everything in it
+Archive/
+# An extension, at any depth
+*.tmp
+# One file, at any depth
+old-budget.xlsx
+# Only at the top of this folder
+/drafts.md
+```
+
+As in git, `#` starts a comment only at the beginning of a line, and nothing
+inside an ignored folder can be brought back with `!`.
+
+A matched file is left out completely: it isn't compiled, copied to `public/`,
+listed in the sidebar or indexed for search, and wikilinks to it stay
+unresolved. This covers notes, images, other files, `.canvas` files and `_meta`
+files.
+
+A `.cantipignore` can sit in any subfolder too. Its patterns are relative to
+that folder, and a deeper file can re-include with `!`, the same as nested
+`.gitignore` files.
+
+> The `ignore` option in `docs.config.ts` was replaced by `.cantipignore`. A
+> config that still sets it fails with an error; move its patterns into a
+> `.cantipignore` in the source folder.
 
 ## Extend it
 

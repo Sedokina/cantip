@@ -11,3 +11,5 @@ Embedded spreadsheet:
 Embedded PDF:
 
 ![[Q3 summary.pdf]]
+
+Hidden files: `docs/.cantipignore` leaves out the `Archive/` folder and `*.tmp` files, and `docs/Reports/.cantipignore` leaves out drafts in that folder. None of them appear in the sidebar or in `public/`.

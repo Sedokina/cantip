@@ -13,6 +13,14 @@
  */
 import { z } from 'zod'
 
+/**
+ * `ignore` was replaced by `.cantipignore` files in the source folder. Dropping
+ * the key silently would publish what it used to hide, so setting it fails.
+ */
+const removedIgnore = z
+	.never({ error: 'The `ignore` option was removed. List the patterns in a `.cantipignore` file in the source folder instead (gitignore syntax).' })
+	.optional()
+
 /** A theme color map: token name → CSS color value (typically OKLCH). */
 const colorMap = z.record(z.string(), z.string())
 
@@ -44,8 +52,7 @@ export const projectSchema = z.object({
 	 * folders that carry a real `title:` field.
 	 */
 	copyFrontmatter: z.boolean().default(false),
-	/** Globs (relative to `source`) to skip, e.g. `['CLAUDE.md']`. */
-	ignore: z.array(z.string()).default([]),
+	ignore: removedIgnore,
 	/**
 	 * "Edit this page" URL template for this project's repo. `{path}` is replaced
 	 * with the doc's source file path relative to `source` (incl. extension),
@@ -69,7 +76,7 @@ export const generalSchema = z.object({
 	canvas: z.boolean().default(false),
 	/** Keep authored frontmatter (incl. `title`) instead of titling by filename. */
 	copyFrontmatter: z.boolean().default(false),
-	ignore: z.array(z.string()).default([]),
+	ignore: removedIgnore,
 	/** "Edit this page" URL template for the general bucket's repo (see `projectSchema.editUrl`). */
 	editUrl: z.string().optional(),
 })

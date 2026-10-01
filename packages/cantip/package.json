@@ -153,6 +153,7 @@
     "decode-uri-component": "^0.4.1",
     "fflate": "^0.8.3",
     "github-slugger": "^2.0.0",
+    "ignore": "^7.0.11",
     "is-absolute-url": "^5.0.0",
     "mdast-util-find-and-replace": "^3.0.2",
     "mdast-util-from-markdown": "^2.0.3",

@@ -27,6 +27,7 @@ import { slug } from 'github-slugger'
 import decodeUriComponent from 'decode-uri-component'
 
 import type { VirtualMeta } from '../src/source/types.ts'
+import type { IsIgnored } from './ignore.ts'
 
 const META_NAMES = ['_meta.yaml', '_meta.yml', '_meta.json']
 
@@ -85,7 +86,7 @@ function parseMeta(raw: string, isJson: boolean): VirtualMeta['data'] | null {
  * `vaults` is the generator's work-list: `{ vault: sourceDir, output: projectId }`.
  */
 export async function collectMeta(
-	vaults: { vault: string; output: string; ignore?: string[] }[],
+	vaults: { vault: string; output: string; isIgnored: IsIgnored }[],
 	cwd: string,
 	logger: { warn(m: string): void },
 ): Promise<VirtualMeta[]> {
@@ -96,9 +97,10 @@ export async function collectMeta(
 		const sourceRoot = path.resolve(cwd, v.vault)
 		const hits = await glob(
 			META_NAMES.map((n) => `**/${n}`),
-			{ cwd: sourceRoot, absolute: true, ignore: v.ignore ?? [] },
+			{ cwd: sourceRoot, absolute: true },
 		)
 		for (const file of hits) {
+			if (v.isIgnored(path.relative(sourceRoot, file).replace(/\\/g, '/'))) continue
 			const relDir = path.relative(sourceRoot, path.dirname(file)).replace(/\\/g, '/')
 			const id = toFolderId(v.output, relDir)
 			if (seen.has(id)) {

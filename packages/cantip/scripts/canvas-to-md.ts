@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import { glob } from 'tinyglobby';
 
 import type { Logger } from './obsidian/logger.ts';
+import type { IsIgnored } from './ignore.ts';
 
 export interface CanvasToMdOptions {
 	/** Absolute or cwd-relative path to the Obsidian vault. */
@@ -11,6 +12,8 @@ export interface CanvasToMdOptions {
 	output: string;
 	/** Directory that `content/<output>` lives under. Defaults to 'content'. */
 	contentRoot?: string;
+	/** Excludes paths matched by the source's `.cantipignore` files. */
+	isIgnored: IsIgnored;
 }
 
 function escapeYamlString(s: string): string {
@@ -68,11 +71,11 @@ async function generateCanvasFile(
  * client-mountable canvas container. Plain Node — no Astro integration hooks.
  */
 export async function generateCanvas(options: CanvasToMdOptions, logger: Logger): Promise<void> {
-	const { vault, output, contentRoot = 'content' } = options;
+	const { vault, output, contentRoot = 'content', isIgnored } = options;
 	const vaultDir = path.resolve(vault);
 	const outDir = path.resolve(contentRoot, output);
 
-	const entries = await glob('**/[^_]*.canvas', { cwd: vaultDir });
+	const entries = (await glob('**/[^_]*.canvas', { cwd: vaultDir })).filter((relPath) => !isIgnored(relPath));
 	await Promise.all(entries.map((relPath) => generateCanvasFile(vaultDir, outDir, relPath, (m) => logger.info(m))));
 	if (entries.length > 0) {
 		logger.info(`Generated ${entries.length} canvas page(s) for '${output}'`);

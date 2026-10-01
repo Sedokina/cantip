@@ -5,7 +5,6 @@ export const obsidianConfigSchema = z.object({
   configFolder: z.string().startsWith('.').default('.obsidian'),
   copyFrontmatter: z.boolean().default(false),
   drawio: z.boolean().default(false),
-  ignore: z.array(z.string()).default([]),
   math: z
     .object({
       singleDollarTextMath: z.boolean().default(true),

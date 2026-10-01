@@ -8,6 +8,7 @@ import { glob } from 'tinyglobby'
 import yaml from 'yaml'
 
 import type { ObsidianConfig } from './types.ts'
+import type { IsIgnored } from '../ignore.ts'
 
 import { isDirectory, isFile } from './fs.ts'
 import { getExtension, isAnchor, slashify, slugifyPath, stripExtension } from './path.ts'
@@ -69,14 +70,14 @@ export async function getVault(config: ObsidianConfig): Promise<Vault> {
   }
 }
 
-export function getObsidianPaths(vault: Vault, ignore: ObsidianConfig['ignore'] = []) {
+export async function getObsidianPaths(vault: Vault, isIgnored: IsIgnored) {
   // Canvases get their own pass; `_meta` files only order the sidebar. Files
   // without an extension would be read as notes, so the glob requires one.
-  return glob(['**/*.*'], {
-    absolute: true,
+  const relativePaths = await glob(['**/*.*'], {
     cwd: vault.path,
-    ignore: [...ignore, '**/*.canvas', '**/_meta.yaml', '**/_meta.yml', '**/_meta.json'],
+    ignore: ['**/*.canvas', '**/_meta.yaml', '**/_meta.yml', '**/_meta.json'],
   })
+  return relativePaths.filter((relativePath) => !isIgnored(relativePath)).map((relativePath) => path.posix.join(vault.path, relativePath))
 }
 
 export function getObsidianVaultFiles(vault: Vault, obsidianPaths: string[]): VaultFile[] {

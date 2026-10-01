@@ -2,6 +2,7 @@ import { obsidianConfigSchema, type ObsidianUserConfig } from './types.ts'
 import { getObsidianPaths, getVault } from './obsidian.ts'
 import { addObsidianFiles, type OutputRoots } from './files.ts'
 import type { Logger } from './logger.ts'
+import type { IsIgnored } from '../ignore.ts'
 import type { VirtualAttachment, VirtualImage } from '../../src/source/types.ts'
 
 /**
@@ -14,7 +15,12 @@ import type { VirtualAttachment, VirtualImage } from '../../src/source/types.ts'
  *  via `updateConfig`; here the full markdown -> HTML compilation happens later
  *  in generate-content.ts, so this step only emits the transformed markdown.)
  */
-export async function generateObsidian(userConfig: ObsidianUserConfig, logger: Logger, roots?: OutputRoots): Promise<(VirtualImage | VirtualAttachment)[]> {
+export async function generateObsidian(
+	userConfig: ObsidianUserConfig,
+	logger: Logger,
+	isIgnored: IsIgnored,
+	roots?: OutputRoots,
+): Promise<(VirtualImage | VirtualAttachment)[]> {
 	const parsed = obsidianConfigSchema.safeParse(userConfig)
 	if (!parsed.success) {
 		throw new Error(`Invalid obsidian configuration:\n\n${JSON.stringify(parsed.error.format(), null, 2)}`)
@@ -30,7 +36,7 @@ export async function generateObsidian(userConfig: ObsidianUserConfig, logger: L
 	logger.info(`Generating pages from Obsidian vault '${config.vault}'…`)
 
 	const vault = await getVault(config)
-	const obsidianPaths = await getObsidianPaths(vault, config.ignore)
+	const obsidianPaths = await getObsidianPaths(vault, isIgnored)
 	const images = await addObsidianFiles(config, vault, obsidianPaths, logger, roots)
 
 	logger.info(`Generated '${config.output}' in ${Math.round(performance.now() - start)}ms.`)

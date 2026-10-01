@@ -56,6 +56,8 @@ Everything lives in `docs.config.ts` (typed via `cantip/config`):
 - **Files** — images, PDFs, spreadsheets, documents and any other file in a
   source folder appear in the sidebar; images get their own page, other files
   open in a new tab or download.
+- **Hidden files** — a `.cantipignore` (gitignore syntax) in any source folder
+  leaves matching files and folders out of the site.
 - **draw.io diagrams** — a `.drawio.svg` / `.drawio.png` opens in the
   interactive draw.io viewer, served from your own site. `drawio.viewer: false`
   turns it off.
