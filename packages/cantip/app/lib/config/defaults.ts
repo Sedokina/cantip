@@ -198,6 +198,16 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		createIssue: 'Создать задачу',
 		updateTicket: 'Обновить задачу',
 		publishing: 'Публикация…',
+		// draw.io diagram controls
+		previousPage: 'Предыдущая страница',
+		nextPage: 'Следующая страница',
+		zoomOut: 'Уменьшить',
+		zoomIn: 'Увеличить',
+		zoomToFit: 'Вписать в окно',
+		centerDiagram: 'Центрировать диаграмму',
+		layers: 'Слои',
+		backgroundLayer: 'Фон',
+		fullscreen: 'Во весь экран',
 		// Not-found / error page
 		notFoundTitle: 'Страница не найдена',
 		notFoundMessage:
@@ -321,6 +331,16 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		createIssue: 'Create issue',
 		updateTicket: 'Update ticket',
 		publishing: 'Publishing…',
+		// draw.io diagram controls
+		previousPage: 'Previous page',
+		nextPage: 'Next page',
+		zoomOut: 'Zoom out',
+		zoomIn: 'Zoom in',
+		zoomToFit: 'Fit to window',
+		centerDiagram: 'Centre diagram',
+		layers: 'Layers',
+		backgroundLayer: 'Background',
+		fullscreen: 'Fullscreen',
 		// Not-found / error page
 		notFoundTitle: 'Page not found',
 		notFoundMessage:

@@ -152,6 +152,36 @@ label:                 # rename subfolders (pages take their title from frontmat
   `_meta` stays fully alphabetical, exactly as before.
 - `_meta` files are read from your source vault and never rendered as pages.
 
+## Images and draw.io diagrams
+
+Every image in a source folder (`.avif .bmp .gif .jpeg .jpg .png .svg .webp`)
+appears in the sidebar under its file name. Opening it, or following a wikilink
+like `[[Login Screen.png]]`, shows the image on its own page, e.g.
+`/screenshots/login-screen-png/`. `![[Login Screen.png]]` still embeds it inline.
+The file itself is served under its original name, e.g.
+`/screenshots/Login%20Screen.png`.
+
+A draw.io diagram saved as `.drawio.svg` or `.drawio.png` opens in the
+interactive [draw.io viewer](https://www.drawio.com/) on its own page. The
+diagram opens at its natural size, centred; drag to pan, Ctrl+wheel to zoom. The
+controls in the top-right corner switch pages, zoom, fit to the area, centre,
+show or hide layers, and open a fullscreen view. The viewer follows the site's dark/light theme.
+Embeds stay static images.
+
+The viewer is served from your own site, not from diagrams.net. The first
+`cantip generate` that finds a diagram downloads the pinned draw.io release
+(`draw.war`, 54 MB) from GitHub and unpacks the viewer into `public/_drawio/`
+(about 75 MB on disk); later runs reuse it. Add `public/_drawio/` to
+`.gitignore`. If the download fails, diagrams fall back to static images.
+
+Sites that don't use draw.io, or can't download at build time, turn it off:
+
+```ts
+export default defineConfig({
+  drawio: { viewer: false },
+})
+```
+
 ## Extend it
 
 It's your Remix app — go as deep as you like:

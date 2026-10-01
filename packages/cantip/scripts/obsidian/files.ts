@@ -2,6 +2,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 
 import type { VirtualImage } from '../../src/source/types.ts'
+import { isDrawioFile, readDrawioXml } from '../drawio.ts'
 import type { Logger } from './logger.ts'
 
 import type { ObsidianConfig } from './types.ts'
@@ -112,16 +113,19 @@ export async function addObsidianFiles(
     throw new Error('Failed to generate some pages. See the error(s) above for more information.')
   }
 
-  return vaultFiles
-    .filter((vaultFile) => isObsidianFile(vaultFile.fsPath, 'image'))
-    .map((vaultFile) => ({
-      type: 'image' as const,
-      path: getImageViewId(config.output, vault, vaultFile),
-      data: {
-        title: path.basename(vaultFile.fsPath),
-        src: path.posix.join(path.posix.sep, config.output, vaultFile.slug).split('/').map(encodeURIComponent).join('/'),
-      },
-    }))
+  return Promise.all(
+    vaultFiles
+      .filter((vaultFile) => isObsidianFile(vaultFile.fsPath, 'image'))
+      .map(async (vaultFile) => ({
+        type: 'image' as const,
+        path: getImageViewId(config.output, vault, vaultFile),
+        data: {
+          title: path.basename(vaultFile.fsPath),
+          src: path.posix.join(path.posix.sep, config.output, vaultFile.slug).split('/').map(encodeURIComponent).join('/'),
+          drawio: config.drawio && isDrawioFile(vaultFile.fsPath) ? await readDrawioXml(vaultFile.fsPath) : undefined,
+        },
+      })),
+  )
 }
 
 async function addContent(

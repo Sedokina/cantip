@@ -65,6 +65,11 @@ export default defineConfig({
 	// your app/root.tsx — it's a runtime prop, no config needed:
 	//   <CantipProvider components={{ TopBar: MyTopBar }}><Layout/></CantipProvider>
 
+	// draw.io diagrams (.drawio.svg / .drawio.png) open in the interactive draw.io
+	// viewer on their own page. The first generate downloads the viewer into
+	// public/_drawio/. Turn it off to show diagrams as static images only:
+	//   drawio: { viewer: false },
+
 	// Order the sidebar: drop a `_meta.yaml` into any source folder —
 	//   order: [getting-started, installation, advanced]   # rest appends A→Z
 	//   label: { advanced: Advanced Topics }                # rename subfolders

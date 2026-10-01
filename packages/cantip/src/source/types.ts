@@ -70,6 +70,8 @@ export interface VirtualImage {
 		title: string
 		/** URL of the image file itself. */
 		src: string
+		/** The diagram's draw.io XML (an uncompressed `<mxfile>`), when the image view renders it in the draw.io viewer. */
+		drawio?: string
 	}
 }
 

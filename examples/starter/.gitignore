@@ -9,6 +9,7 @@ build/
 content/
 app/generated/
 public/pagefind/
+public/_drawio/
 # copies of the demo images in docs/
 public/architecture.drawio.svg
 public/screenshots/

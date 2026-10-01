@@ -119,6 +119,20 @@ export const docsConfigSchema = z.object({
 	theme: themeSchema.prefault({}),
 	ui: uiSchema,
 	/**
+	 * draw.io diagrams (`.drawio.svg`, `.drawio.png`). With `viewer` on, a
+	 * diagram's own page renders it in the interactive draw.io viewer (pages, zoom,
+	 * layers, lightbox) instead of a static image. Embeds stay static images.
+	 *
+	 * The first `cantip generate` that finds a diagram downloads the viewer
+	 * (~60 MB unpacked) into `public/_drawio/`; later runs reuse it. Set
+	 * `viewer: false` to skip the download and show every diagram as a static image.
+	 */
+	drawio: z
+		.object({
+			viewer: z.boolean().default(true),
+		})
+		.prefault({}),
+	/**
 	 * Markdown pipeline customization (build-time, runs in the content generator —
 	 * NOT in the browser).
 	 *

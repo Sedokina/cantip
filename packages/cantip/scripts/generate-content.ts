@@ -13,6 +13,8 @@ import type { Logger } from './obsidian/logger.ts'
 import { loadConfig } from '../app/lib/config/load.ts'
 import type { DocsConfig } from '../app/lib/config/schema.ts'
 import { emitGeneratedConfig } from './emit-config.ts'
+import { ensureDrawioViewer } from './drawio.ts'
+import type { VirtualImage } from '../src/source/types.ts'
 
 const logger: Logger = {
 	info: (m) => console.log(`  ${m}`),
@@ -47,6 +49,7 @@ function buildWorkLists(config: DocsConfig) {
 		output: p.id,
 		ignore: p.ignore,
 		copyFrontmatter: p.copyFrontmatter,
+		drawio: config.drawio.viewer,
 	}))
 	const canvas = config.projects
 		.filter((p) => p.canvas)
@@ -59,6 +62,7 @@ function buildWorkLists(config: DocsConfig) {
 			output: '.',
 			ignore: config.general.ignore,
 			copyFrontmatter: config.general.copyFrontmatter,
+			drawio: config.drawio.viewer,
 		})
 		if (config.general.canvas) {
 			canvas.push({ vault: config.general.source, output: '.' })
@@ -205,9 +209,12 @@ async function main() {
 	//    Run the general bucket (output '.') first so its root-level write lands
 	//    before project subdirs (it skips per-vault cleanup to avoid wiping them).
 	const orderedVaults = [...vaults].sort((a, b) => (a.output === '.' ? -1 : b.output === '.' ? 1 : 0))
-	const images = []
+	const images: VirtualImage[] = []
 	for (const v of orderedVaults) {
 		images.push(...(await generateObsidian(v, logger, OUTPUT_ROOTS)))
+	}
+	if (images.some((image) => image.data.drawio) && !(await ensureDrawioViewer(PUBLIC_ROOT, logger))) {
+		for (const image of images) delete image.data.drawio
 	}
 
 	// 3. Convert .canvas files → content/<output>/*.md

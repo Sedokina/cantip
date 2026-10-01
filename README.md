@@ -53,6 +53,9 @@ Everything lives in `docs.config.ts` (typed via `cantip/config`):
 - **Sidebar order** — drop a `_meta.yaml` into any source folder to order its
   children (pages and subfolders) and rename subfolders; unlisted items append
   alphabetically. No `_meta` = alphabetical, as before.
+- **draw.io diagrams** — a `.drawio.svg` / `.drawio.png` opens in the
+  interactive draw.io viewer, served from your own site. `drawio.viewer: false`
+  turns it off.
 - **Markdown pipeline** — `markdown.pipeline` hands you the default remark/rehype
   steps to reorder/drop/replace/extend (full control, build-time).
 - **Components** — `components` swaps `Home` / `DocPage` / `TopBar` / `Toc` for

@@ -14,6 +14,7 @@ import PageFloatingMenu from '~/components/PageFloatingMenu'
 import PublishToJira from '~/components/PublishToJira'
 import EditSource from '~/components/EditSource'
 import HastRenderer from '~/components/HastRenderer'
+import DrawioView from '~/components/DrawioView'
 
 /** A colored MoSCoW priority pill, rendered inline next to the page title. */
 function PriorityBadge({ priority }: { priority: string }) {
@@ -77,8 +78,18 @@ export default function DocPageRoute() {
 	return <EngineDocPage {...data} />
 }
 
-/** An image file on its own, at natural size, scaled down to fit the content area. */
+/**
+ * An image file on its own, at natural size, scaled down to fit the content area.
+ * A draw.io diagram fills the content area like a canvas page.
+ */
 function ImageView({ image }: { image: ImageData }) {
+	if (image.drawio) {
+		return (
+			<main className="canvas-main min-w-0 xl:col-span-2">
+				<DrawioView key={image.src} xml={image.drawio} src={image.src} title={image.title} />
+			</main>
+		)
+	}
 	return (
 		<main className="min-w-0 px-10 pb-16 pt-8 xl:col-span-2 max-md:px-4 max-md:pb-[calc(var(--mobile-bar-height)+env(safe-area-inset-bottom)+2rem)]">
 			<img src={image.src} alt={image.title} className="mx-auto" />

@@ -233,6 +233,35 @@ img {
 	background: var(--background);
 }
 
+/* The draw.io viewer sets its container to `overflow: auto` once a zoom makes
+   the diagram wider or taller than the area. Panning then scrolls the container
+   along the overflowing axis only, and the scroll offset breaks centring. With
+   overflow hidden, panning always moves the view, on both axes. The viewer sets
+   overflow as an inline style, so this rule needs !important. */
+.drawio-view > div {
+	overflow: hidden !important;
+}
+
+/* A draw.io diagram shown as a static image keeps its light colours. In the
+   dark theme, invert it and rotate the hue back, which approximates the
+   viewer's dark mode. Matched by file name so other images are untouched. */
+.dark img:is([src*='.drawio.svg' i], [src*='.drawio.png' i]) {
+	filter: invert(1) hue-rotate(180deg);
+}
+
+/* Dragging to pan would otherwise select the diagram's label text. */
+.drawio-view {
+	user-select: none;
+}
+
+/* The draw.io fullscreen overlay lays out its toolbar icons as inline <img>
+   elements in a row. Tailwind's preflight makes every img a block, which stacks
+   the icons into a column. The toolbar is the div draw.io appends after its
+   `.geDiagramContainer`. */
+.geDiagramContainer ~ div img {
+	display: inline;
+}
+
 /* ---- Prose: markdown body ---- */
 .content .body {
 	font-size: var(--sl-text-base);
