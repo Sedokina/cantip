@@ -38,7 +38,25 @@ Every link form from the [Obsidian links reference](https://obsidian.md/help/lin
 
 ![[another-page#Linking back]]
 
+Paragraph with a trailing id:
+
 ![[another-page#^v5]]
+
+List item:
+
+![[another-page#^37066d]]
+
+Quote with id on its own line:
+
+![[another-page#^quote-block]]
+
+Table with id on its own line:
+
+![[another-page#^table-block]]
+
+Callout with id on its own line:
+
+![[another-page#^callout-block]]
 
 ## Same-page blocks
 

@@ -2,9 +2,7 @@ import type { Element, ElementContent, Root } from 'hast'
 import type { Literal } from 'mdast'
 import { CONTINUE, SKIP, visit } from 'unist-util-visit'
 
-// Obsidian needs whitespace before `^`; without it, `x^2` is text, not a block id.
-const blockIdentifierRegex = /(?:^|\s+)(?<identifier>\^(?<name>[\w-]+))$/
-const standaloneBlockIdentifierRegex = /^\s*(?<identifier>\^(?<name>[\w-]+))\s*$/
+import { blockIdentifierRegex, standaloneBlockIdentifierRegex } from './obsidian.ts'
 
 export function rehypeObsidian() {
   return function transformer(tree: Root) {
