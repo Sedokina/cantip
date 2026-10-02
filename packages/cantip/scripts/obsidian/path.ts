@@ -10,9 +10,10 @@ export function stripExtension(filePath: string) {
   return path.parse(filePath).name
 }
 
+// Obsidian resolves `note#A#B` to heading B; the earlier headings only say where B sits.
 export function extractPathAndAnchor(filePathAndAnchor: string): [string, string | undefined] {
-  const [filePath, fileAnchor] = filePathAndAnchor.split('#', 2)
-  return [filePath as string, fileAnchor]
+  const [filePath, ...headings] = filePathAndAnchor.split('#')
+  return [filePath as string, headings.at(-1)]
 }
 
 export function isAnchor(filePath: string): filePath is `#${string}` {

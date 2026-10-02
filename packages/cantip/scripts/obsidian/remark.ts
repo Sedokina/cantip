@@ -232,7 +232,7 @@ function handleReplacements(tree: Root, file: VFile) {
         let text = maybeText ?? url
 
         if (isAnchor(url)) {
-          fileUrl = slugifyObsidianAnchor(url)
+          fileUrl = slugifyObsidianAnchor(extractPathAndAnchor(url)[1] ?? '')
           text = maybeText ?? url.slice(isObsidianBlockAnchor(url) ? 2 : 1)
         } else {
           const [urlPath, urlAnchor] = extractPathAndAnchor(url)
@@ -666,8 +666,7 @@ function escapeAttribute(value: string) {
 async function getMarkdownFileNode(file: VFile, fileUrl: string): Promise<RootContent> {
   ensureTransformContext(file)
 
-  const [fileName, ...anchorSegments] = fileUrl.split('#')
-  const fileAnchor = anchorSegments.join('#')
+  const [fileName, fileAnchor = ''] = extractPathAndAnchor(fileUrl)
   const fileExt = file.data.vault.options.linkSyntax === 'wikilink' ? '.md' : ''
   const filePath = decodeURIComponent(
     file.data.vault.options.linkFormat === 'relative'

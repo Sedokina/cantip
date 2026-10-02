@@ -14,6 +14,7 @@ Every link form from the [Obsidian links reference](https://obsidian.md/help/lin
 - Heading on this page: [[#Markdown links]]
 - Heading on another note: [[another-page#Linking back]]
 - Nested heading: [[another-page#Linking back#Nested heading]]
+- Nested heading on this page: [[#Same-page blocks#Nested same-page heading]]
 - Block by auto-generated id: [[another-page#^37066d]]
 - Block by readable id: [[another-page#^quote-of-the-day]]
 - Block by short id: [[another-page#^v5]]
@@ -37,6 +38,10 @@ Every link form from the [Obsidian links reference](https://obsidian.md/help/lin
 ## Embeds
 
 ![[another-page#Linking back]]
+
+Nested heading:
+
+![[another-page#Linking back#Nested heading]]
 
 Paragraph with a trailing id:
 
@@ -93,3 +98,7 @@ Filler paragraph 11. It keeps the next block out of view, so a block link has to
 Filler paragraph 12. It keeps the next block out of view, so a block link has to scroll to reach it.
 
 A paragraph on this page with a block id. ^v4
+
+### Nested same-page heading
+
+The target of the nested same-page heading link.
