@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from '@remix-run/react'
 import { useStickyBox } from 'react-sticky-box'
 import type { Heading } from '~/lib/content.server'
 import { useT } from '~/lib/site-context'
@@ -75,8 +76,8 @@ export function TocLinks({ shown }: { shown: Heading[] }) {
 				const isActive = h.slug === activeSlug
 				return (
 					<li key={h.slug} className={cn('m-0', h.depth === 3 && 'pl-3')}>
-						<a
-							href={`#${h.slug}`}
+						<Link
+							to={`#${h.slug}`}
 							aria-current={isActive ? 'location' : undefined}
 							className={cn(
 								'block rounded px-2 py-1 no-underline hover:text-foreground',
@@ -86,7 +87,7 @@ export function TocLinks({ shown }: { shown: Heading[] }) {
 							)}
 						>
 							{h.text}
-						</a>
+						</Link>
 					</li>
 				)
 			})}
