@@ -43,6 +43,16 @@
 	--obsidian-body-color: oklch(0.38 0 0);
 }
 
+/* Without this the browser follows the operating system's scheme. With it,
+   native UI (scrollbars, form controls) and SVG images that use light-dark()
+   colours, such as draw.io's adaptive exports, follow the theme toggle. */
+:root {
+	color-scheme: light;
+}
+:root.dark {
+	color-scheme: dark;
+}
+
 @media (min-width: 48rem) {
 	/* Desktop: the TopBar (h-11 = 2.75rem) is always pinned at the top. */
 	:root {
@@ -240,13 +250,6 @@ img {
    overflow as an inline style, so this rule needs !important. */
 .drawio-view > div {
 	overflow: hidden !important;
-}
-
-/* A draw.io diagram shown as a static image keeps its light colours. In the
-   dark theme, invert it and rotate the hue back, which approximates the
-   viewer's dark mode. Matched by file name so other images are untouched. */
-.dark img:is([src*='.drawio.svg' i], [src*='.drawio.png' i]) {
-	filter: invert(1) hue-rotate(180deg);
 }
 
 /* Dragging to pan would otherwise select the diagram's label text. */

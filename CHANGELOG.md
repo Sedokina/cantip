@@ -3,6 +3,23 @@
 Release notes for `cantip` and `create-cantip`, which are released together.
 Each release on GitHub takes its notes from the matching section below.
 
+## 0.9.1
+
+### Fixed
+
+- draw.io diagrams exported by draw.io itself now open in the viewer. 0.9.0
+  missed their diagram data, because these exports start with a comment line
+  before the DOCTYPE, and showed them as static images only.
+
+### Changed
+
+- Embedded draw.io diagrams are no longer inverted in the dark theme. Diagrams
+  exported with draw.io's adaptive colours switch between light and dark by
+  themselves. Other diagrams and `.drawio.png` files keep their own colours.
+- The site sets the CSS `color-scheme` from its light/dark theme. Diagrams with
+  draw.io's adaptive colours, and native browser UI such as scrollbars, follow
+  the theme toggle instead of the operating system's setting.
+
 ## 0.9.0
 
 ### Breaking

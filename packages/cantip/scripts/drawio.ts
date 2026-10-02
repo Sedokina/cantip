@@ -42,8 +42,11 @@ export async function readDrawioXml(filePath: string): Promise<string | undefine
 	}
 }
 
+// Reads the root <svg> tag wherever it starts: draw.io puts a comment and a
+// DOCTYPE before it, and other tools may add more.
 function readSvgContent(svg: string): string | undefined {
-	const match = /^\s*(?:<\?xml[^>]*>\s*)?(?:<!DOCTYPE[^>]*>\s*)?<svg\b[^>]*?\scontent=(?:"([^"]*)"|'([^']*)')/i.exec(svg)
+	const rootTag = /<svg\b[^>]*>/i.exec(svg)?.[0] ?? ''
+	const match = /\scontent=(?:"([^"]*)"|'([^']*)')/i.exec(rootTag)
 	const content = match?.[1] ?? match?.[2]
 	return content === undefined ? undefined : decodeXmlEntities(content)
 }

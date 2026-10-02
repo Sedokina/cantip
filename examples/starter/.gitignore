@@ -12,6 +12,7 @@ public/pagefind/
 public/_drawio/
 # copies of the demo images in docs/
 public/architecture.drawio.svg
+public/client-server-diagram.drawio.svg
 public/screenshots/
 public/reports/
 public/Contract template.docx

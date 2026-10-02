@@ -7,3 +7,7 @@ Link to a PNG in a subfolder: [[Login Screen.png]]
 Embedded diagram:
 
 ![[architecture.drawio.svg]]
+
+Embedded diagram exported by draw.io:
+
+![[client-server-diagram.drawio.svg]]
