@@ -309,6 +309,9 @@ img {
 	   heading lands below the sticky bars instead of hidden behind them. */
 	scroll-margin-top: var(--scroll-offset);
 }
+.content .body [id^='block-'] {
+	scroll-margin-top: var(--scroll-offset);
+}
 /* Headings carry an intrinsic TOP-only margin so they breathe above and sit
    flush to the text below them (bottom stays 0 from the reset). The margin
    feeds `--block-mt`, so when the source also left a blank line above, the
