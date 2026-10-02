@@ -15,6 +15,7 @@ import { visit } from 'unist-util-visit'
 import { slug as slugify } from 'github-slugger'
 import yaml from 'yaml'
 import { slugifyObsidianPath } from './obsidian/obsidian.ts'
+import { rehypeObsidian } from './obsidian/rehype.ts'
 import type { MarkdownPipelineHook, MarkdownStep } from '../app/lib/config/schema.ts'
 import type { Root as MdastRoot } from 'mdast'
 import type { Root as HastRoot, Element } from 'hast'
@@ -238,6 +239,8 @@ function defaultSteps(): MarkdownStep[] {
 		// right after remark-rehype, before plugins that key off those elements.
 		{ name: 'rehype-raw', plugin: rehypeRaw },
 		{ name: 'rehype-katex', plugin: rehypeKatex },
+		// `[[note#^id]]` links to `#block-<id>`, so the block needs that id.
+		{ name: 'cantip:block-ids', plugin: rehypeObsidian },
 		// remarkBlankLineGaps puts the gap marker on the inner <code>; move it up to
 		// the <pre> so the inter-block gap actually applies (see plugin doc above).
 		{ name: 'cantip:hoist-blank-before-to-pre', plugin: rehypeHoistBlankBeforeToPre },
