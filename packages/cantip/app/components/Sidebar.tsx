@@ -22,6 +22,7 @@ import { createPortal } from 'react-dom'
 
 import type { FlatSidebarItem, FlatSidebarMap, SidebarNodeType } from '~/lib/sidebar.server'
 import { usePrintList } from '~/lib/print-list'
+import PrintDialog from '~/components/PrintDialog'
 import { Button } from '~/components/ui/button'
 import { useTabs } from '~/lib/tabs'
 import { useT } from '~/lib/site-context'
@@ -532,6 +533,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 	const navigate = useNavigate()
 	const { hasTabs, openTab } = useTabs()
 	const printList = usePrintList()
+	const [printTarget, setPrintTarget] = useState<{ href: string; name: string } | null>(null)
 	const printListAction = (href: string, name: string): RowMenuItem =>
 		printList.has(href)
 			? { label: t('removeFromPrintList'), onSelect: () => printList.remove(href) }
@@ -1042,7 +1044,13 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 													},
 												},
 												...(itemData.type === 'file' || itemData.type === 'image'
-													? [printListAction(itemData.href, itemData.name)]
+													? [
+															{
+																label: t('printEllipsis'),
+																onSelect: () => setPrintTarget({ href: itemData.href!, name: itemData.name }),
+															},
+															printListAction(itemData.href, itemData.name),
+														]
 													: []),
 											]}
 										/>
@@ -1079,6 +1087,13 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 					getAncestorIds={getAncestorIds}
 					onClose={() => setSearchModalOpen(false)}
 					onPick={pickSearchResult}
+				/>
+			)}
+			{printTarget && (
+				<PrintDialog
+					href={printTarget.href}
+					title={printTarget.name}
+					onClose={() => setPrintTarget(null)}
 				/>
 			)}
 		</aside>

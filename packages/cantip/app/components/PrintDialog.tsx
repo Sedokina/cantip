@@ -4,49 +4,13 @@ import { useLocation } from '@remix-run/react'
 import { ArrowDown, ArrowUp, Printer, X } from 'lucide-react'
 
 import { Button } from '~/components/ui/button'
-import { usePrintList } from '~/lib/print-list'
+import { openPrint, readPrintOptions, usePrintList, writePrintOptions, type PrintOptions } from '~/lib/print-list'
 import { useT } from '~/lib/site-context'
 import { cn } from '~/lib/utils'
 
-interface PrintOptions {
-	toc: boolean
-	props: boolean
-	/** Start every page of the print list on a new sheet. */
-	breaks: boolean
-}
-
-const OPTIONS_KEY = 'cantip:print-options'
-const DEFAULT_OPTIONS: PrintOptions = { toc: true, props: false, breaks: false }
-
-function readOptions(): PrintOptions {
-	try {
-		const raw = localStorage.getItem(OPTIONS_KEY)
-		return raw ? { ...DEFAULT_OPTIONS, ...(JSON.parse(raw) as Partial<PrintOptions>) } : DEFAULT_OPTIONS
-	} catch {
-		return DEFAULT_OPTIONS
-	}
-}
-
-function writeOptions(options: PrintOptions): void {
-	try {
-		localStorage.setItem(OPTIONS_KEY, JSON.stringify(options))
-	} catch {
-		// Storage is unavailable; the choice lasts until the dialog closes.
-	}
-}
-
-// Opened from the click handler, so popup blockers allow the new tab.
-function openPrint(hrefs: string[], options: PrintOptions): void {
-	const params = new URLSearchParams()
-	for (const href of hrefs) params.append('page', href)
-	params.set('toc', options.toc ? '1' : '0')
-	params.set('props', options.props ? '1' : '0')
-	params.set('breaks', options.breaks ? '1' : '0')
-	window.open(`/_print?${params}`, '_blank')
-}
-
 /** Title-row button that opens the print dialog. Shows how many pages the print list holds. */
 export function PrintButton({ title }: { title: string }) {
+	const { pathname } = useLocation()
 	const t = useT()
 	const { items } = usePrintList()
 	const [open, setOpen] = useState(false)
@@ -66,20 +30,28 @@ export function PrintButton({ title }: { title: string }) {
 					</span>
 				)}
 			</button>
-			{open && <PrintDialog title={title} onClose={() => setOpen(false)} />}
+			{open && <PrintDialog href={pathname} title={title} onClose={() => setOpen(false)} />}
 		</>
 	)
 }
 
 /**
- * Prints the current page, or the reader's print list as one document. Both
- * open `/_print` in a new tab, which calls the browser's print dialog.
+ * Prints one page, or the reader's print list as one document. Both open
+ * `/_print` in a new tab, which calls the browser's print dialog.
  */
-export default function PrintDialog({ title, onClose }: { title: string; onClose: () => void }) {
+export default function PrintDialog({
+	href,
+	title,
+	onClose,
+}: {
+	/** The page "This page" prints and "Add this page" adds: a doc or image URL. */
+	href: string
+	title: string
+	onClose: () => void
+}) {
 	const t = useT()
-	const { pathname } = useLocation()
 	const list = usePrintList()
-	const [options, setOptions] = useState(readOptions)
+	const [options, setOptions] = useState(readPrintOptions)
 
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
@@ -97,7 +69,7 @@ export default function PrintDialog({ title, onClose }: { title: string; onClose
 	const setOption = (key: keyof PrintOptions, value: boolean) => {
 		const next = { ...options, [key]: value }
 		setOptions(next)
-		writeOptions(next)
+		writePrintOptions(next)
 	}
 
 	const print = (hrefs: string[]) => {
@@ -148,7 +120,7 @@ export default function PrintDialog({ title, onClose }: { title: string; onClose
 						<h3 className="m-0 mb-2 text-xs font-medium text-muted-foreground">{t('printThisPage')}</h3>
 						<div className="flex items-center justify-between gap-3">
 							<span className="min-w-0 truncate text-foreground">{title}</span>
-							<Button size="sm" onClick={() => print([pathname])}>
+							<Button size="sm" onClick={() => print([href])}>
 								<Printer className="size-4" />
 								{t('print')}
 							</Button>
@@ -201,8 +173,8 @@ export default function PrintDialog({ title, onClose }: { title: string; onClose
 							<Button
 								variant="outline"
 								size="sm"
-								disabled={list.has(pathname)}
-								onClick={() => list.add(pathname, title)}
+								disabled={list.has(href)}
+								onClick={() => list.add(href, title)}
 							>
 								{t('addThisPage')}
 							</Button>

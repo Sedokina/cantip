@@ -210,6 +210,7 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		fullscreen: 'Во весь экран',
 		// Printing
 		print: 'Печать',
+		printEllipsis: 'Печать…',
 		printThisPage: 'Эта страница',
 		printList: 'Список печати',
 		printInclude: 'Включить',
@@ -357,6 +358,7 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		fullscreen: 'Fullscreen',
 		// Printing
 		print: 'Print',
+		printEllipsis: 'Print…',
 		printThisPage: 'This page',
 		printList: 'Print list',
 		printInclude: 'Include',

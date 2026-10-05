@@ -107,3 +107,41 @@ export function usePrintList() {
 		clear: () => write(EMPTY),
 	}
 }
+
+/** The print dialog's choices, kept per reader between prints. */
+export interface PrintOptions {
+	toc: boolean
+	props: boolean
+	/** Start every page of the print list on a new sheet. */
+	breaks: boolean
+}
+
+const OPTIONS_KEY = 'cantip:print-options'
+const DEFAULT_OPTIONS: PrintOptions = { toc: true, props: false, breaks: false }
+
+export function readPrintOptions(): PrintOptions {
+	try {
+		const raw = localStorage.getItem(OPTIONS_KEY)
+		return raw ? { ...DEFAULT_OPTIONS, ...(JSON.parse(raw) as Partial<PrintOptions>) } : DEFAULT_OPTIONS
+	} catch {
+		return DEFAULT_OPTIONS
+	}
+}
+
+export function writePrintOptions(options: PrintOptions): void {
+	try {
+		localStorage.setItem(OPTIONS_KEY, JSON.stringify(options))
+	} catch {
+		// Storage is unavailable; the choice lasts until the dialog closes.
+	}
+}
+
+// Call from a click handler: popup blockers allow window.open only there.
+export function openPrint(hrefs: string[], options: PrintOptions): void {
+	const params = new URLSearchParams()
+	for (const href of hrefs) params.append('page', href)
+	params.set('toc', options.toc ? '1' : '0')
+	params.set('props', options.props ? '1' : '0')
+	params.set('breaks', options.breaks ? '1' : '0')
+	window.open(`/_print?${params}`, '_blank')
+}
