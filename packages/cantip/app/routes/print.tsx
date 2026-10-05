@@ -27,6 +27,15 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
 
 type PrintPage = SerializeFrom<typeof loader>['pages'][number]
 
+// A Remix <Link to="#x"> renders `/_print#x` without the query string. Browsers
+// write that into the PDF as a link to another URL instead of a jump inside the
+// document. The print page has no client navigation, so plain links are enough.
+function PlainAnchor(props: React.ComponentPropsWithoutRef<'a'>) {
+	return <a {...props} />
+}
+
+const printComponents = { a: PlainAnchor }
+
 function waitForImages(): Promise<unknown> {
 	return Promise.all(
 		Array.from(document.images)
@@ -150,7 +159,7 @@ function PrintedPage({ page, toc, props }: { page: PrintPage; toc: boolean; prop
 				</nav>
 			)}
 			<div className="body">
-				<HastRenderer tree={page.hast} />
+				<HastRenderer tree={page.hast} components={printComponents} />
 			</div>
 		</article>
 	)

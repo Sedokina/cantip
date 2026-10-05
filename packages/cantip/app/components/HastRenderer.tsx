@@ -66,8 +66,15 @@ const engineComponents = {
 	'file-embed': FileEmbed,
 }
 
-export default function HastRenderer({ tree }: { tree: HastRoot }) {
+/** `components` replaces element components for this tree only, over the consumer's `htmlComponents`. */
+export default function HastRenderer({
+	tree,
+	components: local,
+}: {
+	tree: HastRoot
+	components?: Record<string, React.ComponentType<any>>
+}) {
 	const overrides = useHtmlComponents()
-	const components = { ...engineComponents, ...overrides }
+	const components = { ...engineComponents, ...overrides, ...local }
 	return toJsxRuntime(tree, { Fragment, jsx, jsxs, components })
 }

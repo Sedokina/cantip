@@ -19,20 +19,26 @@ interface PrintPage {
 }
 
 /**
- * Prefix every `id` and every in-page `#` link in a page's tree. Printed pages
- * share one document, so two pages with the same heading or footnote id would
- * otherwise send TOC entries and footnote links to the first page.
+ * Prefix every `id` and every in-page `#` link in a page's tree, and point links
+ * to other printed pages at their copy in this document. Printed pages share one
+ * document, so two pages with the same heading or footnote id would otherwise
+ * send TOC entries and footnote links to the first page.
  */
-function prefixIds(node: Root | RootContent, prefix: string): void {
-	if (node.type === 'element') prefixElement(node, prefix)
-	if ('children' in node) for (const child of node.children) prefixIds(child, prefix)
+function rewriteTree(node: Root | RootContent, anchor: string, anchors: Map<string, string>): void {
+	if (node.type === 'element') rewriteElement(node, anchor, anchors)
+	if ('children' in node) for (const child of node.children) rewriteTree(child, anchor, anchors)
 }
 
-function prefixElement(element: Element, prefix: string): void {
+function rewriteElement(element: Element, anchor: string, anchors: Map<string, string>): void {
 	const { id, href } = element.properties
-	if (typeof id === 'string' && id) element.properties.id = prefix + id
-	if (typeof href === 'string' && href.startsWith('#') && href.length > 1) {
-		element.properties.href = `#${prefix}${href.slice(1)}`
+	if (typeof id === 'string' && id) element.properties.id = `${anchor}-${id}`
+	if (typeof href !== 'string') return
+	if (href.startsWith('#') && href.length > 1) {
+		element.properties.href = `#${anchor}-${href.slice(1)}`
+	} else if (href.startsWith('/')) {
+		const [path, hash] = href.split('#', 2)
+		const target = anchors.get(resolvePathname(path) ?? '')
+		if (target) element.properties.href = hash ? `#${target}-${hash}` : `#${target}`
 	}
 }
 
@@ -40,6 +46,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const params = new URL(request.url).searchParams
 	const pages: PrintPage[] = []
 	const missing: string[] = []
+	// Doc id → anchor of its first copy in this document.
+	const anchors = new Map<string, string>()
 
 	for (const href of params.getAll('page')) {
 		const id = resolvePathname(href)
@@ -49,17 +57,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 			continue
 		}
 		const anchor = `p${pages.length + 1}`
-		// The loader caches parsed content, so prefixing must not touch the shared tree.
-		const hast = structuredClone(doc.hast)
-		prefixIds(hast, `${anchor}-`)
+		if (!anchors.has(doc.id)) anchors.set(doc.id, anchor)
 		pages.push({
 			anchor,
 			title: docTitle(doc, doc.id),
 			frontmatter: doc.frontmatter,
 			headings: doc.headings.map((h) => ({ ...h, slug: `${anchor}-${h.slug}` })),
-			hast,
+			// The loader caches parsed content, so rewriting must not touch the shared tree.
+			hast: structuredClone(doc.hast),
 		})
 	}
+
+	// A page can link to a page printed after it, so links are rewritten once every anchor is known.
+	for (const page of pages) rewriteTree(page.hast, page.anchor, anchors)
 
 	return json({
 		pages,
