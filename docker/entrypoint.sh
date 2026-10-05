@@ -11,7 +11,8 @@
 # ALL per-client data — content AND branding/projects/theme — is read from disk at
 # runtime (cantip >=0.6.0), so the app is built once at image-build time and boot
 # is just `cantip generate` + serve. Any change (content or branding/theme) needs
-# only a regenerate, no rebuild — send SIGHUP to this process to apply it.
+# only a regenerate, no rebuild and no restart — send SIGHUP to this process to
+# apply it. The running server picks up the new data by itself.
 set -eu
 
 APP=/app
@@ -32,17 +33,22 @@ fi
 # Node resolves a module's imports relative to the file's REAL path — a symlink
 # would resolve `cantip` from the volume (/docs/node_modules), which a client
 # volume won't have. Copying into /app makes it resolve from the image's
-# node_modules. Find the config under whatever extension the client used.
+# node_modules. Find the config under whatever extension the client used. Runs
+# again on every refresh, so config changes on the volume are picked up too.
 cd "$APP"
 
-rm -f "$APP"/docs.config.ts "$APP"/docs.config.js "$APP"/docs.config.mjs
-for ext in ts js mjs; do
-	if [ -f "$DOCS/docs.config.$ext" ]; then
-		cp "$DOCS/docs.config.$ext" "$APP/docs.config.$ext"
-		log "copied docs.config.$ext from volume"
-		break
-	fi
-done
+copy_config() {
+	for ext in ts js mjs; do
+		if [ -f "$DOCS/docs.config.$ext" ]; then
+			rm -f "$APP"/docs.config.ts "$APP"/docs.config.js "$APP"/docs.config.mjs
+			cp "$DOCS/docs.config.$ext" "$APP/docs.config.$ext"
+			log "copied docs.config.$ext from volume"
+			return 0
+		fi
+	done
+	return 1
+}
+copy_config
 
 # Drop the seed content dir the scaffold shipped (template/docs) so it can't leak
 # into the client's site; the volume provides the real sources.
@@ -70,20 +76,21 @@ for entry in "$DOCS"/*; do
 done
 
 # Merge the client's public/ assets (favicon, logos) from the volume into the
-# app's public/ dir, over the scaffold's seed.
-if [ -d "$DOCS/public" ]; then
-	cp -a "$DOCS/public/." "$APP/public/" 2>/dev/null || true
-	log "merged public/ assets from volume"
-fi
-
-# Sync the app's public/ into build/client/ — the dir `remix-serve` actually serves
-# static files from. The app was built at image-build time, so build/client/ holds
-# the SEED favicon/logos/pagefind; without this sync those stale seeds shadow the
-# real assets (build/client/ takes precedence over public/ for same-name files).
-# Run AFTER generate so it also carries the generated pagefind index + vault images.
-sync_public() {
-	cp -a "$APP/public/." "$APP/build/client/" 2>/dev/null || true
+# app's public/ dir, over the scaffold's seed. Runs again on every refresh, so
+# changed branding files on the volume are picked up too.
+merge_public() {
+	if [ -d "$DOCS/public" ]; then
+		cp -a "$DOCS/public/." "$APP/public/" 2>/dev/null || true
+		log "merged public/ assets from volume"
+	fi
 }
+merge_public
+
+# `remix-serve` serves static files from build/client/, not public/. The generator
+# copies public/ (branding, vault images, the pagefind index) there itself, before
+# it writes the new content.json and site.json. The running server switches to the
+# new data only after that, so new pages never point at files that aren't there yet.
+export CANTIP_STATIC_DIR="$APP/build/client"
 
 # ── Generate + serve (NO build) ─────────────────────────────────────────────
 # The Remix app was already built at image-build time, and cantip >=0.6.0 reads
@@ -92,32 +99,34 @@ sync_public() {
 # for THIS client, then serve. No `remix vite:build` at boot.
 log "generating content + site data from docs.config.ts…"
 npx cantip generate
-sync_public
 
-# ── Serve, with SIGHUP = regenerate (no rebuild) ────────────────────────────
+# ── Serve, with SIGHUP = regenerate (no rebuild, no restart) ────────────────
 log "starting server on ${HOST:-0.0.0.0}:${PORT:-3000}"
 npm run start &
 SERVER_PID=$!
 
-# SIGHUP: regenerate from the (possibly updated) volume, then bounce the server so
-# it re-reads the data on next request — no rebuild. As of cantip >=0.6.0 this
-# refreshes BRANDING + THEME + PROJECTS too (all runtime data), not just content.
+# SIGHUP: regenerate from the (possibly updated) volume. The server keeps running
+# and serves the new data within a second of the generator finishing. This covers
+# BRANDING + THEME + PROJECTS too (all runtime data), not just content.
 refresh() {
-	log "SIGHUP — regenerating content + site data (no rebuild)…"
+	log "SIGHUP — regenerating content + site data (no rebuild, no restart)…"
+	copy_config || log "no docs.config in $DOCS; keeping the current config"
+	merge_public
 	if npx cantip generate; then
-		sync_public  # carry refreshed pagefind / vault images / branding into build/client
+		log "data refreshed; server kept running"
 	else
 		log "regenerate failed; keeping current data"
 	fi
-	kill "$SERVER_PID" 2>/dev/null || true
-	wait "$SERVER_PID" 2>/dev/null || true
-	npm run start &
-	SERVER_PID=$!
-	log "data refreshed; server restarted (app NOT rebuilt)"
 }
 trap refresh HUP
 
 # Forward termination for a clean shutdown.
 trap 'kill "$SERVER_PID" 2>/dev/null || true; exit 0' INT TERM
 
-wait "$SERVER_PID"
+# A trapped signal makes `wait` return as soon as its handler finishes, even though
+# the server is still running. Keep waiting until the server itself exits.
+while :; do
+	wait "$SERVER_PID" && status=0 || status=$?
+	kill -0 "$SERVER_PID" 2>/dev/null || break
+done
+exit "$status"
