@@ -1,24 +1,21 @@
 /**
  * Serialize the resolved config for the running app.
  *
- * Emits two artifacts under the manifest dir (`app/generated`):
- * - `site.json` — branding, projects, general, theme. Read via `fs` at runtime in
- *   `app/lib/site.server.ts` (NOT imported), so it stays out of the bundle and the
- *   Remix build is client-agnostic. Theme tokens travel here too and are injected
- *   as an inline `<style>` at runtime (no more `theme.generated.css` asset).
- * - `ui.ts` — a plain-literal module of localized UI strings, IMPORTED so Vite
- *   bundles it client + server (keeps `t()` synchronous + isomorphic). UI strings
- *   are translations keyed by `lang` (engine data), so bundling is fine.
+ * Emits `site.json` under the manifest dir (`app/generated`): branding, projects,
+ * general, theme and UI strings. Read via `fs` at runtime in
+ * `app/lib/site.server.ts` (NOT imported), so it stays out of the bundle and the
+ * Remix build is client-agnostic. Theme tokens are injected as an inline `<style>`
+ * at runtime (no more `theme.generated.css` asset).
  *
  * Per-project `landing` is defaulted here (not in `loadConfig`) because it needs
  * the compiled doc index: when a project doesn't pin a landing URL, we use the
  * first doc under that project as its landing page.
  */
-import fs from 'node:fs/promises'
 import path from 'node:path'
 
 import type { DocsConfig } from '../app/lib/config/schema.ts'
 import type { GeneratedSite, SiteProject } from '../app/lib/config/site.ts'
+import { writeFileAtomic } from './write-atomic.ts'
 
 // Mirrors `GENERAL_PROJECT_ID` in app/lib/projects-core.ts. Inlined (not imported)
 // so this build script never pulls in an app module that imports a Vite-only
@@ -110,7 +107,7 @@ export async function emitGeneratedConfig({ config, manifestDir, index, logger }
 
 	// Runtime-read site data — NOT imported, so it's not bundled. Pretty-printed so
 	// a human can diff it. Carries everything per-client incl. ui translations.
-	await fs.writeFile(path.join(manifestDir, 'site.json'), JSON.stringify(site, null, '\t'))
+	await writeFileAtomic(path.join(manifestDir, 'site.json'), JSON.stringify(site, null, '\t'))
 
 	logger.info(`Emitted site.json (${projects.length} project(s)${generalHasDocs ? ' + general' : ''}).`)
 }

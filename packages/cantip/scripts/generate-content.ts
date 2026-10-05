@@ -15,6 +15,7 @@ import type { DocsConfig } from '../app/lib/config/schema.ts'
 import { emitGeneratedConfig } from './emit-config.ts'
 import { ensureDrawioViewer } from './drawio.ts'
 import { loadIgnore, type IsIgnored } from './ignore.ts'
+import { writeFileAtomic } from './write-atomic.ts'
 import type { VirtualAttachment, VirtualImage } from '../src/source/types.ts'
 
 const logger: Logger = {
@@ -150,6 +151,15 @@ async function oldestOutputMtime(outputs: string[]): Promise<number> {
 	return oldest
 }
 
+/** Absolute paths of every source folder the config reads. */
+function getSourceDirs(config: DocsConfig): string[] {
+	const sources = config.projects.map((p) => path.resolve(CWD, p.source))
+	if (config.general.enabled && config.general.source) {
+		sources.push(path.resolve(CWD, config.general.source))
+	}
+	return sources
+}
+
 /**
  * Whether the generated artifacts are already up-to-date for `config`'s inputs:
  * every required output exists and is newer than the config + all source vaults.
@@ -160,22 +170,14 @@ async function oldestOutputMtime(outputs: string[]): Promise<number> {
  * explicit generate always runs fresh.
  */
 async function isFresh(config: DocsConfig): Promise<boolean> {
-	const outputs = [
-		path.join(MANIFEST_DIR, 'content.json'),
-		path.join(MANIFEST_DIR, 'site.json'),
-		path.join(MANIFEST_DIR, 'ui.ts'),
-	]
+	const outputs = [path.join(MANIFEST_DIR, 'content.json'), path.join(MANIFEST_DIR, 'site.json')]
 	const oldestOut = await oldestOutputMtime(outputs)
 	if (oldestOut === -Infinity) return false // an output is missing
 
 	// Inputs: the config file (if any) + every source vault directory.
 	const configFile = ['docs.config.ts', 'docs.config.js', 'docs.config.mjs']
 		.map((f) => path.resolve(CWD, f))
-	const sources = config.projects.map((p) => path.resolve(CWD, p.source))
-	if (config.general.enabled && config.general.source) {
-		sources.push(path.resolve(CWD, config.general.source))
-	}
-	const inputs = [...configFile, ...sources]
+	const inputs = [...configFile, ...getSourceDirs(config)]
 
 	let newestIn = -Infinity
 	for (const i of inputs) newestIn = Math.max(newestIn, await newestMtime(i))
@@ -244,13 +246,8 @@ async function main() {
 		logger.info(`Rewrote ${rewrites} in-content link(s) to permalinks.`)
 	}
 
-	// 5. Emit the content manifest as ONE importable TS module in the Source shape
-	//    (`{ files: VirtualFile[], permalinks }`). The app imports it via the
-	//    `~/generated` alias and feeds it to `loader()` — no runtime fs reads, no
-	//    cwd fragility, fully typed. It's server-only (HTML is injected as a
-	//    string), so a single module is fine — Remix never ships it to the client.
-	await fs.rm(MANIFEST_DIR, { recursive: true, force: true })
-	await fs.mkdir(MANIFEST_DIR, { recursive: true })
+	// 5. Assemble the content manifest in the Source shape (`{ files, permalinks }`).
+	//    It is written at the end of the run, see step 8.
 
 	// Permalink map: a doc may pin a stable URL via `permalink` frontmatter,
 	// independent of the file name (renames never break it). Stored permalink→id;
@@ -321,25 +318,30 @@ async function main() {
 		})
 	const files = [...pageFiles, ...fileEntries, ...metas]
 
-	// Emit content as DATA (content.json), not an importable TS module. The app
-	// reads it via `fs` at runtime (see app/lib/content.server.ts) instead of Vite
-	// bundling it into build/server. This keeps the compiled content OUT of the app
-	// binary: the server build is content-agnostic (build once, ship anywhere), and
-	// content can be regenerated/swapped without rebuilding or restarting the app.
-	await fs.writeFile(
-		path.join(MANIFEST_DIR, 'content.json'),
-		JSON.stringify({ files, permalinks }),
-	)
-
 	// 6. Build the Pagefind search index from the compiled docs → public/pagefind
 	await buildSearchIndex(docs, canonicalUrl, logger, {
 		outputPath: path.join(PUBLIC_ROOT, 'pagefind'),
 		lang: config.site.lang,
 	})
 
-	// 7. Emit the resolved config: `site.json` (runtime-read branding/projects/
-	//    theme) + `ui.ts` (bundled translations). Pass the doc ids so per-project
-	//    `landing` defaults resolve to each project's first doc.
+	// 7. Copy public/ into the folder the server serves static files from, so new
+	//    pages never reference images or search fragments that aren't there yet.
+	if (process.env.CANTIP_STATIC_DIR) {
+		const staticDir = path.resolve(CWD, process.env.CANTIP_STATIC_DIR)
+		await fs.cp(PUBLIC_ROOT, staticDir, { recursive: true, preserveTimestamps: true })
+		logger.info(`Copied public/ to ${staticDir}.`)
+	}
+
+	// 8. Write the generated data last. A running server reloads it as soon as
+	//    `site.json` changes, so everything it points at must already be in place:
+	//    content.json before site.json, and every other output before both.
+	//    content.json is DATA read via `fs` at runtime (app/lib/content.server.ts),
+	//    not a bundled module, so content can change without a rebuild.
+	await fs.mkdir(MANIFEST_DIR, { recursive: true })
+	await writeFileAtomic(path.join(MANIFEST_DIR, 'watch.json'), JSON.stringify({ sources: getSourceDirs(config) }))
+	await writeFileAtomic(path.join(MANIFEST_DIR, 'content.json'), JSON.stringify({ files, permalinks }))
+	// `site.json` (branding, projects, theme, UI strings) goes last. The doc ids
+	// let per-project `landing` defaults resolve to each project's first doc.
 	await emitGeneratedConfig({
 		config,
 		manifestDir: MANIFEST_DIR,
