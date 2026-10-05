@@ -21,6 +21,7 @@ import {
 import { createPortal } from 'react-dom'
 
 import type { FlatSidebarItem, FlatSidebarMap, SidebarNodeType } from '~/lib/sidebar.server'
+import { usePrintList } from '~/lib/print-list'
 import { Button } from '~/components/ui/button'
 import { useTabs } from '~/lib/tabs'
 import { useT } from '~/lib/site-context'
@@ -529,6 +530,11 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 	const t = useT()
 	const navigate = useNavigate()
 	const { hasTabs, openTab } = useTabs()
+	const printList = usePrintList()
+	const printListAction = (href: string, name: string): RowMenuItem =>
+		printList.has(href)
+			? { label: t('removeFromPrintList'), onSelect: () => printList.remove(href) }
+			: { label: t('addToPrintList'), onSelect: () => printList.add(href, name) }
 
 	// --- Parent map + active item (memoised on data/currentPath) ---
 	const parentMap = useMemo(() => {
@@ -1034,6 +1040,9 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 														openFile(itemData.href!, itemData.name, true)
 													},
 												},
+												...(itemData.type === 'file'
+													? [printListAction(itemData.href, itemData.name)]
+													: []),
 											]}
 										/>
 									) : (

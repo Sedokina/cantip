@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, ChevronLeft, ChevronRight, List, Search as SearchIcon, X } from 'lucide-react'
+import { ArrowUp, ChevronLeft, ChevronRight, List, Printer, Search as SearchIcon, X } from 'lucide-react'
 
 import type { Heading } from '~/lib/content.server'
 import { TocLinks, tocHeadings } from '~/components/Toc'
 import FindOnPage from '~/components/FindOnPage'
+import PrintDialog from '~/components/PrintDialog'
 import { useT } from '~/lib/site-context'
 import { cn } from '~/lib/utils'
 
@@ -34,13 +35,15 @@ const tab =
  * Projects panel, both z-90) so those cover it just like they cover each other.
  * The TOC sheet it opens uses the modal tier (z-[200]).
  */
-export default function PageFloatingMenu({ headings }: { headings: Heading[] }) {
+/** `title` is the page title shown in the print dialog; without it there is no Print tab. */
+export default function PageFloatingMenu({ headings, title }: { headings: Heading[]; title?: string }) {
 	const t = useT()
 	const shown = tocHeadings(headings)
 	const [visible, setVisible] = useState(true)
 	const [open, setOpen] = useState(false)
 	const [tocOpen, setTocOpen] = useState(false)
 	const [findOpen, setFindOpen] = useState(false)
+	const [printOpen, setPrintOpen] = useState(false)
 	const navRef = useRef<HTMLElement>(null)
 
 	// While the deck is open, any pointer/focus landing outside it collapses it —
@@ -111,6 +114,11 @@ export default function PageFloatingMenu({ headings }: { headings: Heading[] }) 
 		setFindOpen(true)
 	}
 
+	const openPrint = () => {
+		setOpen(false)
+		setPrintOpen(true)
+	}
+
 	return (
 		<>
 			{open ? (
@@ -135,6 +143,12 @@ export default function PageFloatingMenu({ headings }: { headings: Heading[] }) 
 						<List className="size-5" />
 						<span>{t('toc')}</span>
 					</button>
+					{title && (
+						<button type="button" onClick={openPrint} className={tab} aria-label={t('print')}>
+							<Printer className="size-5" />
+							<span>{t('print')}</span>
+						</button>
+					)}
 					<button
 						type="button"
 						onClick={() => setOpen(false)}
@@ -170,6 +184,7 @@ export default function PageFloatingMenu({ headings }: { headings: Heading[] }) 
 
 			{tocOpen && <TocSheet shown={shown} onClose={() => setTocOpen(false)} />}
 			{findOpen && <FindOnPage onClose={() => setFindOpen(false)} />}
+			{printOpen && title && <PrintDialog title={title} onClose={() => setPrintOpen(false)} />}
 		</>
 	)
 }

@@ -13,6 +13,7 @@ import { useComponent, useOverride } from '~/lib/components'
 import PageFloatingMenu from '~/components/PageFloatingMenu'
 import PublishToJira from '~/components/PublishToJira'
 import EditSource from '~/components/EditSource'
+import { PrintButton } from '~/components/PrintDialog'
 import HastRenderer from '~/components/HastRenderer'
 import DrawioView from '~/components/DrawioView'
 import PriorityBadge from '~/components/PriorityBadge'
@@ -118,6 +119,7 @@ function EngineDocPage({ doc, title, editUrl, linkedTickets }: DocData) {
 						</h1>
 						<div className="flex shrink-0 items-center gap-2">
 							<EditSource url={editUrl} />
+							<PrintButton title={title} />
 							<PublishToJira
 								pageId={doc.id}
 								title={title}
@@ -132,7 +134,7 @@ function EngineDocPage({ doc, title, editUrl, linkedTickets }: DocData) {
 				</article>
 			</main>
 			{showToc && <Toc headings={doc.headings} />}
-			{showToc && <PageFloatingMenu headings={doc.headings} />}
+			{showToc && <PageFloatingMenu headings={doc.headings} title={title} />}
 		</>
 	)
 }
