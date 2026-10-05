@@ -26,7 +26,7 @@ import {
 import { createPortal } from 'react-dom'
 
 import type { FlatSidebarItem, FlatSidebarMap, SidebarNodeType } from '~/lib/sidebar.server'
-import { usePrintList } from '~/lib/print-list'
+import { usePrintList, type PrintListItem } from '~/lib/print-list'
 import PrintDialog from '~/components/PrintDialog'
 import { Button } from '~/components/ui/button'
 import { useTabs } from '~/lib/tabs'
@@ -597,6 +597,18 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 		printList.has(href)
 			? { label: t('removeFromPrintList'), onSelect: () => printList.remove(href) }
 			: { label: t('addToPrintList'), onSelect: () => printList.add(href, name) }
+	// A folder can carry its own page (a page whose id is the folder path), so the
+	// folder's own page is checked too.
+	const printableUnder = (id: string): PrintListItem[] => {
+		const item = data[id]
+		const own =
+			(item.type === 'file' || item.type === 'image') && item.href ? [{ href: item.href, title: item.name }] : []
+		return [...own, ...item.children.flatMap(printableUnder)]
+	}
+	const addFolderAction = (id: string): RowMenuItem => ({
+		label: t('addFolderToPrintList'),
+		onSelect: () => printList.addAll(printableUnder(id)),
+	})
 
 	// --- Parent map + active item (memoised on data/currentPath) ---
 	const parentMap = useMemo(() => {
@@ -1144,6 +1156,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 															printListAction(itemData.href, itemData.name),
 														]
 													: []),
+												...(isFolder ? [addFolderAction(id)] : []),
 											]}
 										/>
 									) : (
@@ -1159,6 +1172,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 															void item.expandAll()
 														},
 													},
+													addFolderAction(id),
 												]}
 											/>
 										)
