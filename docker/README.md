@@ -16,15 +16,17 @@ runtime, that build is **client-agnostic** — it bakes in nothing client-specif
 The client's docs arrive at runtime on a volume mounted at `/docs`. On boot the
 entrypoint:
 
-1. links `/docs/docs.config.ts` + the content dirs it references into the app,
+1. copies `/docs/docs.config.ts` into the app and links the content dirs it
+   references,
 2. merges `/docs/public/` branding assets,
 3. runs `cantip generate` (markdown → HTML, search index, mermaid, canvas, plus
-   `site.json` for branding/projects/theme),
+   `site.json` for branding/projects/theme), which also copies `public/` into
+   `build/client/`, the folder `remix-serve` serves static files from,
 4. serves with `remix-serve` on port 3000.
 
 There is **no `remix vite:build` at boot** — it already ran in the image. Boot is
 just generate + serve, and any change (content OR branding/theme) is applied by a
-regenerate, **without a rebuild** — see [Live refresh](#live-content-refresh).
+regenerate, **without a rebuild** — see [Live refresh](#live-refresh).
 
 ## Build
 
@@ -63,17 +65,20 @@ only inside the container. See `docker-compose.yml` for a compose example.
 
 ## Live refresh
 
-Update anything on the volume — content, branding, theme, the project list — then
-signal the running container to regenerate. **No image rebuild, no app rebuild**,
-just `cantip generate` + a fast process bounce (the new data is read from
-`content.json` / `site.json` on the next request):
+Update anything on the volume — content, `docs.config.ts` (branding, theme, the
+project list), branding files in `public/` — then signal the running container to
+regenerate:
 
 ```sh
 docker kill -s HUP <container>
 ```
 
-As of cantip ≥0.6.0 this covers branding/theme/projects too — they're runtime data
-now, not bundled — so nothing needs a full rebuild or image rebuild.
+The entrypoint copies the config and `public/` from the volume again and runs
+`cantip generate`. **No image rebuild, no app rebuild, no server restart**: the
+running server serves the new data within a second after the generator finishes,
+and requests during the run get the previous content. If the generate fails, for
+example because of a broken config, the error is in the container log and the
+site keeps serving the last good content.
 
 ## Notes / tunables
 
@@ -125,6 +130,17 @@ the file's **real** path, so a symlinked config resolves `import 'cantip'` from 
 volume, not the image. Copying it into `/app` makes its imports resolve from the
 image's `node_modules`. (Content dirs are still symlinked — they can be large and
 are only read, never imported.)
+
+**The generator, not the entrypoint, copies `public/` into `build/client/`.**
+`CANTIP_STATIC_DIR` makes `cantip generate` copy it before it writes the new
+`content.json` and `site.json`, and the running server switches to the new data
+when `site.json` changes. A copy that runs after `cantip generate` would let the
+server show new pages before their images and search index exist.
+
+**A refresh must not end the script.** A trapped `SIGHUP` makes `wait` return as
+soon as the handler finishes, while the server keeps running. The loop at the end
+of `entrypoint.sh` waits again until the server process itself exits. A single
+`wait "$SERVER_PID"` there makes the container exit on the first `SIGHUP`.
 
 **The build runs at image-build, not at boot.** Because cantip ≥0.6.0 reads all
 per-client data at runtime (`content.json` + `site.json`), the server bundle is

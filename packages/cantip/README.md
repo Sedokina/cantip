@@ -60,7 +60,11 @@ export { default, meta } from 'cantip/routes/home'
 ```
 
 The `cantip()` plugin runs the content pipeline (markdown → HTML) before each
-build and on changes in dev — no separate generate step.
+build and on changes in dev — no separate generate step. In dev it watches
+`docs.config.ts` and every source folder the config names, including folders
+outside the project, and reloads the browser once the new content is ready. To
+regenerate on changes to other files the generator reads, list them in the
+plugin: `cantip({ watch: ['snippets'] })`.
 
 > **Peer dependencies:** cantip expects `react`, `react-dom`, `@remix-run/node`,
 > and `@remix-run/react` from your app, so there's a single shared copy (no
@@ -222,6 +226,27 @@ that folder, and a deeper file can re-include with `!`, the same as nested
 > The `ignore` option in `docs.config.ts` was replaced by `.cantipignore`. A
 > config that still sets it fails with an error; move its patterns into a
 > `.cantipignore` in the source folder.
+
+## Update content on a running server
+
+A production server (`remix-serve` or your own) needs no restart and no rebuild
+when the docs change. Run `cantip generate` in the project folder while the
+server runs. The server checks `app/generated/site.json` at most once per second
+and serves the new content as soon as the generator finishes. Requests during the
+run get the previous content, because the generator replaces each data file in a
+single step, after everything else. If the generator fails, the server keeps
+serving the last good content.
+
+`remix-serve` serves static files (images, the search index, branding) from
+`build/client/`, not from `public/`. Set `CANTIP_STATIC_DIR` so the generator
+copies `public/` there before it switches the content over:
+
+```sh
+CANTIP_STATIC_DIR=build/client npx cantip generate
+```
+
+The Docker image does this when it receives `SIGHUP`; see the
+[Docker README](https://github.com/Sedokina/cantip/blob/main/docker/README.md#live-refresh).
 
 ## Extend it
 
