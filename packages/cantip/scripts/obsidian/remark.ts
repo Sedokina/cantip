@@ -357,28 +357,13 @@ function handleLinks(node: Link, { file }: VisitorContext) {
   }
 
   const [linkPath, urlAnchor] = extractPathAndAnchor(decodeURIComponent(node.url))
-  const urlPath = path.basename(linkPath)
-  const matchingFile = file.data.files.find(
-    (vaultFile) => vaultFile.isEqualFileName(urlPath) || vaultFile.isEqualStem(urlPath),
-  )
+  const matchingFile = findLinkedVaultFile(file, linkPath)
 
   if (!matchingFile) {
     return SKIP
   }
 
-  switch (file.data.vault.options.linkFormat) {
-    case 'relative': {
-      node.url = getFileUrl(file.data.output, getRelativeFilePath(file, linkPath), urlAnchor)
-      break
-    }
-    case 'absolute':
-    case 'shortest': {
-      node.url = getFileUrl(file.data.output, getFilePathFromVaultFile(matchingFile, linkPath), urlAnchor)
-      break
-    }
-  }
-
-  node.url = getImageViewUrl(file, matchingFile) ?? node.url
+  node.url = getImageViewUrl(file, matchingFile) ?? getFileUrl(file.data.output, matchingFile.slug, urlAnchor)
 
   return SKIP
 }
@@ -589,10 +574,22 @@ function getImageViewUrl(file: VFile, vaultFile: VaultFile | undefined) {
 // `[[Folder/Note]]` names the note without `.md`; `[[Folder/Image.png]]` keeps the extension.
 function findVaultFileByPath(file: VFile, vaultPath: string) {
   ensureTransformContext(file)
+  const fullPath = path.posix.join('/', vaultPath)
   return file.data.files.find((vaultFile) => {
     const relativePath = getObsidianRelativePath(file.data.vault, vaultFile.fsPath)
-    return relativePath === `/${vaultPath}` || relativePath === `/${vaultPath}.md`
+    return relativePath === fullPath || relativePath === `${fullPath}.md`
   })
+}
+
+// Obsidian resolves a Markdown link relative to the note first, then from the vault root,
+// and falls back to the file name only when the link has no folder.
+function findLinkedVaultFile(file: VFile, linkPath: string) {
+  ensureTransformContext(file)
+  const byPath = findVaultFileByPath(file, getRelativeFilePath(file, linkPath)) ?? findVaultFileByPath(file, linkPath)
+  if (byPath || linkPath.includes('/')) {
+    return byPath
+  }
+  return file.data.files.find((vaultFile) => vaultFile.isEqualFileName(linkPath) || vaultFile.isEqualStem(linkPath))
 }
 
 function getRelativeFilePath(file: VFile, relativePath: string) {

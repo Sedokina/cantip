@@ -34,6 +34,8 @@ Every link form from the [Obsidian links reference](https://obsidian.md/help/lin
 - Note with extension: [Another page](another-page.md)
 - Note with folder path: [Folder note](Guides/Folder%20note.md)
 - Image with folder path: [Login screen](Screenshots/Login%20Screen.png)
+- Same file name, Guides folder: [Guides overview](Guides/Overview.md)
+- Same file name, Reports folder: [Reports overview](Reports/Overview.md)
 - Heading on another note: [Linking back](another-page.md#Linking%20back)
 - Heading on this page: [Wikilinks](#Wikilinks)
 - External: [Obsidian](https://obsidian.md)
