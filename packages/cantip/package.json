@@ -52,6 +52,14 @@
       "types": "./dist/types/app/routes/doc.server.d.ts",
       "default": "./app/routes/doc.server.ts"
     },
+    "./routes/print": {
+      "types": "./dist/types/app/routes/print.d.ts",
+      "default": "./app/routes/print.tsx"
+    },
+    "./routes/print.server": {
+      "types": "./dist/types/app/routes/print.server.d.ts",
+      "default": "./app/routes/print.server.ts"
+    },
     "./routes/home": {
       "types": "./dist/types/app/routes/_index.d.ts",
       "default": "./app/routes/_index.tsx"

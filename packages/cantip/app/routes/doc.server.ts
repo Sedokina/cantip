@@ -6,7 +6,7 @@
 import { json, redirect } from '@remix-run/node'
 import type { LoaderFunctionArgs } from '@remix-run/node'
 
-import { getDoc, getImage, resolvePermalink, getPermalinkForId } from '~/lib/content.server'
+import { docTitle, getDoc, getImage, resolvePermalink, getPermalinkForId } from '~/lib/content.server'
 import { getSiteData, getProjectIdForDoc } from '~/lib/site.server'
 import { GENERAL_PROJECT_ID } from '~/lib/projects-core'
 import { collectLinkedTickets } from '~/lib/jira-links'
@@ -56,10 +56,7 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 	if (!doc || doc.frontmatter.draft === true) {
 		throw new Response('Not Found', { status: 404 })
 	}
-	const title =
-		(doc.frontmatter.title as string | undefined) ??
-		slug.split('/').pop()?.replace(/-/g, ' ') ??
-		slug
+	const title = docTitle(doc, slug)
 	// Scan the body's hast for linked Jira tickets server-side, so the result ships
 	// to the client without the body needing to exist as an HTML string anywhere.
 	const linkedTickets = collectLinkedTickets(doc.frontmatter, doc.hast)
