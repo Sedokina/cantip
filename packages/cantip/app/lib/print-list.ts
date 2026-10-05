@@ -104,13 +104,15 @@ export function usePrintList() {
 			;[next[index], next[target]] = [next[target], next[index]]
 			write(next)
 		},
-		/** Adds the pages that are not in the list yet, in the given order. */
-		addAll: (added: PrintListItem[]) => {
-			const next = [...getSnapshot()]
+		/** Adds the pages that are not in the list yet, in the given order. Returns how many were added. */
+		addAll: (added: PrintListItem[]): number => {
+			const current = getSnapshot()
+			const next = [...current]
 			for (const item of added) {
 				if (!next.some((existing) => samePage(existing.href, item.href))) next.push(item)
 			}
 			write(next)
+			return next.length - current.length
 		},
 		clear: () => write(EMPTY),
 	}

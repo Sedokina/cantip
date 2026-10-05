@@ -28,6 +28,7 @@ import { createPortal } from 'react-dom'
 import type { FlatSidebarItem, FlatSidebarMap, SidebarNodeType } from '~/lib/sidebar.server'
 import { usePrintList, type PrintListItem } from '~/lib/print-list'
 import PrintDialog from '~/components/PrintDialog'
+import { showToast } from '~/components/Toast'
 import { Button } from '~/components/ui/button'
 import { useTabs } from '~/lib/tabs'
 import { useT } from '~/lib/site-context'
@@ -593,10 +594,24 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 	const printList = usePrintList()
 	// `href` unset opens the dialog with the print list only.
 	const [printDialog, setPrintDialog] = useState<{ href?: string; name?: string } | null>(null)
+	// The sidebar menu and the command palette close on click, so a toast confirms
+	// what changed and links to the list.
+	const openListAction = { label: t('open'), run: () => setPrintDialog({}) }
+	const addToPrintList = (items: PrintListItem[], what: string) => {
+		const added = printList.addAll(items)
+		showToast({
+			message: added === 0 ? t('printListNothingAdded') : `${t('addedToPrintList')}: ${what}`,
+			action: openListAction,
+		})
+	}
+	const removeFromPrintList = (href: string, name: string) => {
+		printList.remove(href)
+		showToast({ message: `${t('removedFromPrintList')}: ${name}`, action: openListAction })
+	}
 	const printListAction = (href: string, name: string): RowMenuItem =>
 		printList.has(href)
-			? { label: t('removeFromPrintList'), onSelect: () => printList.remove(href) }
-			: { label: t('addToPrintList'), onSelect: () => printList.add(href, name) }
+			? { label: t('removeFromPrintList'), onSelect: () => removeFromPrintList(href, name) }
+			: { label: t('addToPrintList'), onSelect: () => addToPrintList([{ href, title: name }], name) }
 	// A folder can carry its own page (a page whose id is the folder path), so the
 	// folder's own page is checked too.
 	const printableUnder = (id: string): PrintListItem[] => {
@@ -607,7 +622,10 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 	}
 	const addFolderAction = (id: string): RowMenuItem => ({
 		label: t('addFolderToPrintList'),
-		onSelect: () => printList.addAll(printableUnder(id)),
+		onSelect: () => {
+			const items = printableUnder(id)
+			addToPrintList(items, String(items.length))
+		},
 	})
 
 	// --- Parent map + active item (memoised on data/currentPath) ---
@@ -818,13 +836,13 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 								id: 'print-list-remove',
 								label: t('removeFromPrintList'),
 								icon: ListMinus,
-								run: () => printList.remove(currentPage.href),
+								run: () => removeFromPrintList(currentPage.href, currentPage.name),
 							}
 						: {
 								id: 'print-list-add',
 								label: t('addToPrintList'),
 								icon: ListPlus,
-								run: () => printList.add(currentPage.href, currentPage.name),
+								run: () => addToPrintList([{ href: currentPage.href, title: currentPage.name }], currentPage.name),
 							},
 				]
 			: []),
@@ -968,6 +986,22 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 				)}
 			/>
 			<div className="flex shrink-0 items-center justify-end gap-2 border-b px-1 py-0.5 md:gap-0.5">
+				{printList.items.length > 0 && (
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						onClick={() => setPrintDialog({})}
+						title={t('printList')}
+						aria-label={`${t('printList')} (${printList.items.length})`}
+						className="relative size-9 text-muted-foreground md:size-6"
+					>
+						<Printer className="size-4 md:size-3.5" />
+						<span className="absolute right-0.5 top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[0.5625rem] font-semibold leading-none text-primary-foreground md:-right-1 md:-top-0.5">
+							{printList.items.length}
+						</span>
+					</Button>
+				)}
 				<Button
 					type="button"
 					variant="ghost"

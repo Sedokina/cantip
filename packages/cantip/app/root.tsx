@@ -20,6 +20,7 @@ import TabBar from '~/components/TabBar'
 import MobileBottomBar from '~/components/MobileBottomBar'
 import MobileProjectsPanel from '~/components/MobileProjectsPanel'
 import { ShortcutsHelp } from '~/components/ShortcutsHelp'
+import { Toaster } from '~/components/Toast'
 import { TabsProvider } from '~/lib/tabs'
 import { cn } from '~/lib/utils'
 import { buildThemeInitScript } from '~/components/theme-toggle'
@@ -228,6 +229,7 @@ function SiteChrome({
 			{/* `?` cheatsheet for all keyboard shortcuts (single source: ALL_SHORTCUTS).
 			    Owns its own open/close; renders nothing until triggered. */}
 			<ShortcutsHelp />
+			<Toaster />
 		</>
 	)
 }
