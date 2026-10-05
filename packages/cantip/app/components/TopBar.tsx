@@ -1,9 +1,10 @@
-import { Keyboard } from 'lucide-react'
+import { Keyboard, Zap } from 'lucide-react'
 
 import { ThemeToggle } from '~/components/theme-toggle'
 import { Search } from '~/components/Search'
 import ProjectSwitcher from '~/components/ProjectSwitcher'
 import { openShortcutsHelp } from '~/components/ShortcutsHelp'
+import { openCommandPalette } from '~/components/Sidebar'
 import { Button } from '~/components/ui/button'
 import { cn } from '~/lib/utils'
 import { useSite, useT } from '~/lib/site-context'
@@ -57,6 +58,20 @@ export default function TopBar({ projectId }: Props) {
 			    regardless of the logo / toggle widths on either side. */}
 			<div className="absolute left-1/2 -translate-x-1/2">
 				<Search className="w-full max-w-md justify-start sm:w-80 md:w-96" />
+				{/* Hangs off the search box's right edge, so the box stays centered. The
+				    palette lives in the sidebar, which only project pages have. */}
+				{projectId && (
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={openCommandPalette}
+						aria-label={t('scCommands')}
+						title={`${t('scCommands')} (>)`}
+						className="absolute left-full top-1/2 ml-1 -translate-y-1/2"
+					>
+						<Zap />
+					</Button>
+				)}
 			</div>
 			<div className="flex shrink-0 items-center">
 				{/* Opens the `?` cheatsheet — same overlay the `?` key toggles. */}

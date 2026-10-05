@@ -221,6 +221,13 @@ interface SearchHit {
 	href?: string
 }
 
+const OPEN_COMMAND_PALETTE_EVENT = 'docs:open-command-palette'
+
+/** Opens the command palette from outside the sidebar, e.g. the TopBar button. */
+export function openCommandPalette() {
+	window.dispatchEvent(new CustomEvent(OPEN_COMMAND_PALETTE_EVENT))
+}
+
 /** What the file-search modal matches against. `commands` turns it into the command palette. */
 type SearchScope = 'all' | 'files' | 'directories' | 'commands'
 
@@ -689,6 +696,12 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 		}
 		window.addEventListener('keydown', onKey)
 		return () => window.removeEventListener('keydown', onKey)
+	}, [])
+
+	useEffect(() => {
+		const onOpen = () => setSearchScope('commands')
+		window.addEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpen)
+		return () => window.removeEventListener(OPEN_COMMAND_PALETTE_EVENT, onOpen)
 	}, [])
 
 	// Re-evaluate the layout (clamp + TOC visibility) on window resize: a narrower
