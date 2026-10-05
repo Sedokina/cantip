@@ -160,6 +160,10 @@ export function slugifyObsidianAnchor(obsidianAnchor: string) {
   return `#${slug(decodeURIComponent(anchor))}`
 }
 
+// Obsidian needs whitespace before `^`; without it, `x^2` is text, not a block id.
+export const blockIdentifierRegex = /(?:^|\s+)(?<identifier>\^(?<name>[\w-]+))$/
+export const standaloneBlockIdentifierRegex = /^\s*(?<identifier>\^(?<name>[\w-]+))\s*$/
+
 export function isObsidianBlockAnchor(anchor: string) {
   return anchor.startsWith('#^') || anchor.startsWith('^')
 }

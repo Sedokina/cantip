@@ -24,9 +24,13 @@ import { useHtmlComponents } from '~/lib/components'
  */
 
 /**
- * Internal links (`/...`) become Remix `<Link>` for client-side navigation;
- * external links and bare anchors stay plain `<a>`. Links to files open in a new
- * tab, where the browser shows the file or downloads it.
+ * Internal links (`/...`) and in-page anchors (`#...`) become Remix `<Link>`;
+ * external links stay plain `<a>`. Links to files open in a new tab, where the
+ * browser shows the file or downloads it.
+ *
+ * A plain `<a href="#...">` creates a history entry without a router key, so
+ * ScrollRestoration restores the saved position for the "default" key and
+ * cancels the browser's scroll to the anchor.
  */
 function Anchor({ href, children, ...rest }: { href?: string; children?: React.ReactNode }) {
 	if (typeof href === 'string' && isFileHref(href)) {
@@ -36,7 +40,7 @@ function Anchor({ href, children, ...rest }: { href?: string; children?: React.R
 			</a>
 		)
 	}
-	if (typeof href === 'string' && href.startsWith('/')) {
+	if (typeof href === 'string' && (href.startsWith('/') || href.startsWith('#'))) {
 		return (
 			<Link to={href} {...rest}>
 				{children}

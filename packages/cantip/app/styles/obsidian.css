@@ -22,6 +22,14 @@
   background-color: var(--sl-color-accent-high, #4C3FB0);
 }
 
+/* Obsidian ^block-id markers */
+.block-id {
+  color: var(--muted-foreground);
+  font-size: 0.8em;
+  vertical-align: text-top;
+  line-height: 1;
+}
+
 /* Audio/video/PDF embeds */
 .obs-embed-audio {
   width: 100%;

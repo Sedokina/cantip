@@ -27,6 +27,7 @@ import type { ObsidianConfig } from './types.ts'
 import { transformHtmlToString } from './html.ts'
 import { transformMarkdownToAST } from './markdown.ts'
 import {
+  blockIdentifierRegex,
   getFileEntryId,
   getObsidianRelativePath,
   isObsidianFile,
@@ -34,6 +35,7 @@ import {
   parseObsidianFrontmatter,
   slugifyObsidianAnchor,
   slugifyObsidianPath,
+  standaloneBlockIdentifierRegex,
   type ObsidianFrontmatter,
   type Vault,
   type VaultFile,
@@ -230,7 +232,7 @@ function handleReplacements(tree: Root, file: VFile) {
         let text = maybeText ?? url
 
         if (isAnchor(url)) {
-          fileUrl = slugifyObsidianAnchor(url)
+          fileUrl = slugifyObsidianAnchor(extractPathAndAnchor(url)[1] ?? '')
           text = maybeText ?? url.slice(isObsidianBlockAnchor(url) ? 2 : 1)
         } else {
           const [urlPath, urlAnchor] = extractPathAndAnchor(url)
@@ -249,9 +251,11 @@ function handleReplacements(tree: Root, file: VFile) {
             }
             case 'absolute':
             case 'shortest': {
-              const matchingFile = file.data.files.find(
-                (vaultFile) => vaultFile.isEqualStem(urlPath) || vaultFile.isEqualFileName(urlPath),
-              )
+              const matchingFile = urlPath.includes('/')
+                ? findVaultFileByPath(file, urlPath)
+                : file.data.files.find(
+                    (vaultFile) => vaultFile.isEqualStem(urlPath) || vaultFile.isEqualFileName(urlPath),
+                  )
 
               fileUrl = getFileUrl(
                 file.data.output,
@@ -342,7 +346,8 @@ function handleMath({ file }: VisitorContext) {
 function handleLinks(node: Link, { file }: VisitorContext) {
   ensureTransformContext(file)
 
-  if (file.data.vault.options.linkSyntax === 'wikilink' || isAbsoluteUrl(node.url) || !file.dirname) {
+  // A `/` URL is already a site path: a converted wikilink or a link the author wrote for the site.
+  if (isAbsoluteUrl(node.url) || node.url.startsWith('/') || !file.dirname) {
     return SKIP
   }
 
@@ -351,27 +356,14 @@ function handleLinks(node: Link, { file }: VisitorContext) {
     return SKIP
   }
 
-  const url = path.basename(decodeURIComponent(node.url))
-  const [urlPath, urlAnchor] = extractPathAndAnchor(url)
-  const matchingFile = file.data.files.find((vaultFile) => vaultFile.isEqualFileName(urlPath))
+  const [linkPath, urlAnchor] = extractPathAndAnchor(decodeURIComponent(node.url))
+  const matchingFile = findLinkedVaultFile(file, linkPath)
 
   if (!matchingFile) {
     return SKIP
   }
 
-  switch (file.data.vault.options.linkFormat) {
-    case 'relative': {
-      node.url = getFileUrl(file.data.output, getRelativeFilePath(file, node.url), urlAnchor)
-      break
-    }
-    case 'absolute':
-    case 'shortest': {
-      node.url = getFileUrl(file.data.output, getFilePathFromVaultFile(matchingFile, node.url), urlAnchor)
-      break
-    }
-  }
-
-  node.url = getImageViewUrl(file, matchingFile) ?? node.url
+  node.url = getImageViewUrl(file, matchingFile) ?? getFileUrl(file.data.output, matchingFile.slug, urlAnchor)
 
   return SKIP
 }
@@ -579,6 +571,27 @@ function getImageViewUrl(file: VFile, vaultFile: VaultFile | undefined) {
   return `/${getFileEntryId(file.data.output, file.data.vault, vaultFile)}`
 }
 
+// `[[Folder/Note]]` names the note without `.md`; `[[Folder/Image.png]]` keeps the extension.
+function findVaultFileByPath(file: VFile, vaultPath: string) {
+  ensureTransformContext(file)
+  const fullPath = path.posix.join('/', vaultPath)
+  return file.data.files.find((vaultFile) => {
+    const relativePath = getObsidianRelativePath(file.data.vault, vaultFile.fsPath)
+    return relativePath === fullPath || relativePath === `${fullPath}.md`
+  })
+}
+
+// Obsidian resolves a Markdown link relative to the note first, then from the vault root,
+// and falls back to the file name only when the link has no folder.
+function findLinkedVaultFile(file: VFile, linkPath: string) {
+  ensureTransformContext(file)
+  const byPath = findVaultFileByPath(file, getRelativeFilePath(file, linkPath)) ?? findVaultFileByPath(file, linkPath)
+  if (byPath || linkPath.includes('/')) {
+    return byPath
+  }
+  return file.data.files.find((vaultFile) => vaultFile.isEqualFileName(linkPath) || vaultFile.isEqualStem(linkPath))
+}
+
 function getRelativeFilePath(file: VFile, relativePath: string) {
   ensureTransformContext(file)
   return path.posix.join(getObsidianRelativePath(file.data.vault, file.dirname), relativePath)
@@ -664,8 +677,7 @@ function escapeAttribute(value: string) {
 async function getMarkdownFileNode(file: VFile, fileUrl: string): Promise<RootContent> {
   ensureTransformContext(file)
 
-  const [fileName, ...anchorSegments] = fileUrl.split('#')
-  const fileAnchor = anchorSegments.join('#')
+  const [fileName, fileAnchor = ''] = extractPathAndAnchor(fileUrl)
   const fileExt = file.data.vault.options.linkSyntax === 'wikilink' ? '.md' : ''
   const filePath = decodeURIComponent(
     file.data.vault.options.linkFormat === 'relative'
@@ -684,7 +696,9 @@ async function getMarkdownFileNode(file: VFile, fileUrl: string): Promise<RootCo
   const content = fs.readFileSync(matchingFile.fsPath, 'utf8')
   const root = await transformMarkdownToAST(matchingFile.fsPath, content, { ...file.data, embedded: true })
 
-  if (fileAnchor) {
+  if (isObsidianBlockAnchor(fileAnchor)) {
+    root.children = extractMarkdownBlock(root, fileAnchor.slice(1))
+  } else if (fileAnchor) {
     root.children = extractMarkdownSection(root, fileAnchor)
   }
 
@@ -734,6 +748,74 @@ function extractMarkdownSection(root: Root, sectionAnchor: string) {
   })
 
   return children
+}
+
+function extractMarkdownBlock(root: Root, blockId: string) {
+  let children: Root['children'] = []
+
+  visit(root, (node, index, parent) => {
+    if (node.type === 'listItem' && endsWithBlockIdentifier(node.children[0], blockId)) {
+      children = [{ type: 'list', ordered: parent?.type === 'list' && parent.ordered, children: [node] }]
+      return EXIT
+    }
+    if (node.type !== 'paragraph' || !parent || index === undefined) {
+      return CONTINUE
+    }
+    if (isStandaloneBlockIdentifier(node, blockId)) {
+      children = getBlockBefore(parent.children as RootContent[], index)
+      return EXIT
+    }
+    if (endsWithBlockIdentifier(node, blockId)) {
+      children = [parent.type === 'blockquote' ? (parent as Blockquote) : node]
+      return EXIT
+    }
+    return CONTINUE
+  })
+
+  return children
+}
+
+function endsWithBlockIdentifier(node: RootContent | undefined, blockId: string) {
+  const lastChild = node?.type === 'paragraph' ? node.children.at(-1) : undefined
+  return lastChild?.type === 'text' && blockIdentifierRegex.exec(lastChild.value)?.groups?.['name'] === blockId
+}
+
+function isStandaloneBlockIdentifier(node: RootContent, blockId: string) {
+  const [onlyChild, ...otherChildren] = node.type === 'paragraph' ? node.children : []
+  return (
+    onlyChild?.type === 'text' &&
+    otherChildren.length === 0 &&
+    standaloneBlockIdentifierRegex.exec(onlyChild.value)?.groups?.['name'] === blockId
+  )
+}
+
+// A callout is already raw HTML here: an opening `<div class="callout">` node,
+// its body, and a closing `</div>` node. The embed needs all of them.
+function getBlockBefore(siblings: RootContent[], index: number): RootContent[] {
+  let blockIndex = index - 1
+  while (blockIndex >= 0 && isBlankGapMarker(siblings[blockIndex])) {
+    blockIndex--
+  }
+  const block = siblings[blockIndex]
+  if (!block) {
+    return []
+  }
+  if (block.type !== 'html' || block.value.trim() !== '</div>') {
+    return [block]
+  }
+  let calloutStart = blockIndex - 1
+  while (calloutStart >= 0 && !isCalloutStart(siblings[calloutStart])) {
+    calloutStart--
+  }
+  return calloutStart === -1 ? [block] : siblings.slice(calloutStart, blockIndex + 1)
+}
+
+function isBlankGapMarker(node: RootContent | undefined) {
+  return node?.type === 'html' && node.value === BLANK_GAP_MARKER
+}
+
+function isCalloutStart(node: RootContent | undefined) {
+  return node?.type === 'html' && node.value.startsWith('<div class="callout')
 }
 
 function createMdxNode(value: string): Html {

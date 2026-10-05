@@ -1,4 +1,3 @@
-import { fromMarkdown } from 'mdast-util-from-markdown'
 import { remark } from 'remark'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkGfm from 'remark-gfm'
@@ -26,7 +25,8 @@ export async function transformMarkdownToString(
 
 export async function transformMarkdownToAST(filePath: string, markdown: string, context: TransformContext) {
   const { content } = await transformMarkdownToString(filePath, markdown, context)
-  return fromMarkdown(content)
+  // An embedded note needs the same parser as the page, or its tables and math stay plain text.
+  return getProcessor(context).parse(content)
 }
 
 function getProcessor(context: TransformContext): ReturnType<typeof remark> {
