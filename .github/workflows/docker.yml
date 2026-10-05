@@ -51,20 +51,24 @@ jobs:
 
       # Belt-and-suspenders: even after Release succeeds, a just-published version
       # can take a moment to propagate across npm's CDN edges. Poll briefly so the
-      # build never hits a transient ETARGET.
-      - name: Wait for create-cantip@<version> on npm
+      # build never hits a transient ETARGET. Both packages are needed: the image
+      # runs create-cantip@<version>, and the app it scaffolds depends on
+      # cantip@^<version>. The two can become visible minutes apart (v0.9.2 failed
+      # with notarget because only create-cantip had arrived).
+      - name: Wait for create-cantip@<version> and cantip@<version> on npm
         if: steps.ver.outputs.cantip != 'latest'
         run: |
           ver="${{ steps.ver.outputs.cantip }}"
           for i in $(seq 1 40); do
-            if npm view "create-cantip@${ver}" version >/dev/null 2>&1; then
-              echo "create-cantip@${ver} is available."
+            if npm view "create-cantip@${ver}" version >/dev/null 2>&1 \
+              && npm view "cantip@${ver}" version >/dev/null 2>&1; then
+              echo "create-cantip@${ver} and cantip@${ver} are available."
               exit 0
             fi
-            echo "waiting for create-cantip@${ver} on npm ($i)…"
+            echo "waiting for create-cantip@${ver} and cantip@${ver} on npm ($i)…"
             sleep 15
           done
-          echo "create-cantip@${ver} did not appear on npm in time." >&2
+          echo "create-cantip@${ver} or cantip@${ver} did not appear on npm in time." >&2
           exit 1
 
       - uses: docker/setup-buildx-action@v3
