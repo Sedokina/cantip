@@ -1,0 +1,98 @@
+/* The /_print page (routes/print.tsx): the combined TOC on screen and in print,
+   and the print layout of the pages. */
+
+/* No `size`: Chrome hides the paper size choice from its print dialog when the
+   page sets one. */
+@page {
+	margin: 16mm;
+}
+
+.print-toc {
+	margin-bottom: 2rem;
+	color: var(--obsidian-heading-color);
+}
+.print-toc__title {
+	margin: 0 0 1rem;
+	font-size: var(--sl-text-h1);
+	font-weight: var(--obsidian-h1-weight);
+	line-height: 1.3;
+}
+.print-toc a {
+	color: inherit;
+	text-decoration: none;
+}
+.print-toc ol,
+.print-toc ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.print-toc__pages > li + li {
+	margin-top: 0.75rem;
+}
+.print-toc__page {
+	font-weight: 600;
+}
+.print-toc__headings {
+	color: var(--obsidian-body-color);
+}
+.print-toc__pages .print-toc__headings {
+	margin-top: 0.25rem;
+	padding-left: 1rem;
+}
+.print-toc__headings li {
+	padding-block: 0.125rem;
+}
+.print-toc__headings li[data-depth='3'] {
+	padding-left: 1rem;
+}
+
+/* On screen the pages of a multi-page print are separated by a rule. */
+.print-page + .print-page {
+	margin-top: 3rem;
+	padding-top: 3rem;
+	border-top: 1px solid var(--border);
+}
+
+@media print {
+	/* Code backgrounds, inline-code chips and priority badges are background
+	   colours, which browsers drop by default. */
+	:root {
+		print-color-adjust: exact;
+		-webkit-print-color-adjust: exact;
+	}
+
+	.print-toolbar {
+		display: none;
+	}
+	.print-root {
+		max-width: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.print-page + .print-page,
+	.print-toc + .print-page {
+		break-before: page;
+		margin-top: 0;
+		padding-top: 0;
+		border-top: 0;
+	}
+
+	/* Long lines wrap instead of being cut off at the page edge. */
+	.print-root .content .body pre {
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+		overflow-x: visible;
+	}
+	.print-root .pre-wrap-toggle {
+		display: none;
+	}
+
+	.print-root .content .body :is(h1, h2, h3, h4, h5, h6) {
+		break-after: avoid;
+	}
+	.print-root .content .body :is(img, svg, figure, tr, .callout) {
+		break-inside: avoid;
+	}
+}

@@ -1,4 +1,5 @@
 @import './obsidian.css';
+@import './print.css';
 
 /* Layout sizing tokens still consumed by the markdown/canvas styles below.
    Theme colours now come from tailwind.css (shadcn) via the --sl-* bridge. */

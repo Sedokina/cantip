@@ -59,6 +59,30 @@ export default function PrintRoute() {
 		window.print()
 	}
 
+	// Print in the light theme. The theme tokens and `dark:` variants all depend on
+	// the `dark` class. `beforeprint` also fires for Ctrl+P.
+	useEffect(() => {
+		const root = document.documentElement
+		let wasDark = false
+		// `beforeprint` can fire twice before one `afterprint` (Chrome does this for
+		// a print to PDF), so only a call that actually removes the class records it.
+		const onBeforePrint = () => {
+			if (!root.classList.contains('dark')) return
+			wasDark = true
+			root.classList.remove('dark')
+		}
+		const onAfterPrint = () => {
+			if (wasDark) root.classList.add('dark')
+			wasDark = false
+		}
+		window.addEventListener('beforeprint', onBeforePrint)
+		window.addEventListener('afterprint', onAfterPrint)
+		return () => {
+			window.removeEventListener('beforeprint', onBeforePrint)
+			window.removeEventListener('afterprint', onAfterPrint)
+		}
+	}, [])
+
 	// StrictMode runs effects twice in development; the ref keeps it to one dialog.
 	useEffect(() => {
 		if (printed.current || pages.length === 0) return
