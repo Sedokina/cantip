@@ -489,7 +489,8 @@ function RowMenu({
 				onClick={toggle}
 				className={cn(
 					'flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-foreground/10 hover:text-foreground',
-					open || forceShow ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+					// Touch screens have no hover to reveal the button.
+					open || forceShow ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100',
 				)}
 			>
 				<MoreVertical className="size-3.5" />
