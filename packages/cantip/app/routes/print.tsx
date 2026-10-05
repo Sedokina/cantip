@@ -26,6 +26,12 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
 }
 
 type PrintPage = SerializeFrom<typeof loader>['pages'][number]
+type PrintDoc = Extract<PrintPage, { kind: 'doc' }>
+type PrintImage = Extract<PrintPage, { kind: 'image' }>
+
+// Printable width of a portrait A4 sheet with the 16mm margins from print.css:
+// 178mm at 96 CSS px per inch.
+const SHEET_WIDTH_PX = 673
 
 // A Remix <Link to="#x"> renders `/_print#x` without the query string. Browsers
 // write that into the PDF as a link to another URL instead of a jump inside the
@@ -50,12 +56,22 @@ function waitForImages(): Promise<unknown> {
 	)
 }
 
+// An image wider than the sheet and wider than tall is printed rotated, so it can
+// use the sheet's height. The natural size is only known once the file has loaded.
+function markWideImages(): void {
+	for (const img of document.querySelectorAll<HTMLImageElement>('.print-image img')) {
+		const wide = img.naturalWidth > SHEET_WIDTH_PX && img.naturalWidth > img.naturalHeight
+		img.closest<HTMLElement>('.print-image')?.toggleAttribute('data-rotate', wide)
+	}
+}
+
 // A closed <details> hides its content from print in every browser, and CSS
 // cannot open it.
 async function preparePrint(): Promise<void> {
 	for (const details of document.querySelectorAll('details')) details.open = true
 	await document.fonts.ready
 	await waitForImages()
+	markWideImages()
 }
 
 export default function PrintRoute() {
@@ -67,6 +83,12 @@ export default function PrintRoute() {
 		await preparePrint()
 		window.print()
 	}
+
+	// Ctrl+P skips preparePrint.
+	useEffect(() => {
+		window.addEventListener('beforeprint', markWideImages)
+		return () => window.removeEventListener('beforeprint', markWideImages)
+	}, [])
 
 	// StrictMode runs effects twice in development; the ref keeps it to one dialog.
 	useEffect(() => {
@@ -103,9 +125,13 @@ export default function PrintRoute() {
 			</div>
 
 			{toc && pages.length > 1 && <CombinedToc pages={pages} />}
-			{pages.map((page) => (
-				<PrintedPage key={page.anchor} page={page} toc={toc && pages.length === 1} props={props} />
-			))}
+			{pages.map((page) =>
+				page.kind === 'image' ? (
+					<PrintedImage key={page.anchor} image={page} />
+				) : (
+					<PrintedPage key={page.anchor} page={page} toc={toc && pages.length === 1} props={props} />
+				),
+			)}
 		</div>
 	)
 }
@@ -122,7 +148,7 @@ function CombinedToc({ pages }: { pages: PrintPage[] }) {
 						<a href={`#${page.anchor}`} className="print-toc__page">
 							{page.title}
 						</a>
-						<HeadingList headings={page.headings} />
+						{page.kind === 'doc' && <HeadingList headings={page.headings} />}
 					</li>
 				))}
 			</ol>
@@ -130,7 +156,7 @@ function CombinedToc({ pages }: { pages: PrintPage[] }) {
 	)
 }
 
-function HeadingList({ headings }: { headings: PrintPage['headings'] }) {
+function HeadingList({ headings }: { headings: PrintDoc['headings'] }) {
 	const shown = tocHeadings(headings)
 	if (shown.length === 0) return null
 	return (
@@ -144,7 +170,7 @@ function HeadingList({ headings }: { headings: PrintPage['headings'] }) {
 	)
 }
 
-function PrintedPage({ page, toc, props }: { page: PrintPage; toc: boolean; props: boolean }) {
+function PrintedPage({ page, toc, props }: { page: PrintDoc; toc: boolean; props: boolean }) {
 	const priority = getPriority(page.frontmatter.tags)
 	return (
 		<article className="content print-page">
@@ -160,6 +186,19 @@ function PrintedPage({ page, toc, props }: { page: PrintPage; toc: boolean; prop
 			)}
 			<div className="body">
 				<HastRenderer tree={page.hast} components={printComponents} />
+			</div>
+		</article>
+	)
+}
+
+function PrintedImage({ image }: { image: PrintImage }) {
+	return (
+		<article className="content print-page print-image">
+			<h1 id={image.anchor} className="title-row">
+				{image.title}
+			</h1>
+			<div className="print-image__frame">
+				<img src={image.src} alt={image.title} />
 			</div>
 		</article>
 	)

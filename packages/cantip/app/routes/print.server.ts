@@ -7,9 +7,10 @@ import { json } from '@remix-run/node'
 import type { LoaderFunctionArgs } from '@remix-run/node'
 import type { Element, Root, RootContent } from 'hast'
 
-import { docTitle, getDoc, resolvePathname, type Heading } from '~/lib/content.server'
+import { docTitle, getDoc, getImage, resolvePathname, type Heading } from '~/lib/content.server'
 
-interface PrintPage {
+interface PrintDoc {
+	kind: 'doc'
 	/** Element id of the page's title; heading ids inside the page start with `<anchor>-`. */
 	anchor: string
 	title: string
@@ -17,6 +18,15 @@ interface PrintPage {
 	headings: Heading[]
 	hast: Root
 }
+
+interface PrintImage {
+	kind: 'image'
+	anchor: string
+	title: string
+	src: string
+}
+
+type PrintPage = PrintDoc | PrintImage
 
 /**
  * Prefix every `id` and every in-page `#` link in a page's tree, and point links
@@ -51,14 +61,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 	for (const href of params.getAll('page')) {
 		const id = resolvePathname(href)
+		const anchor = `p${pages.length + 1}`
+		const image = id ? await getImage(id) : null
+		if (image) {
+			if (!anchors.has(image.id)) anchors.set(image.id, anchor)
+			pages.push({ kind: 'image', anchor, title: image.data.title, src: image.data.src })
+			continue
+		}
 		const doc = id ? await getDoc(id) : null
 		if (!doc || doc.isCanvas || doc.frontmatter.draft === true) {
 			missing.push(href)
 			continue
 		}
-		const anchor = `p${pages.length + 1}`
 		if (!anchors.has(doc.id)) anchors.set(doc.id, anchor)
 		pages.push({
+			kind: 'doc',
 			anchor,
 			title: docTitle(doc, doc.id),
 			frontmatter: doc.frontmatter,
@@ -69,7 +86,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	}
 
 	// A page can link to a page printed after it, so links are rewritten once every anchor is known.
-	for (const page of pages) rewriteTree(page.hast, page.anchor, anchors)
+	for (const page of pages) if (page.kind === 'doc') rewriteTree(page.hast, page.anchor, anchors)
 
 	return json({
 		pages,

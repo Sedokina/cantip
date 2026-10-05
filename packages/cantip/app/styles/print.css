@@ -47,6 +47,14 @@
 	padding-left: 1rem;
 }
 
+/* An image entry from the print list (not an image embedded in a note). */
+.print-image__frame img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	margin: 0 auto;
+}
+
 /* On screen the pages of a multi-page print are separated by a rule. */
 .print-page + .print-page {
 	margin-top: 3rem;
@@ -77,6 +85,49 @@
 		margin-top: 0;
 		padding-top: 0;
 		border-top: 0;
+	}
+
+	/* A tall image shrinks to fit one sheet together with its title, so the two
+	   are not split across sheets. The 9rem covers the title and the separator
+	   above the entry. */
+	.print-image {
+		break-inside: avoid;
+	}
+	.print-image__frame img {
+		max-height: calc(100vh - 9rem);
+		width: auto;
+	}
+
+	/* A wide image (marked by markWideImages in print.tsx) takes a whole sheet and
+	   is turned with its top to the left, the usual direction for landscape
+	   content in a portrait document. Its box is sized from the frame's height and
+	   width swapped, which needs the frame to be a size container. */
+	.print-image[data-rotate] {
+		display: flex;
+		flex-direction: column;
+		height: 100vh;
+		margin-top: 0;
+		padding-top: 0;
+		border-top: 0;
+		break-before: page;
+		break-after: page;
+	}
+	.print-image[data-rotate] .print-image__frame {
+		position: relative;
+		flex: 1;
+		min-height: 0;
+		container-type: size;
+	}
+	.print-image[data-rotate] .print-image__frame img {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 100cqh;
+		height: 100cqw;
+		max-width: none;
+		max-height: none;
+		object-fit: contain;
+		transform: translate(-50%, -50%) rotate(-90deg);
 	}
 
 	/* Long lines wrap instead of being cut off at the page edge. */

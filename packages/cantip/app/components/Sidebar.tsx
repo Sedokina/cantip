@@ -1040,7 +1040,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 														openFile(itemData.href!, itemData.name, true)
 													},
 												},
-												...(itemData.type === 'file'
+												...(itemData.type === 'file' || itemData.type === 'image'
 													? [printListAction(itemData.href, itemData.name)]
 													: []),
 											]}
