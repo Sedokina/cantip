@@ -14,9 +14,14 @@ import {
 	Folder,
 	Image as ImageIcon,
 	LayoutDashboard,
+	ListMinus,
+	ListOrdered,
+	ListPlus,
 	Locate,
 	MoreVertical,
+	Printer,
 	Search,
+	type LucideIcon,
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 
@@ -26,7 +31,7 @@ import PrintDialog from '~/components/PrintDialog'
 import { Button } from '~/components/ui/button'
 import { useTabs } from '~/lib/tabs'
 import { useT } from '~/lib/site-context'
-import { useKeyboardShortcuts, type Shortcut } from '~/lib/useKeyboardShortcuts'
+import { shortcutKey, useKeyboardShortcuts, type Shortcut } from '~/lib/useKeyboardShortcuts'
 import { cn } from '~/lib/utils'
 import { fileIcon, isFileHref, openFileInNewTab } from '~/lib/files'
 
@@ -215,14 +220,23 @@ interface SearchHit {
 	href?: string
 }
 
-/** What the file-search modal matches against. */
-type SearchScope = 'all' | 'files' | 'directories'
+/** What the file-search modal matches against. `commands` turns it into the command palette. */
+type SearchScope = 'all' | 'files' | 'directories' | 'commands'
+
+/** An action in the command palette. */
+interface PaletteCommand {
+	id: string
+	label: string
+	icon: LucideIcon
+	run: () => void
+}
 /** Scope options + labels. A function (not a const) since `t` is runtime data now. */
 function scopeOptions(t: (key: string) => string): { value: SearchScope; label: string }[] {
 	return [
 		{ value: 'all', label: t('scopeAll') },
 		{ value: 'files', label: t('scopeFiles') },
 		{ value: 'directories', label: t('scopeDirectories') },
+		{ value: 'commands', label: t('scopeCommands') },
 	]
 }
 
@@ -237,17 +251,24 @@ function scopeOptions(t: (key: string) => string): { value: SearchScope; label: 
 function FileSearchModal({
 	data,
 	getAncestorIds,
+	commands,
+	initialScope,
 	onClose,
 	onPick,
 }: {
 	data: FlatSidebarMap
 	getAncestorIds: (id: string) => string[]
+	commands: PaletteCommand[]
+	initialScope: SearchScope
 	onClose: () => void
 	onPick: (id: string) => void
 }) {
 	const t = useT()
 	const [query, setQuery] = useState('')
-	const [scope, setScope] = useState<SearchScope>('all')
+	const [scope, setScope] = useState<SearchScope>(initialScope)
+	// A leading `>` switches to commands, as in VS Code's quick-open.
+	const commandMode = scope === 'commands' || query.startsWith('>')
+	const text = (commandMode ? query.replace(/^>/, '') : query).trim()
 	const [active, setActive] = useState(0)
 	const inputRef = useRef<HTMLInputElement>(null)
 	const listRef = useRef<HTMLUListElement>(null)
@@ -265,6 +286,11 @@ function FileSearchModal({
 		document.addEventListener('keydown', onKey)
 		return () => document.removeEventListener('keydown', onKey)
 	}, [onClose])
+
+	const commandHits = useMemo(
+		() => commands.filter((c) => c.label.toLowerCase().includes(text.toLowerCase())),
+		[commands, text],
+	)
 
 	const hits = useMemo<SearchHit[]>(() => {
 		const q = query.trim().toLowerCase()
@@ -304,7 +330,16 @@ function FileSearchModal({
 			?.scrollIntoView({ block: 'nearest' })
 	}, [active, hits])
 
+	const count = commandMode ? commandHits.length : hits.length
+
 	const choose = (i: number) => {
+		if (commandMode) {
+			const command = commandHits[i]
+			if (!command) return
+			onClose()
+			command.run()
+			return
+		}
 		const hit = hits[i]
 		if (hit) onPick(hit.id)
 	}
@@ -312,7 +347,7 @@ function FileSearchModal({
 	const onInputKey = (e: React.KeyboardEvent) => {
 		if (e.key === 'ArrowDown') {
 			e.preventDefault()
-			setActive((a) => Math.min(a + 1, hits.length - 1))
+			setActive((a) => Math.min(a + 1, count - 1))
 		} else if (e.key === 'ArrowUp') {
 			e.preventDefault()
 			setActive((a) => Math.max(a - 1, 0))
@@ -331,7 +366,7 @@ function FileSearchModal({
 				className="fixed inset-0 flex flex-col overflow-hidden bg-popover md:static md:max-h-[70vh] md:w-[min(40rem,calc(100vw-2rem))] md:rounded-lg md:border md:shadow-xl"
 				onMouseDown={(e) => e.stopPropagation()}
 			>
-				<div className="flex items-center gap-2 border-b px-3">
+				<div className="flex flex-wrap items-center gap-x-2 border-b px-3">
 					<Search className="size-4 shrink-0 text-muted-foreground" />
 					<input
 						ref={inputRef}
@@ -339,22 +374,25 @@ function FileSearchModal({
 						value={query}
 						onChange={(e) => setQuery(e.target.value)}
 						onKeyDown={onInputKey}
-						placeholder={t('fileSearchPlaceholder')}
+						placeholder={commandMode ? t('commandPlaceholder') : t('fileSearchPlaceholder')}
 						autoComplete="off"
-						className="h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+						className="h-11 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
 					/>
-					<div className="flex shrink-0 items-center gap-0.5 rounded-md bg-muted p-0.5" role="tablist">
+					<div
+						className="flex shrink-0 items-center gap-0.5 rounded-md bg-muted p-0.5 max-md:mb-2 max-md:w-full"
+						role="tablist"
+					>
 						{scopeOptions(t).map((opt) => (
 							<button
 								key={opt.value}
 								type="button"
 								role="tab"
-								aria-selected={scope === opt.value}
+								aria-selected={(commandMode ? 'commands' : scope) === opt.value}
 								tabIndex={-1}
 								onClick={() => setScope(opt.value)}
 								className={cn(
-									'rounded px-2 py-1 text-xs transition-colors',
-									scope === opt.value
+									'rounded px-2 py-1 text-xs transition-colors max-md:flex-1',
+									(commandMode ? 'commands' : scope) === opt.value
 										? 'bg-background font-medium text-foreground shadow-sm'
 										: 'text-muted-foreground hover:text-foreground',
 								)}
@@ -365,8 +403,28 @@ function FileSearchModal({
 					</div>
 				</div>
 				<ul ref={listRef} className="min-h-0 flex-1 overflow-y-auto p-1">
-					{hits.length === 0 ? (
+					{count === 0 ? (
 						<li className="px-3 py-6 text-center text-sm text-muted-foreground">{t('nothingFound')}</li>
+					) : commandMode ? (
+						commandHits.map((command, i) => (
+							<li key={command.id}>
+								<button
+									type="button"
+									data-active={i === active || undefined}
+									onMouseMove={() => setActive(i)}
+									onClick={() => choose(i)}
+									className={cn(
+										'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left',
+										i === active && 'bg-sidebar-accent',
+									)}
+								>
+									<command.icon className="size-4 shrink-0 text-muted-foreground" />
+									<span className="min-w-0 flex-1 truncate text-sm text-foreground">
+										{highlightParts(command.label, text)}
+									</span>
+								</button>
+							</li>
+						))
 					) : (
 						hits.map((hit, i) => {
 							const isActive = i === active
@@ -533,7 +591,8 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 	const navigate = useNavigate()
 	const { hasTabs, openTab } = useTabs()
 	const printList = usePrintList()
-	const [printTarget, setPrintTarget] = useState<{ href: string; name: string } | null>(null)
+	// `href` unset opens the dialog with the print list only.
+	const [printDialog, setPrintDialog] = useState<{ href?: string; name?: string } | null>(null)
 	const printListAction = (href: string, name: string): RowMenuItem =>
 		printList.has(href)
 			? { label: t('removeFromPrintList'), onSelect: () => printList.remove(href) }
@@ -581,7 +640,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 	// are inert. Kept so those code paths don't need unpicking; setSearch('') is still
 	// used by locate() as a defensive reset.
 	const [search, setSearch] = useState('')
-	const [searchModalOpen, setSearchModalOpen] = useState(false)
+	const [searchScope, setSearchScope] = useState<SearchScope | null>(null)
 
 	// useTree populates items only after a client-side effect runs, so during SSR
 	// (and the first paint before hydration) we render a static fallback tree from
@@ -593,9 +652,9 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 	// Ctrl/Cmd+P opens the file-search modal (WebStorm/VS Code quick-open feel).
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
-			if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') {
+			if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && shortcutKey(e) === 'p') {
 				e.preventDefault()
-				setSearchModalOpen(true)
+				setSearchScope('all')
 			}
 		}
 		window.addEventListener('keydown', onKey)
@@ -723,9 +782,42 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 		() => [
 			{ keys: 'l', label: 'locate page in tree', group: 'tree', run: locate },
 			{ keys: 'c', label: 'collapse all folders', group: 'tree', run: collapseAll },
+			{ keys: '>', label: 'command palette', group: 'nav', run: () => setSearchScope('commands') },
 		],
 		[locate, collapseAll],
 	)
+
+	// The printable page on screen: a note or an image.
+	const currentPage =
+		activeId && (data[activeId].type === 'file' || data[activeId].type === 'image') && data[activeId].href
+			? { href: data[activeId].href, name: data[activeId].name }
+			: null
+	const commands: PaletteCommand[] = [
+		...(currentPage
+			? [
+					{
+						id: 'print',
+						label: t('printEllipsis'),
+						icon: Printer,
+						run: () => setPrintDialog(currentPage),
+					},
+					printList.has(currentPage.href)
+						? {
+								id: 'print-list-remove',
+								label: t('removeFromPrintList'),
+								icon: ListMinus,
+								run: () => printList.remove(currentPage.href),
+							}
+						: {
+								id: 'print-list-add',
+								label: t('addToPrintList'),
+								icon: ListPlus,
+								run: () => printList.add(currentPage.href, currentPage.name),
+							},
+				]
+			: []),
+		{ id: 'print-list', label: t('printListEllipsis'), icon: ListOrdered, run: () => setPrintDialog({}) },
+	]
 	useKeyboardShortcuts(treeShortcuts)
 
 	// --- Reveal the active item whenever it changes (e.g. navigating via a tab
@@ -811,7 +903,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 	// file we also navigate to its doc and let it expand; a folder just opens.
 	const pickSearchResult = useCallback(
 		(id: string) => {
-			setSearchModalOpen(false)
+			setSearchScope(null)
 			const item = data[id]
 			if (!item) return
 			// Expand ancestors first so getItemInstance(id) resolves to a loaded item.
@@ -868,7 +960,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 					type="button"
 					variant="ghost"
 					size="icon"
-					onClick={() => setSearchModalOpen(true)}
+					onClick={() => setSearchScope('all')}
 					title={t('fileSearchHint')}
 					aria-label={t('fileSearch')}
 					className="size-9 text-muted-foreground md:size-6"
@@ -1047,7 +1139,7 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 													? [
 															{
 																label: t('printEllipsis'),
-																onSelect: () => setPrintTarget({ href: itemData.href!, name: itemData.name }),
+																onSelect: () => setPrintDialog({ href: itemData.href!, name: itemData.name }),
 															},
 															printListAction(itemData.href, itemData.name),
 														]
@@ -1081,19 +1173,21 @@ export default function Sidebar({ data, currentPath, open = false, className }: 
 				)}
 			</div>
 
-			{searchModalOpen && (
+			{searchScope && (
 				<FileSearchModal
 					data={data}
 					getAncestorIds={getAncestorIds}
-					onClose={() => setSearchModalOpen(false)}
+					commands={commands}
+					initialScope={searchScope}
+					onClose={() => setSearchScope(null)}
 					onPick={pickSearchResult}
 				/>
 			)}
-			{printTarget && (
+			{printDialog && (
 				<PrintDialog
-					href={printTarget.href}
-					title={printTarget.name}
-					onClose={() => setPrintTarget(null)}
+					href={printDialog.href}
+					title={printDialog.name}
+					onClose={() => setPrintDialog(null)}
 				/>
 			)}
 		</aside>

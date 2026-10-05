@@ -44,9 +44,9 @@ export default function PrintDialog({
 	title,
 	onClose,
 }: {
-	/** The page "This page" prints and "Add this page" adds: a doc or image URL. */
-	href: string
-	title: string
+	/** The page "This page" prints and "Add this page" adds: a doc or image URL. Unset shows only the print list. */
+	href?: string
+	title?: string
 	onClose: () => void
 }) {
 	const t = useT()
@@ -116,16 +116,18 @@ export default function PrintDialog({
 						</div>
 					</div>
 
-					<section className="border-b px-4 py-3">
-						<h3 className="m-0 mb-2 text-xs font-medium text-muted-foreground">{t('printThisPage')}</h3>
-						<div className="flex items-center justify-between gap-3">
-							<span className="min-w-0 truncate text-foreground">{title}</span>
-							<Button size="sm" onClick={() => print([href])}>
-								<Printer className="size-4" />
-								{t('print')}
-							</Button>
-						</div>
-					</section>
+					{href && (
+						<section className="border-b px-4 py-3">
+							<h3 className="m-0 mb-2 text-xs font-medium text-muted-foreground">{t('printThisPage')}</h3>
+							<div className="flex items-center justify-between gap-3">
+								<span className="min-w-0 truncate text-foreground">{title}</span>
+								<Button size="sm" onClick={() => print([href])}>
+									<Printer className="size-4" />
+									{t('print')}
+								</Button>
+							</div>
+						</section>
+					)}
 
 					<section className="px-4 py-3">
 						<h3 className="m-0 mb-2 text-xs font-medium text-muted-foreground">
@@ -170,14 +172,16 @@ export default function PrintDialog({
 							/>
 						</div>
 						<div className="mt-3 flex flex-wrap items-center gap-2">
-							<Button
-								variant="outline"
-								size="sm"
-								disabled={list.has(href)}
-								onClick={() => list.add(href, title)}
-							>
-								{t('addThisPage')}
-							</Button>
+							{href && (
+								<Button
+									variant="outline"
+									size="sm"
+									disabled={list.has(href)}
+									onClick={() => list.add(href, title ?? href)}
+								>
+									{t('addThisPage')}
+								</Button>
+							)}
 							<Button
 								variant="outline"
 								size="sm"

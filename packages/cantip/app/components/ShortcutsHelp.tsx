@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-import { ALL_SHORTCUTS, groupLabelKey, type ShortcutGroup, type ShortcutInfo } from '~/lib/useKeyboardShortcuts'
+import { ALL_SHORTCUTS, groupLabelKey, shortcutKey, type ShortcutGroup, type ShortcutInfo } from '~/lib/useKeyboardShortcuts'
 import { useT } from '~/lib/site-context'
 
 /**
@@ -40,7 +40,7 @@ export function ShortcutsHelp() {
 			const el = e.target
 			if (el instanceof HTMLElement && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable))
 				return
-			if (e.key === '?') {
+			if (shortcutKey(e) === '?') {
 				e.preventDefault()
 				setOpen((o) => !o)
 			} else if (e.key === 'Escape') {
