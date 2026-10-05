@@ -3,6 +3,57 @@
 Release notes for `cantip` and `create-cantip`, which are released together.
 Each release on GitHub takes its notes from the matching section below.
 
+## 0.9.2
+
+### Added
+
+- **Block links.** `[[note#^id]]` and `[[#^id]]` scroll to the block that ends
+  with `^id`. An id on its own line after a table, quote, list or callout
+  belongs to that block. `![[note#^id]]` embeds only that block. The `^id`
+  marker stays visible in a muted, smaller style. A `^` without whitespace
+  before it, as in `x^2`, stays text.
+- **Content updates without a restart.** A running server picks up the output of
+  `cantip generate` by itself. It checks `app/generated/site.json` at most once
+  per second (on every request in dev) and reloads content and site data
+  together. Requests during a run get the previous content, and a failed run
+  leaves the last good content in place.
+- `CANTIP_STATIC_DIR`: `cantip generate` copies `public/` into this folder before
+  it switches the content over. Set it to `build/client` when the server is
+  `remix-serve`.
+- **Dev watches every source folder.** The plugin watches each source folder
+  from `docs.config.ts`, including folders outside the project, regenerates when
+  a file is added, changed, renamed or deleted, and reloads the browser once the
+  new content is ready. Edits made during a run are no longer lost.
+  `cantip({ watch })` adds more files or folders to watch.
+
+### Changed
+
+- Docker: `SIGHUP` regenerates in place and keeps the server running. It now
+  also applies changes to `docs.config.ts` and to branding files in `public/` on
+  the volume, which needed a container restart before.
+
+### Fixed
+
+- `[[note#A#B]]` links to heading B, the last one in the chain, on another
+  note, on the same page and in embeds. It linked to heading A before.
+- Wikilinks with a folder path, such as `[[Screenshots/Login.png]]`, find the
+  file by its path, so an image link opens the image's page.
+- Markdown links to notes now work in every source folder: `[x](note.md)`,
+  `[x](Folder/Note.md)`, `[x](../Other/Note.md)` and `[x](note.md#Heading)`.
+  Before, they were left unchanged unless the vault's Obsidian settings used
+  Markdown links, and they were matched by file name only. Links that start
+  with `/` are left as they are.
+- Tables and math inside embedded notes render. They showed as plain text.
+- Clicking a link to a heading or block on the same page, or an entry in the
+  table of contents, scrolls there every time. A second click on the same
+  anchor used to stop partway or stay in place.
+- Linked blocks land below the sticky top bar instead of under it.
+- Docker: `SIGHUP` no longer stops the container.
+- In dev, a config change no longer starts two generator runs at the same time.
+- `CANTIP_SKIP_IF_FRESH` skips generation again when nothing changed. It looked
+  for the removed `ui.ts`, so every `remix vite:build` generated the content in
+  both of its passes.
+
 ## 0.9.1
 
 ### Fixed

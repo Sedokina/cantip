@@ -7,15 +7,14 @@
  * importing a bundled `content.ts`. That deliberately keeps the compiled content
  * OUT of the app's server bundle: the Remix build is content-agnostic (build once,
  * point at any content), and content can be regenerated/swapped without rebuilding
- * or restarting — call `resetContent()` to drop the in-memory cache so the next
- * request re-reads the file. The exported signatures are unchanged so route
- * loaders keep working.
+ * or restarting: the loader is rebuilt when `site.server.ts` reloads site.json,
+ * which the generator writes after content.json.
  */
 import fs from 'node:fs'
 import path from 'node:path'
 
 import { loader, type LoaderImage, type LoaderOutput, type Source } from 'cantip/source'
-import { getProjectIdForDoc, getSiteData } from './site.server'
+import { getProjectIdForDoc, getSiteData, getSiteGeneration } from './site.server'
 
 export type { Heading, PageData } from 'cantip/source'
 
@@ -43,22 +42,25 @@ export interface Doc {
 	sourcePath?: string
 }
 
-// Build the loader once per process (reading content.json on first use). Project
-// scoping uses the same rule as the sidebar/projects layer (first id segment,
-// with the general bucket folded in).
+// Project scoping uses the same rule as the sidebar/projects layer (first id
+// segment, with the general bucket folded in).
 let _loader: LoaderOutput | null = null
+let _loaderGeneration = -1
 function L(): LoaderOutput {
-	if (!_loader) {
+	const generation = getSiteGeneration()
+	if (_loader && _loaderGeneration === generation) return _loader
+	try {
 		_loader = loader({ source: readSource(), lang: getSiteData().site.lang, projectOf: getProjectIdForDoc })
+	} catch (error) {
+		if (!_loader) throw error
+		console.error(`cantip: could not reload ${CONTENT_FILE}; serving the previous content.`, error)
 	}
+	// Set on failure too, so a broken file is read once per regenerate, not on every call.
+	_loaderGeneration = generation
 	return _loader
 }
 
-/**
- * Drop the in-memory content cache. The next call rebuilds the loader from a fresh
- * read of `content.json`. Lets a long-lived server pick up regenerated content
- * (e.g. a "refresh" admin action / file watch) without a rebuild or restart.
- */
+/** Drop the in-memory content cache. The next call rebuilds the loader from `content.json`. */
 export function resetContent(): void {
 	_loader = null
 }
