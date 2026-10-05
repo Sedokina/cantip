@@ -13,45 +13,11 @@ import { useComponent, useOverride } from '~/lib/components'
 import PageFloatingMenu from '~/components/PageFloatingMenu'
 import PublishToJira from '~/components/PublishToJira'
 import EditSource from '~/components/EditSource'
+import { PrintButton } from '~/components/PrintDialog'
 import HastRenderer from '~/components/HastRenderer'
 import DrawioView from '~/components/DrawioView'
-
-/** A colored MoSCoW priority pill, rendered inline next to the page title. */
-function PriorityBadge({ priority }: { priority: string }) {
-	return (
-		<span className="priority-badge" data-priority={priority}>
-			{priority}
-		</span>
-	)
-}
-
-/** Render a single frontmatter value as text: arrays comma-joined, everything else stringified. */
-function formatValue(value: unknown): string {
-	if (Array.isArray(value)) return value.map((v) => String(v)).join(', ')
-	if (value === null) return ''
-	if (typeof value === 'object') return JSON.stringify(value)
-	return String(value)
-}
-
-/** A generic key→value table of every frontmatter field, collapsed by default. */
-function FrontmatterTable({ frontmatter }: { frontmatter: Record<string, unknown> }) {
-	const t = useT()
-	const entries = Object.entries(frontmatter)
-	if (entries.length === 0) return null
-	return (
-		<details className="frontmatter">
-			<summary className="frontmatter__summary">{t('properties')}</summary>
-			<dl className="frontmatter__list">
-				{entries.map(([key, value]) => (
-					<div className="frontmatter__row" key={key}>
-						<dt className="frontmatter__key">{key}</dt>
-						<dd className="frontmatter__value">{formatValue(value)}</dd>
-					</div>
-				))}
-			</dl>
-		</details>
-	)
-}
+import PriorityBadge from '~/components/PriorityBadge'
+import FrontmatterTable from '~/components/FrontmatterTable'
 
 // NOTE: the `loader` is NOT exported here — it lives in `./doc.server`
 // (`cantip/routes/doc.server`). The consumer's route stub imports the loader from
@@ -153,6 +119,7 @@ function EngineDocPage({ doc, title, editUrl, linkedTickets }: DocData) {
 						</h1>
 						<div className="flex shrink-0 items-center gap-2">
 							<EditSource url={editUrl} />
+							<PrintButton title={title} />
 							<PublishToJira
 								pageId={doc.id}
 								title={title}

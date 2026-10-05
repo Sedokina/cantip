@@ -110,10 +110,30 @@ export async function getImage(id: string): Promise<LoaderImage | null> {
  * the same way the doc route does. Unknown paths → false.
  */
 export async function spansTocColumn(pathname: string): Promise<boolean> {
-	const slug = decodeURIComponent(pathname).replace(/^\/+|\/+$/g, '')
-	if (!slug) return false
-	const id = L().resolvePermalink(slug) ?? slug
+	const id = resolvePathname(pathname)
+	if (!id) return false
 	return (L().getPage(id)?.data.isCanvas ?? false) || L().getImage(id) !== null
+}
+
+/** The id a URL pathname points at, following permalinks. Empty or malformed pathname → null. */
+export function resolvePathname(pathname: string): string | null {
+	let slug: string
+	try {
+		slug = decodeURIComponent(pathname).replace(/^\/+|\/+$/g, '')
+	} catch {
+		return null
+	}
+	if (!slug) return null
+	return L().resolvePermalink(slug) ?? slug
+}
+
+/** A doc's display title: its `title` frontmatter, else the last slug segment. */
+export function docTitle(doc: Doc, slug: string): string {
+	return (
+		(doc.frontmatter.title as string | undefined) ??
+		slug.split('/').pop()?.replace(/-/g, ' ') ??
+		slug
+	)
 }
 
 /** The loaded content API (used by the sidebar builder). */

@@ -62,12 +62,41 @@ export type ShortcutInfo = {
 export const ALL_SHORTCUTS: ShortcutInfo[] = [
 	{ hint: '⌘/Ctrl K', labelKey: 'scSearchContent', group: 'nav' },
 	{ hint: '?', labelKey: 'scShowShortcuts', group: 'nav' },
+	{ hint: '>', labelKey: 'scCommands', group: 'nav' },
 	{ hint: '⌘/Ctrl P', labelKey: 'scSearchFile', group: 'tree' },
 	{ hint: 'l', labelKey: 'scLocate', group: 'tree' },
 	{ hint: 'c', labelKey: 'scCollapseAll', group: 'tree' },
 	{ hint: 'w', labelKey: 'scCloseTab', group: 'tabs' },
 	{ hint: 'Shift+Enter', labelKey: 'scShiftEnter', group: 'tree' },
 ]
+
+// The US-layout characters of the punctuation keys that non-Latin layouts use for
+// letters (Russian puts б, ю, ж, э, х, ъ, ё there), as [unshifted, shifted].
+const PUNCTUATION_CODES: Record<string, [string, string]> = {
+	Comma: [',', '<'],
+	Period: ['.', '>'],
+	Semicolon: [';', ':'],
+	Quote: ["'", '"'],
+	BracketLeft: ['[', '{'],
+	BracketRight: [']', '}'],
+	Backquote: ['`', '~'],
+}
+
+/**
+ * The shortcut character a key press stands for, lowercase. A key that types
+ * ASCII counts as that character, so AZERTY and Dvorak keep their own letters.
+ * A key that types anything else (a Cyrillic letter) counts as the character
+ * the same physical key types on the US layout, so shortcuts work without
+ * switching the layout.
+ */
+export function shortcutKey(e: KeyboardEvent): string {
+	if (/^[\x21-\x7e]$/.test(e.key)) return e.key.toLowerCase()
+	const letter = /^Key([A-Z])$/.exec(e.code)
+	if (letter) return letter[1].toLowerCase()
+	const punctuation = PUNCTUATION_CODES[e.code]
+	if (punctuation) return punctuation[e.shiftKey ? 1 : 0]
+	return e.key.toLowerCase()
+}
 
 /** True when focus is in an editable surface — single-key shortcuts must not fire there. */
 function isTypingTarget(el: EventTarget | null): boolean {
@@ -121,7 +150,7 @@ export function useKeyboardShortcuts(shortcuts: Shortcut[]): void {
 				return
 			}
 
-			const key = e.key.toLowerCase()
+			const key = shortcutKey(e)
 
 			// Resolving the second key of an armed sequence takes priority.
 			if (pending) {

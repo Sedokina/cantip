@@ -13,6 +13,7 @@ import {
 
 import { findProject, type Project } from '~/lib/projects-core'
 import { useProjects, useT } from '~/lib/site-context'
+import { shortcutKey } from '~/lib/useKeyboardShortcuts'
 import { cn } from '~/lib/utils'
 
 /**
@@ -567,7 +568,7 @@ export function Search({
 	useEffect(() => {
 		if (!enableShortcut) return
 		const onKey = (e: KeyboardEvent) => {
-			if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+			if ((e.metaKey || e.ctrlKey) && shortcutKey(e) === 'k') {
 				e.preventDefault()
 				setOpen(true)
 			}
