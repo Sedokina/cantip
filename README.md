@@ -3,7 +3,7 @@
 A **Remix documentation engine** you drop into your own Remix app as a Vite
 plugin. Ingest Obsidian vaults or plain markdown and get a fast SSR docs site —
 persistent sidebar, tabs, full-text search, dark/light theme, canvas rendering,
-wikilinks — driven by a single `docs.config.ts`. **You own the Remix app**, so
+wikilinks, printing to PDF — driven by a single `docs.config.ts`. **You own the Remix app**, so
 the docs are fully editable and extensible.
 
 ### The name

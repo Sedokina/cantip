@@ -3,7 +3,7 @@
 A **Remix documentation engine** you drop into your own Remix app as a Vite
 plugin. Ingest Obsidian vaults or plain markdown and get a fast SSR docs site —
 persistent sidebar, tabs, full-text search, dark/light theme, canvas rendering,
-wikilinks — driven by a single `docs.config.ts`.
+wikilinks, printing to PDF — driven by a single `docs.config.ts`.
 
 Unlike a black-box generator, **you own the Remix app.** cantip is a plugin plus
 exported routes/components, so you can edit the layout, add your own routes, and
@@ -57,6 +57,10 @@ export { default, meta } from 'cantip/routes/doc'
 
 // app/routes/_index.tsx — the home page
 export { default, meta } from 'cantip/routes/home'
+
+// app/routes/[_print].tsx — the print view at /_print (see "Print and save as PDF")
+export { loader } from 'cantip/routes/print.server'
+export { default, meta, handle } from 'cantip/routes/print'
 ```
 
 The `cantip()` plugin runs the content pipeline (markdown → HTML) before each
@@ -194,6 +198,72 @@ export default defineConfig({
   drawio: { viewer: false },
 })
 ```
+
+## Print and save as PDF
+
+Readers can print one page, or several pages from anywhere in the site as one
+document, and save it as a PDF from the browser's print dialog. Notes and images
+can be printed. Canvas pages and other files cannot.
+
+**Print one page.** The printer button in a note's title row opens the print
+dialog. In the sidebar, the ⋮ menu of a note or an image has **Print…**, which
+opens the same dialog for that page.
+
+**Print several pages.** Collect them in the print list, then print the list:
+
+- In the sidebar ⋮ menu, **Add to print list** adds a note or an image, and
+  **Add folder to print list** adds every note and image in a folder and its
+  subfolders, in sidebar order.
+- **Add this page** in the print dialog adds the page the dialog is for.
+- While the list has pages, a printer button with the page count appears in the
+  sidebar header and opens the list. A short message confirms every add and
+  remove.
+
+In the dialog the list can be reordered and cleared. The list is stored in the
+reader's browser (`localStorage`), so it lasts across pages and reloads but is
+not shared between browsers or devices.
+
+**Options** in the dialog, remembered per browser:
+
+- **Contents.** One page gets a table of contents under its title. Several pages
+  get one table of contents at the start of the document, with each page title
+  and its headings.
+- **Properties.** Prints the frontmatter table of each page.
+- **Start each page on a new sheet.** Off by default: pages follow each other,
+  separated by a line.
+
+**Command palette.** Press `>`, click the ⚡ button next to the search box, or
+type `>` in the file search (Ctrl/Cmd+P). It has **Print…**, **Add to print
+list** / **Remove from print list** for the current page, and **Print list…**.
+Shortcuts work in any keyboard layout: on the Russian layout, `>` is
+Shift+`Ю` and Ctrl/Cmd+P is Ctrl/Cmd+`З`.
+
+### How the printed document looks
+
+Printing opens the pages at `/_print` in a new tab, without the sidebar, top bar
+and tabs, and calls the browser's print dialog. The tab has its own Print
+button, for browsers that block printing without a click.
+
+- The page is always printed in the light theme, with 16 mm margins and the paper
+  size chosen in the print dialog.
+- Code blocks wrap long lines, collapsed `<details>` blocks print open, and code
+  and callout backgrounds print in colour.
+- A link to another page in the same document jumps inside the PDF. Links to
+  pages that are not printed point to the site.
+- An image keeps its natural size up to the page width, and a tall image shrinks
+  to fit one sheet. An image wider than the page (673 px) and wider than tall is
+  turned 90° and fills its own sheet.
+- A draw.io diagram prints as the image saved in the file: its first page, with
+  all its layers.
+
+When a page in the list no longer exists, `/_print` lists it as missing and
+prints the rest.
+
+On iOS, save the PDF from the print dialog with Share → Save to Files.
+
+**Upgrading an existing site:** add the `app/routes/[_print].tsx` route shown in
+[Add to an existing Remix app](#add-to-an-existing-remix-app). Without it, Print
+opens a 404.
 
 ## Hide files
 
@@ -436,6 +506,7 @@ completed ones.
 | `cantip/source` | `loader()` + the `Source`/`VirtualFile` content contract (framework-agnostic). |
 | `cantip/root`, `cantip/root.server` | Root layout + `CantipProvider` + the loader. |
 | `cantip/routes/doc`, `cantip/routes/doc.server` | Doc page + loader. |
+| `cantip/routes/print`, `cantip/routes/print.server` | Print view (`/_print`) + loader. |
 | `cantip/routes/home` | Home page. |
 | `cantip/routes/api.jira` | Publish-to-Jira endpoint (status + create/update). |
 | `cantip/routes/jira.connect`, `jira.callback`, `jira.disconnect` | Per-user OAuth flow. |

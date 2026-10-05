@@ -3,6 +3,42 @@
 Release notes for `cantip` and `create-cantip`, which are released together.
 Each release on GitHub takes its notes from the matching section below.
 
+## 0.9.3
+
+### Added
+
+- **Printing and PDF export.** The printer button in a note's title row and
+  **Print…** in the sidebar ⋮ menu print a note or an image through the
+  browser's print dialog, from where it can be saved as a PDF. A print list
+  collects notes and images from anywhere in the site into one document: add
+  them one by one or a whole folder with its subfolders, then reorder them in the
+  dialog. Options: one table of contents, frontmatter properties, and a new
+  sheet for each page. The document is printed in the light theme, links
+  between printed pages jump inside the PDF, and images wider than the page
+  are turned 90°. See "Print and save as PDF" in the package README.
+- **Command palette.** `>`, the ⚡ button next to the search box, or `>` typed in
+  the file search (Ctrl/Cmd+P) lists the print commands for the current page.
+- `HastRenderer` takes a `components` prop that replaces element components for
+  one tree.
+
+### Changed
+
+- Sites created before this version need the print route. Add
+  `app/routes/[_print].tsx`:
+
+  ```ts
+  export { loader } from 'cantip/routes/print.server'
+  export { default, meta, handle } from 'cantip/routes/print'
+  ```
+
+- The ⋮ buttons in the sidebar are always visible on touch screens. They
+  appeared only on hover before, so phones never showed them.
+
+### Fixed
+
+- Keyboard shortcuts work in any keyboard layout. With the Russian layout
+  active, `l`, `c`, `w`, `?`, Ctrl/Cmd+K and Ctrl/Cmd+P did nothing before.
+
 ## 0.9.2
 
 ### Added
