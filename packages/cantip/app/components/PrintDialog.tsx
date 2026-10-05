@@ -11,10 +11,12 @@ import { cn } from '~/lib/utils'
 interface PrintOptions {
 	toc: boolean
 	props: boolean
+	/** Start every page of the print list on a new sheet. */
+	breaks: boolean
 }
 
 const OPTIONS_KEY = 'cantip:print-options'
-const DEFAULT_OPTIONS: PrintOptions = { toc: true, props: false }
+const DEFAULT_OPTIONS: PrintOptions = { toc: true, props: false, breaks: false }
 
 function readOptions(): PrintOptions {
 	try {
@@ -39,6 +41,7 @@ function openPrint(hrefs: string[], options: PrintOptions): void {
 	for (const href of hrefs) params.append('page', href)
 	params.set('toc', options.toc ? '1' : '0')
 	params.set('props', options.props ? '1' : '0')
+	params.set('breaks', options.breaks ? '1' : '0')
 	window.open(`/_print?${params}`, '_blank')
 }
 
@@ -187,6 +190,13 @@ export default function PrintDialog({ title, onClose }: { title: string; onClose
 								))}
 							</ol>
 						)}
+						<div className="mt-3">
+							<Checkbox
+								label={t('printPageBreaks')}
+								checked={options.breaks}
+								onChange={(v) => setOption('breaks', v)}
+							/>
+						</div>
 						<div className="mt-3 flex flex-wrap items-center gap-2">
 							<Button
 								variant="outline"

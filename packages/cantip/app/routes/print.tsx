@@ -16,8 +16,8 @@ import FrontmatterTable from '~/components/FrontmatterTable'
 // NOTE: the `loader` lives in `./print.server` (`cantip/routes/print.server`), as
 // for the doc route.
 
-/** Tells the root layout to render this route without the sidebar, top bar and tabs. */
-export const handle = { bare: true }
+/** Tells the root layout to render this route without the sidebar, top bar and tabs, in the light theme. */
+export const handle = { bare: true, theme: 'light' }
 
 // Browsers name the saved PDF after the document title.
 export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
@@ -50,7 +50,7 @@ async function preparePrint(): Promise<void> {
 }
 
 export default function PrintRoute() {
-	const { pages, missing, toc, props } = useLoaderData<typeof loader>()
+	const { pages, missing, toc, props, breaks } = useLoaderData<typeof loader>()
 	const t = useT()
 	const printed = useRef(false)
 
@@ -58,30 +58,6 @@ export default function PrintRoute() {
 		await preparePrint()
 		window.print()
 	}
-
-	// Print in the light theme. The theme tokens and `dark:` variants all depend on
-	// the `dark` class. `beforeprint` also fires for Ctrl+P.
-	useEffect(() => {
-		const root = document.documentElement
-		let wasDark = false
-		// `beforeprint` can fire twice before one `afterprint` (Chrome does this for
-		// a print to PDF), so only a call that actually removes the class records it.
-		const onBeforePrint = () => {
-			if (!root.classList.contains('dark')) return
-			wasDark = true
-			root.classList.remove('dark')
-		}
-		const onAfterPrint = () => {
-			if (wasDark) root.classList.add('dark')
-			wasDark = false
-		}
-		window.addEventListener('beforeprint', onBeforePrint)
-		window.addEventListener('afterprint', onAfterPrint)
-		return () => {
-			window.removeEventListener('beforeprint', onBeforePrint)
-			window.removeEventListener('afterprint', onAfterPrint)
-		}
-	}, [])
 
 	// StrictMode runs effects twice in development; the ref keeps it to one dialog.
 	useEffect(() => {
@@ -91,7 +67,7 @@ export default function PrintRoute() {
 	}, [pages.length])
 
 	return (
-		<div className="print-root mx-auto w-full max-w-[calc(720px+5rem)] px-10 pb-16 max-md:px-4">
+		<div data-breaks={breaks || undefined} className="print-root mx-auto w-full max-w-[calc(720px+5rem)] px-10 pb-16 max-md:px-4">
 			<div className="print-toolbar sticky top-0 z-10 -mx-10 mb-6 flex flex-col gap-2 border-b bg-background/95 px-10 py-3 backdrop-blur max-md:-mx-4 max-md:px-4">
 				<div className="flex items-center justify-end gap-2">
 					<Button variant="outline" size="sm" onClick={() => window.close()}>

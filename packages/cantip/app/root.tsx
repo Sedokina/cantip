@@ -59,14 +59,24 @@ export const links: LinksFunction = () => [
  * The default export below wraps Layout in an empty provider, so the zero-config
  * `export { default } from 'cantip/root'` still works.
  */
+/** Route `handle` fields the layout reads. */
+interface LayoutHandle {
+	/** Render the route without the sidebar, top bar and tabs. */
+	bare?: boolean
+	/** Ignore the reader's theme choice and render in this theme. */
+	theme?: 'light'
+}
+
 export function Layout() {
 	const { sidebar, projectId, spansToc, site, projects, general, theme, ui } =
 		useLoaderData<typeof loader>()
-	const bare = useMatches().some((m) => (m.handle as { bare?: boolean } | undefined)?.bare)
+	const handles = useMatches().map((m) => m.handle as LayoutHandle | undefined)
+	const bare = handles.some((h) => h?.bare)
+	const lightOnly = handles.some((h) => h?.theme === 'light')
 
 	return (
 		<SiteProvider value={{ site, projects, general, theme, ui }}>
-			<html lang={site.lang} className={site.defaultTheme === 'light' ? undefined : 'dark'}>
+			<html lang={site.lang} className={lightOnly || site.defaultTheme === 'light' ? undefined : 'dark'}>
 				<head>
 					<meta charSet="utf-8" />
 					<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -81,11 +91,13 @@ export function Layout() {
 					{/* Set the theme class before paint to avoid a flash of the wrong theme.
 					    The init script needs site.defaultTheme (loader data), so it's built
 					    here rather than as a module-level constant. */}
-					<script
-						dangerouslySetInnerHTML={{ __html: buildThemeInitScript(site.defaultTheme) }}
-					/>
+					{!lightOnly && (
+						<script
+							dangerouslySetInnerHTML={{ __html: buildThemeInitScript(site.defaultTheme) }}
+						/>
+					)}
 					{/* Apply the persisted sidebar width before paint to avoid a layout shift. */}
-					<script dangerouslySetInnerHTML={{ __html: sidebarWidthInitScript }} />
+					{!bare && <script dangerouslySetInnerHTML={{ __html: sidebarWidthInitScript }} />}
 				</head>
 				<body>
 				{bare ? <Outlet /> : <SiteChrome sidebar={sidebar} projectId={projectId} spansToc={spansToc} />}
