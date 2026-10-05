@@ -140,6 +140,16 @@ export const docsConfigSchema = z.object({
 		})
 		.prefault({}),
 	/**
+	 * Page printing. `browser` opens the selected pages without the site's sidebar,
+	 * header and tabs at `/_print` and calls the browser's print dialog, where the
+	 * reader can save a PDF.
+	 */
+	print: z
+		.object({
+			mode: z.enum(['browser']).default('browser'),
+		})
+		.prefault({}),
+	/**
 	 * Markdown pipeline customization (build-time, runs in the content generator —
 	 * NOT in the browser).
 	 *

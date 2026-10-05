@@ -208,6 +208,19 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		layers: 'Слои',
 		backgroundLayer: 'Фон',
 		fullscreen: 'Во весь экран',
+		// Printing
+		print: 'Печать',
+		printThisPage: 'Эта страница',
+		printList: 'Список печати',
+		printInclude: 'Включить',
+		addToPrintList: 'Добавить в список печати',
+		removeFromPrintList: 'Убрать из списка печати',
+		addThisPage: 'Добавить эту страницу',
+		printListEmpty: 'Список пуст. Добавьте страницы через меню ⋮ в дереве файлов.',
+		moveUp: 'Выше',
+		moveDown: 'Ниже',
+		remove: 'Убрать',
+		printMissingPages: 'Эти страницы не найдены и не будут напечатаны:',
 		// Not-found / error page
 		notFoundTitle: 'Страница не найдена',
 		notFoundMessage:
@@ -341,6 +354,19 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		layers: 'Layers',
 		backgroundLayer: 'Background',
 		fullscreen: 'Fullscreen',
+		// Printing
+		print: 'Print',
+		printThisPage: 'This page',
+		printList: 'Print list',
+		printInclude: 'Include',
+		addToPrintList: 'Add to print list',
+		removeFromPrintList: 'Remove from print list',
+		addThisPage: 'Add this page',
+		printListEmpty: 'The list is empty. Add pages from the ⋮ menu in the file tree.',
+		moveUp: 'Move up',
+		moveDown: 'Move down',
+		remove: 'Remove',
+		printMissingPages: 'These pages were not found and will not be printed:',
 		// Not-found / error page
 		notFoundTitle: 'Page not found',
 		notFoundMessage:
