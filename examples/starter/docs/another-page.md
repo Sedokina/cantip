@@ -147,9 +147,9 @@ Filler paragraph 11. It keeps the next block out of view, so a block link has to
 
 Filler paragraph 12. It keeps the next block out of view, so a block link has to scroll to reach it.
 
-| Version | Status |
-| --- | --- |
-| v5 | current |
+| Version | Status | Formula |
+| --- | --- | --- |
+| v5 | current | $x^2$ |
 
 ^table-block
 
