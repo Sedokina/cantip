@@ -251,9 +251,11 @@ function handleReplacements(tree: Root, file: VFile) {
             }
             case 'absolute':
             case 'shortest': {
-              const matchingFile = file.data.files.find(
-                (vaultFile) => vaultFile.isEqualStem(urlPath) || vaultFile.isEqualFileName(urlPath),
-              )
+              const matchingFile = urlPath.includes('/')
+                ? findVaultFileByPath(file, urlPath)
+                : file.data.files.find(
+                    (vaultFile) => vaultFile.isEqualStem(urlPath) || vaultFile.isEqualFileName(urlPath),
+                  )
 
               fileUrl = getFileUrl(
                 file.data.output,
@@ -579,6 +581,15 @@ function getImageViewUrl(file: VFile, vaultFile: VaultFile | undefined) {
     return undefined
   }
   return `/${getFileEntryId(file.data.output, file.data.vault, vaultFile)}`
+}
+
+// `[[Folder/Note]]` names the note without `.md`; `[[Folder/Image.png]]` keeps the extension.
+function findVaultFileByPath(file: VFile, vaultPath: string) {
+  ensureTransformContext(file)
+  return file.data.files.find((vaultFile) => {
+    const relativePath = getObsidianRelativePath(file.data.vault, vaultFile.fsPath)
+    return relativePath === `/${vaultPath}` || relativePath === `/${vaultPath}.md`
+  })
 }
 
 function getRelativeFilePath(file: VFile, relativePath: string) {

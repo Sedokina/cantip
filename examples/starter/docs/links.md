@@ -10,7 +10,9 @@ Every link form from the [Obsidian links reference](https://obsidian.md/help/lin
 
 - Note: [[another-page]]
 - Note with extension: [[another-page.md]]
-- Note with folder path: [[Screenshots/Login Screen.png]]
+- Note with folder path: [[Guides/Folder note]]
+- Image with folder path: [[Screenshots/Login Screen.png]]
+- File with folder path: [[Reports/Q3 summary.pdf]]
 - Heading on this page: [[#Markdown links]]
 - Heading on another note: [[another-page#Linking back]]
 - Nested heading: [[another-page#Linking back#Nested heading]]
@@ -42,6 +44,10 @@ Every link form from the [Obsidian links reference](https://obsidian.md/help/lin
 Nested heading:
 
 ![[another-page#Linking back#Nested heading]]
+
+Image with folder path:
+
+![[Screenshots/Login Screen.png]]
 
 Paragraph with a trailing id:
 
