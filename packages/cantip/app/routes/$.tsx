@@ -134,7 +134,7 @@ function EngineDocPage({ doc, title, editUrl, linkedTickets }: DocData) {
 				</article>
 			</main>
 			{showToc && <Toc headings={doc.headings} />}
-			{showToc && <PageFloatingMenu headings={doc.headings} title={title} />}
+			{showToc && <PageFloatingMenu headings={doc.headings} />}
 		</>
 	)
 }
