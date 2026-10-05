@@ -346,7 +346,8 @@ function handleMath({ file }: VisitorContext) {
 function handleLinks(node: Link, { file }: VisitorContext) {
   ensureTransformContext(file)
 
-  if (file.data.vault.options.linkSyntax === 'wikilink' || isAbsoluteUrl(node.url) || !file.dirname) {
+  // A `/` URL is already a site path: a converted wikilink or a link the author wrote for the site.
+  if (isAbsoluteUrl(node.url) || node.url.startsWith('/') || !file.dirname) {
     return SKIP
   }
 
@@ -355,9 +356,11 @@ function handleLinks(node: Link, { file }: VisitorContext) {
     return SKIP
   }
 
-  const url = path.basename(decodeURIComponent(node.url))
-  const [urlPath, urlAnchor] = extractPathAndAnchor(url)
-  const matchingFile = file.data.files.find((vaultFile) => vaultFile.isEqualFileName(urlPath))
+  const [linkPath, urlAnchor] = extractPathAndAnchor(decodeURIComponent(node.url))
+  const urlPath = path.basename(linkPath)
+  const matchingFile = file.data.files.find(
+    (vaultFile) => vaultFile.isEqualFileName(urlPath) || vaultFile.isEqualStem(urlPath),
+  )
 
   if (!matchingFile) {
     return SKIP
@@ -365,12 +368,12 @@ function handleLinks(node: Link, { file }: VisitorContext) {
 
   switch (file.data.vault.options.linkFormat) {
     case 'relative': {
-      node.url = getFileUrl(file.data.output, getRelativeFilePath(file, node.url), urlAnchor)
+      node.url = getFileUrl(file.data.output, getRelativeFilePath(file, linkPath), urlAnchor)
       break
     }
     case 'absolute':
     case 'shortest': {
-      node.url = getFileUrl(file.data.output, getFilePathFromVaultFile(matchingFile, node.url), urlAnchor)
+      node.url = getFileUrl(file.data.output, getFilePathFromVaultFile(matchingFile, linkPath), urlAnchor)
       break
     }
   }
