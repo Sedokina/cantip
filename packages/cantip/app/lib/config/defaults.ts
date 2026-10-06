@@ -230,6 +230,13 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		printListEmpty: 'Список пуст. Добавьте страницы через меню ⋮ в дереве файлов.',
 		moveUp: 'Выше',
 		moveDown: 'Ниже',
+		dragToReorder: 'Перетащите, чтобы изменить порядок',
+		dragInstructions:
+			'Чтобы взять страницу, нажмите пробел. Перемещайте её клавишами со стрелками. Нажмите пробел ещё раз, чтобы отпустить её, или Escape, чтобы отменить.',
+		dragStart: 'Взята страница «{title}». Позиция {position} из {count}.',
+		dragOver: 'Страница «{title}» перемещена на позицию {position} из {count}.',
+		dragEnd: 'Страница «{title}» оставлена на позиции {position} из {count}.',
+		dragCancel: 'Перемещение отменено. Страница «{title}» осталась на позиции {position} из {count}.',
 		remove: 'Убрать',
 		printMissingPages: 'Эти страницы не найдены и не будут напечатаны:',
 		// Not-found / error page
@@ -387,6 +394,13 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		printListEmpty: 'The list is empty. Add pages from the ⋮ menu in the file tree.',
 		moveUp: 'Move up',
 		moveDown: 'Move down',
+		dragToReorder: 'Drag to reorder',
+		dragInstructions:
+			'To pick up a page, press Space. Move it with the arrow keys. Press Space again to drop it, or Escape to cancel.',
+		dragStart: 'Picked up {title}. Position {position} of {count}.',
+		dragOver: '{title} moved to position {position} of {count}.',
+		dragEnd: '{title} dropped at position {position} of {count}.',
+		dragCancel: 'Move cancelled. {title} is back at position {position} of {count}.',
 		remove: 'Remove',
 		printMissingPages: 'These pages were not found and will not be printed:',
 		// Not-found / error page

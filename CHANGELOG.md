@@ -5,6 +5,14 @@ Each release on GitHub takes its notes from the matching section below.
 
 ## 0.9.5
 
+### Added
+
+- Print list rows can be reordered by drag and drop. Drag a row with the
+  mouse, or long-press it on a touch screen. From the keyboard, focus a row's
+  grip, press Space, move it with the arrow keys and press Space again. Screen
+  readers announce each move in the site's language. The ↑ and ↓ buttons still
+  work.
+
 ### Changed
 
 - Image and draw.io pages show the file name in a title row above the image,

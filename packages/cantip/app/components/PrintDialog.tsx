@@ -1,10 +1,32 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation } from '@remix-run/react'
-import { ArrowDown, ArrowUp, Printer, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, GripVertical, Printer, X } from 'lucide-react'
+import {
+	DndContext,
+	KeyboardSensor,
+	MouseSensor,
+	TouchSensor,
+	closestCenter,
+	useSensor,
+	useSensors,
+	type Announcements,
+	type DragEndEvent,
+	type UniqueIdentifier,
+} from '@dnd-kit/core'
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import { CSS } from '@dnd-kit/utilities'
 
 import { Button } from '~/components/ui/button'
-import { openPrint, readPrintOptions, usePrintList, writePrintOptions, type PrintOptions } from '~/lib/print-list'
+import {
+	openPrint,
+	readPrintOptions,
+	usePrintList,
+	writePrintOptions,
+	type PrintListItem,
+	type PrintOptions,
+} from '~/lib/print-list'
 import { useT } from '~/lib/site-context'
 import { cn } from '~/lib/utils'
 
@@ -52,10 +74,12 @@ export default function PrintDialog({
 	const t = useT()
 	const list = usePrintList()
 	const [options, setOptions] = useState(readPrintOptions)
+	const dragging = useRef(false)
 
 	useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') onClose()
+			// Escape during a drag cancels the drag. This listener runs before dnd-kit's.
+			if (e.key === 'Escape' && !dragging.current) onClose()
 		}
 		document.addEventListener('keydown', onKey)
 		const prev = document.body.style.overflow
@@ -136,33 +160,7 @@ export default function PrintDialog({
 						{list.items.length === 0 ? (
 							<p className="m-0 text-muted-foreground">{t('printListEmpty')}</p>
 						) : (
-							<ol className="m-0 list-none space-y-1 p-0">
-								{list.items.map((item, index) => (
-									<li key={item.href} className="flex items-center gap-1">
-										<span className="w-5 shrink-0 text-right text-muted-foreground">{index + 1}.</span>
-										<span className="min-w-0 flex-1 truncate pl-1 text-foreground" title={item.href}>
-											{item.title}
-										</span>
-										<IconButton
-											label={t('moveUp')}
-											disabled={index === 0}
-											onClick={() => list.move(index, -1)}
-										>
-											<ArrowUp className="size-4" />
-										</IconButton>
-										<IconButton
-											label={t('moveDown')}
-											disabled={index === list.items.length - 1}
-											onClick={() => list.move(index, 1)}
-										>
-											<ArrowDown className="size-4" />
-										</IconButton>
-										<IconButton label={t('remove')} onClick={() => list.remove(item.href)}>
-											<X className="size-4" />
-										</IconButton>
-									</li>
-								))}
-							</ol>
+							<PrintListItems list={list} dragging={dragging} />
 						)}
 						<div className="mt-3">
 							<Checkbox
@@ -205,6 +203,123 @@ export default function PrintDialog({
 			</div>
 		</div>,
 		document.body,
+	)
+}
+
+function PrintListItems({
+	list,
+	dragging,
+}: {
+	list: ReturnType<typeof usePrintList>
+	dragging: MutableRefObject<boolean>
+}) {
+	const sensors = useSensors(
+		// The distance keeps a click on a row's buttons from starting a drag.
+		useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+		// A long press starts a drag on touch screens, so a swipe still scrolls the dialog.
+		useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+	)
+	const t = useT()
+	const hrefs = list.items.map((item) => item.href)
+	const lastOver = useRef<UniqueIdentifier | null>(null)
+	const onDragEnd = ({ active, over }: DragEndEvent) => {
+		dragging.current = false
+		if (!over || active.id === over.id) return
+		list.moveTo(hrefs.indexOf(String(active.id)), hrefs.indexOf(String(over.id)))
+	}
+	const announce = (key: string, id: UniqueIdentifier, at: UniqueIdentifier) =>
+		t(key)
+			.replace('{title}', list.items[hrefs.indexOf(String(id))]?.title ?? '')
+			.replace('{position}', String(hrefs.indexOf(String(at)) + 1))
+			.replace('{count}', String(hrefs.length))
+	const announcements: Announcements = {
+		onDragStart: ({ active }) => {
+			lastOver.current = active.id
+			return announce('dragStart', active.id, active.id)
+		},
+		// dnd-kit reports the row over itself right after the drag starts, which would replace "Picked up".
+		onDragOver: ({ active, over }) => {
+			if (!over || over.id === lastOver.current) return undefined
+			lastOver.current = over.id
+			return announce('dragOver', active.id, over.id)
+		},
+		onDragEnd: ({ active, over }) => announce('dragEnd', active.id, over?.id ?? active.id),
+		onDragCancel: ({ active }) => announce('dragCancel', active.id, active.id),
+	}
+	return (
+		<DndContext
+			accessibility={{ announcements, screenReaderInstructions: { draggable: t('dragInstructions') } }}
+			sensors={sensors}
+			collisionDetection={closestCenter}
+			modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+			onDragStart={() => (dragging.current = true)}
+			onDragEnd={onDragEnd}
+			onDragCancel={() => (dragging.current = false)}
+		>
+			<SortableContext items={hrefs} strategy={verticalListSortingStrategy}>
+				<ol className="m-0 list-none space-y-1 p-0">
+					{list.items.map((item, index) => (
+						<PrintListRow key={item.href} item={item} index={index} list={list} />
+					))}
+				</ol>
+			</SortableContext>
+		</DndContext>
+	)
+}
+
+function PrintListRow({
+	item,
+	index,
+	list,
+}: {
+	item: PrintListItem
+	index: number
+	list: ReturnType<typeof usePrintList>
+}) {
+	const t = useT()
+	const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+		id: item.href,
+	})
+	return (
+		<li
+			ref={setNodeRef}
+			{...listeners}
+			style={{ transform: CSS.Translate.toString(transform), transition }}
+			className={cn(
+				'relative flex cursor-grab touch-manipulation select-none items-center gap-1 rounded-md',
+				isDragging && 'z-10 cursor-grabbing bg-accent shadow-md',
+			)}
+		>
+			{/* The grip is the keyboard handle: the keyboard sensor only starts a drag from the activator node. */}
+			<button
+				type="button"
+				ref={setActivatorNodeRef}
+				{...attributes}
+				aria-label={t('dragToReorder')}
+				title={t('dragToReorder')}
+				className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+			>
+				<GripVertical className="size-4" />
+			</button>
+			<span className="w-5 shrink-0 text-right text-muted-foreground">{index + 1}.</span>
+			<span className="min-w-0 flex-1 truncate pl-1 text-foreground" title={item.href}>
+				{item.title}
+			</span>
+			<IconButton label={t('moveUp')} disabled={index === 0} onClick={() => list.move(index, -1)}>
+				<ArrowUp className="size-4" />
+			</IconButton>
+			<IconButton
+				label={t('moveDown')}
+				disabled={index === list.items.length - 1}
+				onClick={() => list.move(index, 1)}
+			>
+				<ArrowDown className="size-4" />
+			</IconButton>
+			<IconButton label={t('remove')} onClick={() => list.remove(item.href)}>
+				<X className="size-4" />
+			</IconButton>
+		</li>
 	)
 }
 

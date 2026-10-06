@@ -81,6 +81,13 @@ function subscribe(listener: () => void): () => void {
 	}
 }
 
+function moveTo(from: number, to: number) {
+	const next = [...getSnapshot()]
+	if (from < 0 || from >= next.length || to < 0 || to >= next.length) return
+	next.splice(to, 0, ...next.splice(from, 1))
+	write(next)
+}
+
 const samePage = (a: string, b: string) => normTabPath(a) === normTabPath(b)
 
 export function usePrintList() {
@@ -97,13 +104,8 @@ export function usePrintList() {
 		remove: (href: string) => {
 			write(getSnapshot().filter((item) => !samePage(item.href, href)))
 		},
-		move: (index: number, delta: -1 | 1) => {
-			const next = [...getSnapshot()]
-			const target = index + delta
-			if (index < 0 || index >= next.length || target < 0 || target >= next.length) return
-			;[next[index], next[target]] = [next[target], next[index]]
-			write(next)
-		},
+		move: (index: number, delta: -1 | 1) => moveTo(index, index + delta),
+		moveTo,
 		/** Adds the pages that are not in the list yet, in the given order. Returns how many were added. */
 		addAll: (added: PrintListItem[]): number => {
 			const current = getSnapshot()
