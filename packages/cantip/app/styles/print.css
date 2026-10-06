@@ -105,16 +105,23 @@
 	/* A wide image (marked by markWideImages in print.tsx) takes a whole sheet and
 	   is turned with its top to the left, the usual direction for landscape
 	   content in a portrait document. Its box is sized from the frame's height and
-	   width swapped, which needs the frame to be a size container. */
+	   width swapped, which needs the frame to be a size container. The title turns
+	   with it: a strip along the left edge, read from bottom to top. */
 	.print-image[data-rotate] {
 		display: flex;
-		flex-direction: column;
+		flex-direction: row;
 		height: 100vh;
 		margin-top: 0;
 		padding-top: 0;
 		border-top: 0;
 		break-before: page;
 		break-after: page;
+	}
+	.print-image[data-rotate] h1.print-image__title {
+		display: block;
+		margin: 0 0.5rem 0 0;
+		writing-mode: vertical-rl;
+		transform: rotate(180deg);
 	}
 	.print-image[data-rotate] .print-image__frame {
 		position: relative;

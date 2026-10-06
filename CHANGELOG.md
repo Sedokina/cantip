@@ -28,7 +28,8 @@ Each release on GitHub takes its notes from the matching section below.
 - Image and draw.io pages show the file name in a title row above the image,
   like canvas pages.
 - On the print page, an image's title is printed at body text size in semibold
-  instead of at the size of a page title.
+  instead of at the size of a page title. When a wide image is printed rotated,
+  its title is rotated with it and runs along the left edge of the sheet.
 
 ### Fixed
 
