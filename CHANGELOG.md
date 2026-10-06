@@ -5,6 +5,11 @@ Each release on GitHub takes its notes from the matching section below.
 
 ## 0.9.5
 
+### Changed
+
+- Image and draw.io pages show the file name in a title row above the image,
+  like canvas pages.
+
 ### Fixed
 
 - Canvas pages fill the whole height of the page. Before, the canvas kept a
