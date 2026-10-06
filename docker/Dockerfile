@@ -26,6 +26,7 @@ ARG CANTIP_VERSION=latest
 ARG WITH_MERMAID=true
 
 FROM node:22-slim AS base
+LABEL repository=cantip-host
 # NOTE: do NOT set NODE_ENV=production here — it makes `npm install` skip
 # devDependencies (@remix-run/dev, vite), which the boot-time `remix vite:build`
 # needs. The build happens at runtime, so the full toolchain must be present.
