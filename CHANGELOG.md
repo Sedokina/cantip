@@ -18,6 +18,11 @@ Each release on GitHub takes its notes from the matching section below.
 - Canvas pages no longer show gray strips with leftover frames along the bottom
   and right edges when browser zoom is below 100%. The grid dots now reach the
   edges at any zoom.
+- Canvas wheel controls stay the same after Shift or Ctrl is used. The wheel
+  zooms, Shift+wheel pans horizontally, Alt+wheel pans vertically, and
+  Ctrl+wheel zooms by the same step as the wheel. Before, the first Shift+wheel or Ctrl+wheel made the plain
+  wheel pan instead of zoom until the page was reloaded, and each Ctrl+wheel
+  notch jumped to the largest or smallest zoom.
 
 ## 0.9.4
 

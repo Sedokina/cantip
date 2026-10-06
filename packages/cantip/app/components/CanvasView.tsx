@@ -22,6 +22,46 @@ function reportSizeInCssPixels(canvas: HTMLCanvasElement) {
 	}
 }
 
+type Viewer = {
+	changeTheme: (theme?: 'dark' | 'light') => void
+	zoom: (factor: number, origin: { x: number; y: number }) => void
+	pan: (delta: { x: number; y: number }) => void
+}
+
+// One mouse-wheel notch (deltaY 100) zooms by 1.2×.
+const ZOOM_PER_PIXEL = Math.log(1.2) / 100
+const PIXELS_PER_LINE = 40
+
+/**
+ * Replaces the viewer's wheel handling. pointeract, the viewer's input library,
+ * switches for good to a touchpad scheme after the first wheel event with Shift
+ * or Ctrl held. From then on the wheel pans instead of zooming, and Ctrl+wheel
+ * multiplies the scale by `1 - 0.1 * deltaY`, so one mouse notch jumps to the
+ * scale limit. Here the wheel always zooms, Shift+wheel pans horizontally,
+ * Alt+wheel pans vertically, and the zoom factor is exponential in deltaY, so a mouse notch and a touchpad pinch
+ * both zoom by a proportionate step.
+ */
+function handleWheel(event: WheelEvent, viewer: Viewer, container: HTMLElement) {
+	event.preventDefault()
+	event.stopPropagation()
+	// Firefox can report deltas in lines instead of pixels.
+	const pixels = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? PIXELS_PER_LINE : 1
+	if (event.shiftKey) {
+		// Most browsers turn Shift+wheel into deltaX, but not all of them.
+		viewer.pan({ x: -(event.deltaX || event.deltaY) * pixels, y: 0 })
+		return
+	}
+	if (event.altKey) {
+		viewer.pan({ x: 0, y: -(event.deltaY || event.deltaX) * pixels })
+		return
+	}
+	const rect = container.getBoundingClientRect()
+	viewer.zoom(Math.exp(-event.deltaY * pixels * ZOOM_PER_PIXEL), {
+		x: event.clientX - rect.left,
+		y: event.clientY - rect.top,
+	})
+}
+
 /**
  * Renders an Obsidian canvas inline using the json-canvas-viewer library.
  *
@@ -50,10 +90,16 @@ export default function CanvasView({ canvas }: { canvas?: string }) {
 		}
 
 		let cancelled = false
-		let viewer: { changeTheme: (theme?: 'dark' | 'light') => void } | undefined
+		let viewer: Viewer | undefined
 		const observer = new MutationObserver(() => {
 			viewer?.changeTheme(isDark() ? 'dark' : 'light')
 		})
+		const onWheel = (event: WheelEvent) => {
+			if (viewer) handleWheel(event, viewer, container)
+		}
+		// Capture on the outer container runs before pointeract's listener on the
+		// viewer's inner element, so stopPropagation keeps the event from it.
+		container.addEventListener('wheel', onWheel, { capture: true, passive: false })
 
 		;(async () => {
 			const { JSONCanvasViewer, parser, Minimap, Controls } = await import('json-canvas-viewer')
@@ -76,6 +122,7 @@ export default function CanvasView({ canvas }: { canvas?: string }) {
 		return () => {
 			cancelled = true
 			observer.disconnect()
+			container.removeEventListener('wheel', onWheel, { capture: true })
 			container.innerHTML = ''
 		}
 	}, [canvas])
