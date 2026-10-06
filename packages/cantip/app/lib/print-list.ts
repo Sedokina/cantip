@@ -157,13 +157,19 @@ export function writePrintOptions(options: PrintOptions): void {
 }
 
 // Call from a click handler: popup blockers allow window.open only there.
-export function openPrint(pages: Pick<PrintListItem, 'href' | 'newSheet'>[], options: PrintOptions): void {
+/** `fromList` makes the print tab offer to clear the print list after printing. */
+export function openPrint(
+	pages: Pick<PrintListItem, 'href' | 'newSheet'>[],
+	options: PrintOptions,
+	fromList = false,
+): void {
 	const params = new URLSearchParams()
 	for (const page of pages) params.append('page', page.href)
 	for (const [index, page] of pages.entries()) if (page.newSheet) params.append('sheet', String(index))
 	params.set('toc', options.toc ? '1' : '0')
 	params.set('props', options.props ? '1' : '0')
 	params.set('ext', options.ext ? '1' : '0')
+	if (fromList) params.set('list', '1')
 	// Without noopener the print tab shares an event loop with this tab, and the
 	// browser's print dialog in it would freeze this tab too.
 	window.open(`/_print?${params}`, '_blank', 'noopener')

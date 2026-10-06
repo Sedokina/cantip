@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLoaderData } from '@remix-run/react'
 import type { MetaFunction, SerializeFrom } from '@remix-run/node'
 import { Printer, X } from 'lucide-react'
 
 import type { loader } from './print.server'
 import { pageTitleFromMatches } from '~/lib/meta'
+import { usePrintList } from '~/lib/print-list'
 import { useT } from '~/lib/site-context'
 import { getPriority } from '~/lib/utils'
 import { tocHeadings } from '~/components/Toc'
@@ -75,9 +76,12 @@ async function preparePrint(): Promise<void> {
 }
 
 export default function PrintRoute() {
-	const { pages, missing, toc, props } = useLoaderData<typeof loader>()
+	const { pages, missing, toc, props, list } = useLoaderData<typeof loader>()
 	const t = useT()
 	const printed = useRef(false)
+	const printList = usePrintList()
+	// Browsers fire afterprint for Print and for Cancel alike, so clearing the list is only offered.
+	const [clearOffer, setClearOffer] = useState<'hidden' | 'shown' | 'cleared'>('hidden')
 
 	const print = async () => {
 		await preparePrint()
@@ -89,6 +93,13 @@ export default function PrintRoute() {
 		window.addEventListener('beforeprint', markWideImages)
 		return () => window.removeEventListener('beforeprint', markWideImages)
 	}, [])
+
+	useEffect(() => {
+		if (!list) return
+		const onAfterPrint = () => setClearOffer((offer) => (offer === 'cleared' ? offer : 'shown'))
+		window.addEventListener('afterprint', onAfterPrint)
+		return () => window.removeEventListener('afterprint', onAfterPrint)
+	}, [list])
 
 	// StrictMode runs effects twice in development; the ref keeps it to one dialog.
 	useEffect(() => {
@@ -110,6 +121,24 @@ export default function PrintRoute() {
 						{t('print')}
 					</Button>
 				</div>
+				{clearOffer === 'shown' && printList.items.length > 0 && (
+					<div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/50 px-3 py-2 text-sm">
+						<span>{t('printClearOffer')}</span>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => {
+								printList.clear()
+								setClearOffer('cleared')
+							}}
+						>
+							{t('printClearList')}
+						</Button>
+					</div>
+				)}
+				{clearOffer === 'cleared' && (
+					<div className="rounded-md border bg-muted/50 px-3 py-2 text-sm">{t('printListCleared')}</div>
+				)}
 				{missing.length > 0 && (
 					<div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
 						<p className="m-0">{t('printMissingPages')}</p>

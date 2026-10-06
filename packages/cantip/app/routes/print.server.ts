@@ -103,5 +103,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 		missing,
 		toc: params.get('toc') === '1',
 		props: params.get('props') === '1',
+		list: params.get('list') === '1',
 	})
 }

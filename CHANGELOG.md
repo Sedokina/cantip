@@ -19,6 +19,9 @@ Each release on GitHub takes its notes from the matching section below.
   replaces the "Start each page on a new sheet" checkbox and turns every page
   on or off. The first page can start a new sheet only after the table of
   contents.
+- After printing the print list, the print tab offers **Clear the print list**.
+  Browsers do not tell the page whether the reader printed or cancelled, so
+  the list is cleared only on that click.
 - **File extensions** print option, off by default. Without it, printed files
   such as images are titled without their extension: `Login Screen` instead of
   `Login Screen.png`, `architecture` instead of `architecture.drawio.svg`.

@@ -96,8 +96,8 @@ export default function PrintDialog({
 		writePrintOptions(next)
 	}
 
-	const print = (pages: Pick<PrintListItem, 'href' | 'newSheet'>[]) => {
-		openPrint(pages, options)
+	const print = (pages: Pick<PrintListItem, 'href' | 'newSheet'>[], fromList = false) => {
+		openPrint(pages, options, fromList)
 		onClose()
 	}
 
@@ -212,7 +212,7 @@ export default function PrintDialog({
 								size="sm"
 								className="ml-auto"
 								disabled={list.items.length === 0}
-								onClick={() => print(list.items)}
+								onClick={() => print(list.items, true)}
 							>
 								<Printer className="size-4" />
 								{t('print')}

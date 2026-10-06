@@ -233,6 +233,9 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		dragToReorder: 'Перетащите, чтобы изменить порядок',
 		printNewSheet: 'Начать с нового листа',
 		printExtensions: 'Расширения файлов',
+		printClearOffer: 'Печать завершена?',
+		printClearList: 'Очистить список печати',
+		printListCleared: 'Список печати очищен.',
 		dragInstructions:
 			'Чтобы взять страницу, нажмите пробел. Перемещайте её клавишами со стрелками. Нажмите пробел ещё раз, чтобы отпустить её, или Escape, чтобы отменить.',
 		dragStart: 'Взята страница «{title}». Позиция {position} из {count}.',
@@ -399,6 +402,9 @@ export const UI_STRINGS: Record<string, Record<string, string>> = {
 		dragToReorder: 'Drag to reorder',
 		printNewSheet: 'Start on a new sheet',
 		printExtensions: 'File extensions',
+		printClearOffer: 'Finished printing?',
+		printClearList: 'Clear the print list',
+		printListCleared: 'The print list is cleared.',
 		dragInstructions:
 			'To pick up a page, press Space. Move it with the arrow keys. Press Space again to drop it, or Escape to cancel.',
 		dragStart: 'Picked up {title}. Position {position} of {count}.',

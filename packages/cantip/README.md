@@ -233,6 +233,10 @@ In the dialog the list can be reordered and cleared. The list is stored in the
 reader's browser (`localStorage`), so it lasts across pages and reloads but is
 not shared between browsers or devices.
 
+After the browser's print dialog closes, the print tab offers **Clear the print
+list**. Browsers do not tell the page whether the reader printed or cancelled,
+so the list is never cleared without that click.
+
 **Options** in the dialog, remembered per browser:
 
 - **Contents.** One page gets a table of contents under its title. Several pages
