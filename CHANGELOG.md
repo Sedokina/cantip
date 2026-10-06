@@ -36,6 +36,9 @@ Each release on GitHub takes its notes from the matching section below.
 
 ### Fixed
 
+- The site's tab no longer freezes while the browser's print dialog is open in
+  the print tab. The print tab now opens without a link back to the site's
+  tab, so the two no longer share one event loop.
 - Canvas pages fill the whole height of the page. Before, the canvas kept a
   2:1 aspect ratio and left an empty area below it when the content column was
   narrow. Existing sites need a content regeneration to get the fix.

@@ -164,5 +164,7 @@ export function openPrint(pages: Pick<PrintListItem, 'href' | 'newSheet'>[], opt
 	params.set('toc', options.toc ? '1' : '0')
 	params.set('props', options.props ? '1' : '0')
 	params.set('ext', options.ext ? '1' : '0')
-	window.open(`/_print?${params}`, '_blank')
+	// Without noopener the print tab shares an event loop with this tab, and the
+	// browser's print dialog in it would freeze this tab too.
+	window.open(`/_print?${params}`, '_blank', 'noopener')
 }
