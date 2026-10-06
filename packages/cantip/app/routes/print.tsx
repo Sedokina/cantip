@@ -75,7 +75,7 @@ async function preparePrint(): Promise<void> {
 }
 
 export default function PrintRoute() {
-	const { pages, missing, toc, props, breaks } = useLoaderData<typeof loader>()
+	const { pages, missing, toc, props } = useLoaderData<typeof loader>()
 	const t = useT()
 	const printed = useRef(false)
 
@@ -98,7 +98,7 @@ export default function PrintRoute() {
 	}, [pages.length])
 
 	return (
-		<div data-breaks={breaks || undefined} className="print-root mx-auto w-full max-w-[calc(720px+5rem)] px-10 pb-16 max-md:px-4">
+		<div className="print-root mx-auto w-full max-w-[calc(720px+5rem)] px-10 pb-16 max-md:px-4">
 			<div className="print-toolbar sticky top-0 z-10 -mx-10 mb-6 flex flex-col gap-2 border-b bg-background/95 px-10 py-3 backdrop-blur max-md:-mx-4 max-md:px-4">
 				<div className="flex items-center justify-end gap-2">
 					<Button variant="outline" size="sm" onClick={() => window.close()}>
@@ -173,7 +173,7 @@ function HeadingList({ headings }: { headings: PrintDoc['headings'] }) {
 function PrintedPage({ page, toc, props }: { page: PrintDoc; toc: boolean; props: boolean }) {
 	const priority = getPriority(page.frontmatter.tags)
 	return (
-		<article className="content print-page">
+		<article className="content print-page" data-new-sheet={page.newSheet || undefined}>
 			<h1 id={page.anchor} className="title-row">
 				{page.title}
 				{priority && <PriorityBadge priority={priority} />}
@@ -193,7 +193,7 @@ function PrintedPage({ page, toc, props }: { page: PrintDoc; toc: boolean; props
 
 function PrintedImage({ image }: { image: PrintImage }) {
 	return (
-		<article className="content print-page print-image">
+		<article className="content print-page print-image" data-new-sheet={image.newSheet || undefined}>
 			<h1 id={image.anchor} className="title-row">
 				{image.title}
 			</h1>

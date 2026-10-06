@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation } from '@remix-run/react'
-import { ArrowDown, ArrowUp, GripVertical, Printer, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, FilePlus, GripVertical, Printer, X } from 'lucide-react'
 import {
 	DndContext,
 	KeyboardSensor,
@@ -96,10 +96,16 @@ export default function PrintDialog({
 		writePrintOptions(next)
 	}
 
-	const print = (hrefs: string[]) => {
-		openPrint(hrefs, options)
+	const print = (pages: Pick<PrintListItem, 'href' | 'newSheet'>[]) => {
+		openPrint(pages, options)
 		onClose()
 	}
+
+	// The first page can start a new sheet only after the combined table of contents.
+	const canStartSheet = (index: number) => index > 0 || (options.toc && list.items.length > 1)
+	const sheetItems = list.items.filter((_, index) => canStartSheet(index))
+	const allNewSheet = sheetItems.length > 0 && sheetItems.every((item) => item.newSheet)
+	const someNewSheet = sheetItems.some((item) => item.newSheet)
 
 	return createPortal(
 		<div
@@ -145,7 +151,7 @@ export default function PrintDialog({
 							<h3 className="m-0 mb-2 text-xs font-medium text-muted-foreground">{t('printThisPage')}</h3>
 							<div className="flex items-center justify-between gap-3">
 								<span className="min-w-0 truncate text-foreground">{title}</span>
-								<Button size="sm" onClick={() => print([href])}>
+								<Button size="sm" onClick={() => print([{ href }])}>
 									<Printer className="size-4" />
 									{t('print')}
 								</Button>
@@ -154,21 +160,30 @@ export default function PrintDialog({
 					)}
 
 					<section className="px-4 py-3">
-						<h3 className="m-0 mb-2 text-xs font-medium text-muted-foreground">
-							{t('printList')} ({list.items.length})
-						</h3>
+						<div className="mb-2 flex items-center gap-1">
+							<h3 className="m-0 flex-1 text-xs font-medium text-muted-foreground">
+								{t('printList')} ({list.items.length})
+							</h3>
+							{list.items.length > 0 && (
+								<>
+									<IconButton
+										label={t('printPageBreaks')}
+										pressed={allNewSheet || (someNewSheet && 'mixed')}
+										disabled={sheetItems.length === 0}
+										onClick={() => list.setAllNewSheet(!allNewSheet)}
+									>
+										<FilePlus className="size-4" />
+									</IconButton>
+									{/* Lines the button up with the rows' new-sheet buttons, which ↑, ↓ and × follow. */}
+									<span className="w-20 shrink-0" />
+								</>
+							)}
+						</div>
 						{list.items.length === 0 ? (
 							<p className="m-0 text-muted-foreground">{t('printListEmpty')}</p>
 						) : (
-							<PrintListItems list={list} dragging={dragging} />
+							<PrintListItems list={list} dragging={dragging} canStartSheet={canStartSheet} />
 						)}
-						<div className="mt-3">
-							<Checkbox
-								label={t('printPageBreaks')}
-								checked={options.breaks}
-								onChange={(v) => setOption('breaks', v)}
-							/>
-						</div>
 						<div className="mt-3 flex flex-wrap items-center gap-2">
 							{href && (
 								<Button
@@ -192,7 +207,7 @@ export default function PrintDialog({
 								size="sm"
 								className="ml-auto"
 								disabled={list.items.length === 0}
-								onClick={() => print(list.items.map((item) => item.href))}
+								onClick={() => print(list.items)}
 							>
 								<Printer className="size-4" />
 								{t('print')}
@@ -209,9 +224,11 @@ export default function PrintDialog({
 function PrintListItems({
 	list,
 	dragging,
+	canStartSheet,
 }: {
 	list: ReturnType<typeof usePrintList>
 	dragging: MutableRefObject<boolean>
+	canStartSheet: (index: number) => boolean
 }) {
 	const sensors = useSensors(
 		// The distance keeps a click on a row's buttons from starting a drag.
@@ -260,7 +277,13 @@ function PrintListItems({
 			<SortableContext items={hrefs} strategy={verticalListSortingStrategy}>
 				<ol className="m-0 list-none space-y-1 p-0">
 					{list.items.map((item, index) => (
-						<PrintListRow key={item.href} item={item} index={index} list={list} />
+						<PrintListRow
+							key={item.href}
+							item={item}
+							index={index}
+							list={list}
+							canStartSheet={canStartSheet(index)}
+						/>
 					))}
 				</ol>
 			</SortableContext>
@@ -272,10 +295,12 @@ function PrintListRow({
 	item,
 	index,
 	list,
+	canStartSheet,
 }: {
 	item: PrintListItem
 	index: number
 	list: ReturnType<typeof usePrintList>
+	canStartSheet: boolean
 }) {
 	const t = useT()
 	const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
@@ -306,6 +331,14 @@ function PrintListRow({
 			<span className="min-w-0 flex-1 truncate pl-1 text-foreground" title={item.href}>
 				{item.title}
 			</span>
+			<IconButton
+				label={t('printNewSheet')}
+				pressed={item.newSheet === true}
+				disabled={!canStartSheet}
+				onClick={() => list.setNewSheet(item.href, !item.newSheet)}
+			>
+				<FilePlus className="size-4" />
+			</IconButton>
 			<IconButton label={t('moveUp')} disabled={index === 0} onClick={() => list.move(index, -1)}>
 				<ArrowUp className="size-4" />
 			</IconButton>
@@ -347,11 +380,14 @@ function Checkbox({
 
 function IconButton({
 	label,
+	pressed,
 	disabled,
 	onClick,
 	children,
 }: {
 	label: string
+	/** Set for a toggle button. */
+	pressed?: boolean | 'mixed'
 	disabled?: boolean
 	onClick: () => void
 	children: React.ReactNode
@@ -360,12 +396,15 @@ function IconButton({
 		<button
 			type="button"
 			aria-label={label}
+			aria-pressed={pressed}
 			title={label}
 			disabled={disabled}
 			onClick={onClick}
 			className={cn(
 				'rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground',
 				'disabled:pointer-events-none disabled:opacity-30',
+				pressed && 'text-primary hover:text-primary',
+				pressed === true && 'bg-primary/15 hover:bg-primary/25',
 			)}
 		>
 			{children}

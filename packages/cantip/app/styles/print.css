@@ -79,8 +79,8 @@
 		padding: 0;
 	}
 
-	[data-breaks] .print-page + .print-page,
-	[data-breaks] .print-toc + .print-page {
+	.print-page + .print-page[data-new-sheet],
+	.print-toc + .print-page[data-new-sheet] {
 		break-before: page;
 		margin-top: 0;
 		padding-top: 0;

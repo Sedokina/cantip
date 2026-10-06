@@ -17,6 +17,7 @@ interface PrintDoc {
 	frontmatter: Record<string, unknown>
 	headings: Heading[]
 	hast: Root
+	newSheet: boolean
 }
 
 interface PrintImage {
@@ -24,6 +25,7 @@ interface PrintImage {
 	anchor: string
 	title: string
 	src: string
+	newSheet: boolean
 }
 
 type PrintPage = PrintDoc | PrintImage
@@ -58,14 +60,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const missing: string[] = []
 	// Doc id → anchor of its first copy in this document.
 	const anchors = new Map<string, string>()
+	// Indexes into the `page` params, so they still match after missing pages are skipped.
+	const sheets = new Set(params.getAll('sheet'))
 
-	for (const href of params.getAll('page')) {
+	for (const [index, href] of params.getAll('page').entries()) {
+		const newSheet = sheets.has(String(index))
 		const id = resolvePathname(href)
 		const anchor = `p${pages.length + 1}`
 		const image = id ? await getImage(id) : null
 		if (image) {
 			if (!anchors.has(image.id)) anchors.set(image.id, anchor)
-			pages.push({ kind: 'image', anchor, title: image.data.title, src: image.data.src })
+			pages.push({ kind: 'image', anchor, title: image.data.title, src: image.data.src, newSheet })
 			continue
 		}
 		const doc = id ? await getDoc(id) : null
@@ -82,6 +87,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 			headings: doc.headings.map((h) => ({ ...h, slug: `${anchor}-${h.slug}` })),
 			// The loader caches parsed content, so rewriting must not touch the shared tree.
 			hast: structuredClone(doc.hast),
+			newSheet,
 		})
 	}
 
@@ -93,6 +99,5 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 		missing,
 		toc: params.get('toc') === '1',
 		props: params.get('props') === '1',
-		breaks: params.get('breaks') === '1',
 	})
 }

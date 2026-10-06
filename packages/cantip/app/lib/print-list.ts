@@ -12,6 +12,8 @@ export interface PrintListItem {
 	/** Doc href as the sidebar links it, e.g. "/guides/overview/". May be a permalink. */
 	href: string
 	title: string
+	/** Start this page on a new sheet. */
+	newSheet?: boolean
 }
 
 const STORAGE_KEY = 'cantip:print-list'
@@ -116,6 +118,12 @@ export function usePrintList() {
 			write(next)
 			return next.length - current.length
 		},
+		setNewSheet: (href: string, newSheet: boolean) => {
+			write(getSnapshot().map((item) => (samePage(item.href, href) ? { ...item, newSheet } : item)))
+		},
+		setAllNewSheet: (newSheet: boolean) => {
+			write(getSnapshot().map((item) => ({ ...item, newSheet })))
+		},
 		clear: () => write(EMPTY),
 	}
 }
@@ -124,12 +132,10 @@ export function usePrintList() {
 export interface PrintOptions {
 	toc: boolean
 	props: boolean
-	/** Start every page of the print list on a new sheet. */
-	breaks: boolean
 }
 
 const OPTIONS_KEY = 'cantip:print-options'
-const DEFAULT_OPTIONS: PrintOptions = { toc: true, props: false, breaks: false }
+const DEFAULT_OPTIONS: PrintOptions = { toc: true, props: false }
 
 export function readPrintOptions(): PrintOptions {
 	try {
@@ -149,11 +155,11 @@ export function writePrintOptions(options: PrintOptions): void {
 }
 
 // Call from a click handler: popup blockers allow window.open only there.
-export function openPrint(hrefs: string[], options: PrintOptions): void {
+export function openPrint(pages: Pick<PrintListItem, 'href' | 'newSheet'>[], options: PrintOptions): void {
 	const params = new URLSearchParams()
-	for (const href of hrefs) params.append('page', href)
+	for (const page of pages) params.append('page', page.href)
+	for (const [index, page] of pages.entries()) if (page.newSheet) params.append('sheet', String(index))
 	params.set('toc', options.toc ? '1' : '0')
 	params.set('props', options.props ? '1' : '0')
-	params.set('breaks', options.breaks ? '1' : '0')
 	window.open(`/_print?${params}`, '_blank')
 }

@@ -12,9 +12,19 @@ Each release on GitHub takes its notes from the matching section below.
   grip, press Space, move it with the arrow keys and press Space again. Screen
   readers announce each move in the site's language. The ↑ and ↓ buttons still
   work.
+- **New sheet per page.** Each page in the print list has a button that starts
+  it on a new sheet, so some pages can start a new sheet while others follow the
+  page before them. The setting is stored with the page in the list and moves
+  with it when the list is reordered. The same button in the list header
+  replaces the "Start each page on a new sheet" checkbox and turns every page
+  on or off. The first page can start a new sheet only after the table of
+  contents.
 
 ### Changed
 
+- "Start each page on a new sheet" is no longer one saved option for the whole
+  list. A reader who had it turned on will find every page off after the
+  upgrade and needs to turn it on again once.
 - Image and draw.io pages show the file name in a title row above the image,
   like canvas pages.
 

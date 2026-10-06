@@ -240,7 +240,12 @@ not shared between browsers or devices.
   and its headings.
 - **Properties.** Prints the frontmatter table of each page.
 - **Start each page on a new sheet.** Off by default: pages follow each other,
-  separated by a line.
+  separated by a line. Each page in the list has its own new-sheet button, so
+  some pages can start a new sheet and others follow the page before them. The
+  same button in the list header turns every page on or off. It has a
+  background when every page is on, and only a coloured icon when some pages
+  are on. The first page can start a new sheet only after the table
+  of contents. New sheet is stored with each page in the list.
 
 **Command palette.** Press `>`, click the ⚡ button next to the search box, or
 type `>` in the file search (Ctrl/Cmd+P). It has **Print…**, **Add to print
