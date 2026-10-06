@@ -6,6 +6,23 @@ function isDark(): boolean {
 }
 
 /**
+ * json-canvas-viewer clears the canvas and draws the grid dots over
+ * `canvas.width × canvas.height` in CSS-pixel units, but those are backing-store
+ * sizes. Below devicePixelRatio 1 (browser zoom under 100%) that covers only part
+ * of the canvas, and the uncleared strip at the bottom and right keeps old frames.
+ * Reporting the size in CSS pixels makes both reach the edges at any ratio.
+ */
+function reportSizeInCssPixels(canvas: HTMLCanvasElement) {
+	for (const key of ['width', 'height'] as const) {
+		const native = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, key)!
+		Object.defineProperty(canvas, key, {
+			get: () => native.get!.call(canvas) / window.devicePixelRatio,
+			set: (value: number) => native.set!.call(canvas, value),
+		})
+	}
+}
+
+/**
  * Renders an Obsidian canvas inline using the json-canvas-viewer library.
  *
  * Mapped onto the `<canvas-mount>` element emitted by the canvas generator (see
@@ -51,6 +68,8 @@ export default function CanvasView({ canvas }: { canvas?: string }) {
 				},
 				[Minimap, Controls],
 			)
+			const mainCanvas = container.querySelector<HTMLCanvasElement>('.JCV-main-canvas')
+			if (mainCanvas) reportSizeInCssPixels(mainCanvas)
 			observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
 		})()
 

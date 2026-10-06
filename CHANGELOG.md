@@ -3,6 +3,17 @@
 Release notes for `cantip` and `create-cantip`, which are released together.
 Each release on GitHub takes its notes from the matching section below.
 
+## 0.9.5
+
+### Fixed
+
+- Canvas pages fill the whole height of the page. Before, the canvas kept a
+  2:1 aspect ratio and left an empty area below it when the content column was
+  narrow. Existing sites need a content regeneration to get the fix.
+- Canvas pages no longer show gray strips with leftover frames along the bottom
+  and right edges when browser zoom is below 100%. The grid dots now reach the
+  edges at any zoom.
+
 ## 0.9.4
 
 ### Added

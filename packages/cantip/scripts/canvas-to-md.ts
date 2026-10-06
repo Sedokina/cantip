@@ -44,6 +44,10 @@ async function generateCanvasFile(
 	// Carry the canvas data on a `<canvas-mount>` custom element so the app can map
 	// it to the CanvasView component (which parses `canvas` and renders the viewer).
 	// HTML-attribute-escaped so it survives the markdown → rehype-raw round-trip.
+	// The closing tag goes on its own line: markdown parses a line holding only an
+	// open tag as an HTML block, but wraps an inline open+close pair in a <p>. Inside
+	// a <p> the container is not a flex item of `.body` and takes its height from the
+	// canvas element's aspect ratio instead of filling the page.
 	const canvasAttr = JSON.stringify(canvasObj)
 		.replace(/&/g, '&amp;')
 		.replace(/"/g, '&quot;')
@@ -56,7 +60,8 @@ async function generateCanvasFile(
 		'tableOfContents: false',
 		'---',
 		'',
-		`<canvas-mount canvas="${canvasAttr}"></canvas-mount>`,
+		`<canvas-mount canvas="${canvasAttr}">`,
+		'</canvas-mount>',
 		'',
 	].join('\n');
 
