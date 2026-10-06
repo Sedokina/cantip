@@ -3,6 +3,34 @@
 Release notes for `cantip` and `create-cantip`, which are released together.
 Each release on GitHub takes its notes from the matching section below.
 
+## 0.9.4
+
+### Added
+
+- **`cantipRoutes()`** from `cantip/vite` adds the routes cantip owns: `/_print`
+  and the Jira endpoints `/api/jira`, `/jira/connect`, `/jira/callback` and
+  `/jira/disconnect`. Pass it to the Remix plugin once:
+
+  ```ts
+  import { cantip, cantipRoutes } from 'cantip/vite'
+
+  remix({ routes: cantipRoutes() })
+  ```
+
+  After that, routes added in later versions arrive with the package upgrade,
+  with no new files in `app/routes/`. A site's own file for one of these paths
+  replaces cantip's route. `exclude` leaves routes out, and `appDirectory` sets
+  an app folder other than `app/`.
+
+### Changed
+
+- New sites from `create-cantip`, and the Docker image, use `cantipRoutes()`.
+  Their `app/routes/` holds only `$.tsx` and `_index.tsx`.
+- Upgrading: existing sites keep working with their stub files. To switch, add
+  `routes: cantipRoutes()` to `remix()` in `vite.config.ts` and delete
+  `app/routes/[_print].tsx`, `api.jira.ts`, `jira.connect.ts`, `jira.callback.ts`
+  and `jira.disconnect.ts`, unless you changed one of them.
+
 ## 0.9.3
 
 ### Added

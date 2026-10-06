@@ -31,20 +31,32 @@ it.
 
 ## Add to an existing Remix app
 
-cantip is a Vite plugin. Add it before the Remix plugin:
+cantip is a Vite plugin. Add it before the Remix plugin, and pass
+`cantipRoutes()` to the Remix plugin's `routes` option:
 
 ```ts
 // vite.config.ts
 import { vitePlugin as remix } from '@remix-run/dev'
 import tailwindcss from '@tailwindcss/vite'
-import { cantip } from 'cantip/vite'
+import { cantip, cantipRoutes } from 'cantip/vite'
 
 export default defineConfig({
-  plugins: [cantip(), tailwindcss(), remix()],
+  plugins: [cantip(), tailwindcss(), remix({ routes: cantipRoutes() })],
 })
 ```
 
-Then wire the docs routes by re-exporting them from your `app/`:
+`cantipRoutes()` adds the routes cantip owns: the print view (`/_print`) and the
+Jira endpoints (`/api/jira`, `/jira/connect`, `/jira/callback`,
+`/jira/disconnect`). Routes added in later cantip versions arrive the same way,
+so an upgrade needs no new files in `app/`.
+
+- **Replace a route:** add your own file for its path, e.g.
+  `app/routes/[_print].tsx` or `app/routes/api.jira.ts`. cantip then skips that
+  route, so the file you wrote is the one that serves it.
+- **Leave routes out:** `cantipRoutes({ exclude: ['/api/jira'] })`.
+- **App folder other than `app/`:** `cantipRoutes({ appDirectory: 'src' })`.
+
+Then wire the docs pages by re-exporting them from your `app/`:
 
 ```ts
 // app/root.tsx        — the docs layout (replace or wrap with your own)
@@ -57,11 +69,9 @@ export { default, meta } from 'cantip/routes/doc'
 
 // app/routes/_index.tsx — the home page
 export { default, meta } from 'cantip/routes/home'
-
-// app/routes/[_print].tsx — the print view at /_print (see "Print and save as PDF")
-export { loader } from 'cantip/routes/print.server'
-export { default, meta, handle } from 'cantip/routes/print'
 ```
+
+These stay files in your `app/` because sites usually edit them.
 
 The `cantip()` plugin runs the content pipeline (markdown → HTML) before each
 build and on changes in dev — no separate generate step. In dev it watches
@@ -261,9 +271,15 @@ prints the rest.
 
 On iOS, save the PDF from the print dialog with Share → Save to Files.
 
-**Upgrading an existing site:** add the `app/routes/[_print].tsx` route shown in
-[Add to an existing Remix app](#add-to-an-existing-remix-app). Without it, Print
-opens a 404.
+`/_print` is one of the routes `cantipRoutes()` adds (see
+[Add to an existing Remix app](#add-to-an-existing-remix-app)). A site that does
+not use `cantipRoutes()` needs the route as a file, or Print opens a 404:
+
+```ts
+// app/routes/[_print].tsx
+export { loader } from 'cantip/routes/print.server'
+export { default, meta, handle } from 'cantip/routes/print'
+```
 
 ## Hide files
 
@@ -367,7 +383,10 @@ of it renders.
 
 ### Step 1 — Mount the routes (both modes)
 
-Re-export the routes from your `app/`:
+With `cantipRoutes()` in `vite.config.ts` (see
+[Add to an existing Remix app](#add-to-an-existing-remix-app)), the routes are
+already mounted and only the env vars below are needed. Without it, re-export
+them from your `app/`:
 
 ```ts
 // app/routes/api.jira.ts        — publish endpoint (status + create/update)
@@ -501,7 +520,7 @@ completed ones.
 
 | Import | What |
 | --- | --- |
-| `cantip/vite` | The Vite plugin. |
+| `cantip/vite` | The Vite plugin (`cantip`) and `cantipRoutes`. |
 | `cantip/config` | `defineConfig` + the config schema. |
 | `cantip/source` | `loader()` + the `Source`/`VirtualFile` content contract (framework-agnostic). |
 | `cantip/root`, `cantip/root.server` | Root layout + `CantipProvider` + the loader. |

@@ -82,6 +82,8 @@ content stays **out of your server bundle** — the build is content-agnostic, a
 content can be regenerated/swapped without rebuilding or restarting the app. The
 generator is precompiled to `dist/*.mjs` (Node won't strip TS types under
 `node_modules`), and cantip ships `.d.ts` so your `tsc` stays clean.
+`cantipRoutes()` hands the routes cantip owns (print view, Jira endpoints) to the
+Remix plugin, so they need no files in your `app/`.
 
 **Content flows through a `Source` → `loader()` contract** (`cantip/source`). A
 Source is just `{ files: VirtualFile[] }` — the built-in Obsidian backend emits

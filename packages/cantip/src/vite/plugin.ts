@@ -17,28 +17,16 @@
  * only an import target via the `~/*` alias.
  */
 import { spawn } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 
 import type { Plugin, ViteDevServer } from 'vite'
 
-/**
- * Directory of the installed cantip package (…/node_modules/cantip). Resolved by
- * walking up from this module to the dir containing cantip's package.json —
- * works whether this runs as the bundled `dist/vite.mjs` (1 level deep) or the
- * `src/vite/plugin.ts` source (3 levels) in monorepo dev.
- */
-function findPkgDir(): string {
-	let dir = path.dirname(fileURLToPath(import.meta.url))
-	while (!existsSync(path.join(dir, 'package.json'))) {
-		const parent = path.dirname(dir)
-		if (parent === dir) return dir // give up at fs root
-		dir = parent
-	}
-	return dir
-}
+import { findPkgDir } from './package-dir'
+
+export { cantipRoutes, type CantipRoutesOptions } from './routes'
+
 const PKG_DIR = findPkgDir()
 const GENERATE_JS = path.join(PKG_DIR, 'dist', 'generate-content.mjs')
 const GENERATE_TS = path.join(PKG_DIR, 'scripts', 'generate-content.ts')

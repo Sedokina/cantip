@@ -1,7 +1,7 @@
 import { vitePlugin as remix } from '@remix-run/dev'
 import { defineConfig } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
-import { cantip } from 'cantip/vite'
+import { cantip, cantipRoutes } from 'cantip/vite'
 
 declare module '@remix-run/node' {
 	interface Future {
@@ -12,11 +12,15 @@ declare module '@remix-run/node' {
 // This is YOUR Remix app — edit freely. `cantip()` runs the docs content
 // pipeline (markdown → HTML) before build/dev and wires the `~/*` aliases its
 // routes/components use; `remix()` and `tailwindcss()` are the standard plugins.
+// `cantipRoutes()` adds the routes cantip owns (print view, Jira endpoints), so
+// app/routes/ holds only the pages you edit. A file you add for one of those
+// paths replaces cantip's route.
 export default defineConfig({
 	plugins: [
 		cantip(),
 		tailwindcss(),
 		remix({
+			routes: cantipRoutes(),
 			ssr: true,
 			future: {
 				v3_fetcherPersist: true,
