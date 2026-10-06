@@ -239,6 +239,10 @@ not shared between browsers or devices.
   get one table of contents at the start of the document, with each page title
   and its headings.
 - **Properties.** Prints the frontmatter table of each page.
+- **File extensions.** Off by default: printed files such as images are titled
+  without their extension, `Login Screen` instead of `Login Screen.png`, and
+  `architecture` instead of `architecture.drawio.svg`. On keeps the full file
+  name.
 - **Start each page on a new sheet.** Off by default: pages follow each other,
   separated by a line. Each page in the list has its own new-sheet button, so
   some pages can start a new sheet and others follow the page before them. The

@@ -54,6 +54,9 @@ function rewriteElement(element: Element, anchor: string, anchors: Map<string, s
 	}
 }
 
+// `.drawio` goes with the extension, so "architecture.drawio.svg" prints as "architecture".
+const EXTENSION = /(?:\.drawio)?\.[^.]+$/i
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const params = new URL(request.url).searchParams
 	const pages: PrintPage[] = []
@@ -62,6 +65,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 	const anchors = new Map<string, string>()
 	// Indexes into the `page` params, so they still match after missing pages are skipped.
 	const sheets = new Set(params.getAll('sheet'))
+	const fileTitle = (title: string) => (params.get('ext') === '1' ? title : title.replace(EXTENSION, ''))
 
 	for (const [index, href] of params.getAll('page').entries()) {
 		const newSheet = sheets.has(String(index))
@@ -70,7 +74,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 		const image = id ? await getImage(id) : null
 		if (image) {
 			if (!anchors.has(image.id)) anchors.set(image.id, anchor)
-			pages.push({ kind: 'image', anchor, title: image.data.title, src: image.data.src, newSheet })
+			pages.push({ kind: 'image', anchor, title: fileTitle(image.data.title), src: image.data.src, newSheet })
 			continue
 		}
 		const doc = id ? await getDoc(id) : null

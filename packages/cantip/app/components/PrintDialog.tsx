@@ -143,6 +143,11 @@ export default function PrintDialog({
 								checked={options.props}
 								onChange={(v) => setOption('props', v)}
 							/>
+							<Checkbox
+								label={t('printExtensions')}
+								checked={options.ext}
+								onChange={(v) => setOption('ext', v)}
+							/>
 						</div>
 					</div>
 

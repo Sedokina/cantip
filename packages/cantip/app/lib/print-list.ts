@@ -132,10 +132,12 @@ export function usePrintList() {
 export interface PrintOptions {
 	toc: boolean
 	props: boolean
+	/** Keep the extension in the titles of printed files, e.g. "Diagram.png". */
+	ext: boolean
 }
 
 const OPTIONS_KEY = 'cantip:print-options'
-const DEFAULT_OPTIONS: PrintOptions = { toc: true, props: false }
+const DEFAULT_OPTIONS: PrintOptions = { toc: true, props: false, ext: false }
 
 export function readPrintOptions(): PrintOptions {
 	try {
@@ -161,5 +163,6 @@ export function openPrint(pages: Pick<PrintListItem, 'href' | 'newSheet'>[], opt
 	for (const [index, page] of pages.entries()) if (page.newSheet) params.append('sheet', String(index))
 	params.set('toc', options.toc ? '1' : '0')
 	params.set('props', options.props ? '1' : '0')
+	params.set('ext', options.ext ? '1' : '0')
 	window.open(`/_print?${params}`, '_blank')
 }
