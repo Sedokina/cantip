@@ -48,6 +48,10 @@
 }
 
 /* An image entry from the print list (not an image embedded in a note). */
+.content h1.print-image__title {
+	font-size: var(--sl-text-base);
+	font-weight: 600;
+}
 .print-image__frame img {
 	display: block;
 	max-width: 100%;

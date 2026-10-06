@@ -27,6 +27,8 @@ Each release on GitHub takes its notes from the matching section below.
   upgrade and needs to turn it on again once.
 - Image and draw.io pages show the file name in a title row above the image,
   like canvas pages.
+- On the print page, an image's title is printed at body text size in semibold
+  instead of at the size of a page title.
 
 ### Fixed
 

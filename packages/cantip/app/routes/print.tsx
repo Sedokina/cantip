@@ -194,7 +194,7 @@ function PrintedPage({ page, toc, props }: { page: PrintDoc; toc: boolean; props
 function PrintedImage({ image }: { image: PrintImage }) {
 	return (
 		<article className="content print-page print-image" data-new-sheet={image.newSheet || undefined}>
-			<h1 id={image.anchor} className="title-row">
+			<h1 id={image.anchor} className="title-row print-image__title">
 				{image.title}
 			</h1>
 			<div className="print-image__frame">
